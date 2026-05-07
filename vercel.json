@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/auth/google", "destination": "/api" },
+    { "source": "/oauth2callback", "destination": "/api" },
+    { "source": "/app.js", "destination": "/api" },
+    { "source": "/styles.css", "destination": "/api" },
+    { "source": "/assets/(.*)", "destination": "/api" },
+    { "source": "/", "destination": "/api" }
+  ]
+}

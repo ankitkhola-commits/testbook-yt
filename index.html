@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YouTube Channel Intelligence Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="setup-screen" id="accessScreen" hidden>
+      <section class="setup-card access-card">
+        <div class="brand setup-brand">
+          <span class="brand-mark logo-mark"><img src="./assets/testbook-logo.png" alt="" /></span>
+          <div>
+            <strong>Testbook YT</strong>
+            <span>Team access</span>
+          </div>
+        </div>
+        <div>
+          <p class="eyebrow">Restricted access</p>
+          <h1>Sign in with your Testbook Google account</h1>
+          <p class="setup-lead">Only users with an approved <strong>@testbook.com</strong> email can access this dashboard. Once you sign in, you can view all shared channel data your admins have connected.</p>
+        </div>
+        <div class="setup-actions access-actions">
+          <button class="connect-button" type="button" id="teamLoginButton">Continue with Google</button>
+        </div>
+        <p class="setup-note" id="accessMessage">Use your team Google account to continue.</p>
+      </section>
+    </main>
+
+    <main class="setup-screen" id="setupScreen" hidden>
+      <section class="setup-card">
+        <div class="brand setup-brand">
+          <span class="brand-mark logo-mark"><img src="./assets/testbook-logo.png" alt="" /></span>
+          <div>
+            <strong>Testbook YT</strong>
+            <span>Local live setup</span>
+          </div>
+        </div>
+        <div>
+          <p class="eyebrow">Setup first</p>
+          <h1>Connect your live YouTube dashboard</h1>
+          <p class="setup-lead">Save these local settings first. After they are saved, the dashboard opens and you can login with Google OAuth to fetch your own channel and Brand Account data.</p>
+        </div>
+
+        <div class="setup-form-grid">
+          <article class="setup-panel">
+            <p class="eyebrow">Google OAuth</p>
+            <h2>Step 1 - App credentials</h2>
+            <p>Add this redirect URI in Google Cloud Console before connecting:</p>
+            <code id="setupRedirectPreview">http://localhost:4173/oauth2callback</code>
+            <div class="setup-warning">
+              <strong>If Google says access blocked</strong>
+              <span>Add your login email under OAuth consent screen -> Test users. Localhost works; Vercel is not required.</span>
+            </div>
+            <label>Google OAuth Client ID
+              <input id="setupGoogleClientId" placeholder="xxxxx.apps.googleusercontent.com" autocomplete="off" />
+            </label>
+            <label>Google OAuth Client Secret
+              <input id="setupGoogleClientSecret" type="password" placeholder="OAuth client secret" autocomplete="off" />
+            </label>
+            <label>Redirect URI
+              <input id="setupRedirectUri" value="http://localhost:4173/oauth2callback" autocomplete="off" />
+            </label>
+          </article>
+
+          <article class="setup-panel">
+            <p class="eyebrow">API keys</p>
+            <h2>Step 2 - Intelligence settings</h2>
+            <p>These keys are saved only into your local server .env file. They are never embedded into browser JavaScript.</p>
+            <label>YouTube API Key
+              <input id="setupYoutubeApiKey" type="password" placeholder="Used for public competitor data" autocomplete="off" />
+            </label>
+            <label>Anthropic API Key
+              <input id="setupAnthropicApiKey" type="password" placeholder="Used for AI recommendations" autocomplete="off" />
+            </label>
+            <div class="setup-actions">
+              <button class="connect-button" data-action="save-config">Save local settings</button>
+              <button class="ghost-button" data-action="check-status">Check status</button>
+              <button class="ghost-button" data-action="reset-local">Clear and retry</button>
+            </div>
+            <p class="setup-note" id="setupMessage">Waiting for local settings.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <div class="app-shell" id="appShell" hidden>
+      <aside class="sidebar" aria-label="Channel navigation">
+        <div class="brand">
+          <span class="brand-mark logo-mark"><img src="./assets/testbook-logo.png" alt="" /></span>
+          <div>
+            <strong>Testbook YT</strong>
+            <span>Multi-channel analytics</span>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Workspace sections">
+          <button class="side-nav-button active" type="button" data-view-tab="dashboard">Dashboard</button>
+          <button class="side-nav-button" type="button" data-view-tab="competitors">Competitors</button>
+          <button class="side-nav-button" type="button" data-view-tab="research">Research</button>
+          <button class="side-nav-button" type="button" data-view-tab="seo-audit">SEO Audit</button>
+        </nav>
+
+        <button class="connect-button" id="connectChannelButton" data-sidebar-view="dashboard">
+          <span aria-hidden="true">+</span>
+          Add channel
+        </button>
+
+        <div class="sidebar-section" data-sidebar-view="dashboard">
+          <label class="channel-search">
+            <span aria-hidden="true">⌕</span>
+            <input id="channelSearchInput" type="search" placeholder="Search" autocomplete="off" />
+          </label>
+          <div class="section-row">
+            <div class="section-label">Your channels</div>
+            <span id="slotCount">0 connected</span>
+          </div>
+          <div id="channelList" class="channel-list"></div>
+        </div>
+      </aside>
+
+      <main class="dashboard">
+        <header class="topbar">
+          <div class="title-row">
+            <button class="menu-button" id="sidebarToggle" type="button" aria-label="Toggle channel sidebar" data-action="toggle-sidebar">
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
+            <div class="channel-heading">
+              <h1 id="channelTitle">Channel Analytics</h1>
+              <button class="refresh-icon-button" id="refreshButton" type="button" aria-label="Refresh live data">↻</button>
+            </div>
+          </div>
+          <div class="topbar-actions" id="topbarActions">
+            <div class="select-wrap">
+              <label for="rangeSelect">Range</label>
+              <select id="rangeSelect">
+                <option value="month">This month</option>
+                <option value="7">Last 7 days</option>
+              </select>
+            </div>
+          </div>
+        </header>
+
+        <section class="growth-strip" aria-label="Growth summary" data-view="dashboard">
+          <article>
+            <span id="metric1Label">Views gained</span>
+            <strong id="viewsTrend">0%</strong>
+            <small><span id="viewsTrendDetail">selected time frame</span> <b id="viewsDelta" class="delta neutral">0%</b></small>
+          </article>
+          <article>
+            <span id="metric2Label">Subscribers gained</span>
+            <strong id="subTrend">0%</strong>
+            <small><span id="subTrendDetail">net gained</span> <b id="subDelta" class="delta neutral">0%</b></small>
+          </article>
+          <article>
+            <span id="metric3Label">Videos published</span>
+            <strong id="videoCount">0</strong>
+            <small><span id="metric3Detail">Long-form uploads</span> <b id="videoDelta" class="delta neutral">0%</b></small>
+          </article>
+          <article>
+            <span id="metric4Label">Shorts published</span>
+            <strong id="shortCount">0</strong>
+            <small><span id="metric4Detail">Shorts uploaded</span> <b id="shortDelta" class="delta neutral">0%</b></small>
+          </article>
+          <article>
+            <span id="metric5Label">Live published</span>
+            <strong id="liveCount">0</strong>
+            <small><span id="metric5Detail">Live streams</span> <b id="liveDelta" class="delta neutral">0%</b></small>
+          </article>
+        </section>
+
+        <section class="workspace-grid">
+          <article class="panel page-panel" data-view="dashboard" data-dashboard-mode="single">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Day wise publishing</p>
+                <h2>Content published per day</h2>
+              </div>
+              <div class="legend">
+                <span><i class="dot video"></i>Videos</span>
+                <span><i class="dot short"></i>Shorts</span>
+                <span><i class="dot live"></i>Live</span>
+                <span><i class="dot post"></i>Shares</span>
+              </div>
+            </div>
+            <div id="uploadChart" class="publish-table"></div>
+          </article>
+
+          <article class="panel" data-view="dashboard" data-dashboard-mode="single">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Subscribers</p>
+                <h2>Most subscribers gained</h2>
+              </div>
+            </div>
+            <div id="subscriberContent" class="rank-list"></div>
+          </article>
+
+          <article class="panel" data-view="dashboard" data-dashboard-mode="single">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Views split</p>
+                <h2>By format</h2>
+              </div>
+            </div>
+            <div class="split-chart">
+              <div class="donut" id="viewsDonut" aria-label="Views split chart"></div>
+              <div id="viewsLegend" class="split-legend"></div>
+            </div>
+            <div class="average-compact">
+              <div>
+                <p class="eyebrow">Average views</p>
+                <h2>Views per published item</h2>
+              </div>
+              <div id="averageViews" class="average-grid"></div>
+            </div>
+          </article>
+
+          <article class="panel page-panel search-panel" data-view="dashboard" data-dashboard-mode="single">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">YouTube search</p>
+                <h2>Day-wise search views</h2>
+              </div>
+              <strong id="searchTotal" class="panel-total">0 search views</strong>
+            </div>
+            <div id="youtubeSearchChart" class="search-chart"></div>
+            <div class="keyword-panel">
+              <p class="eyebrow">Top keywords</p>
+              <h3 id="searchKeywordTitle">Top keywords</h3>
+              <div id="searchKeywords" class="keyword-list"></div>
+            </div>
+          </article>
+
+          <article class="panel" data-view="dashboard" data-dashboard-mode="all">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Channel ranking</p>
+                <h2>Top channels by organic views</h2>
+              </div>
+            </div>
+            <div id="allInOneOrganicChannels" class="rank-list"></div>
+          </article>
+
+          <article class="panel" data-view="dashboard" data-dashboard-mode="all">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Channel ranking</p>
+                <h2>Top channels by subscribers gained</h2>
+              </div>
+            </div>
+            <div id="allInOneSubscriberChannels" class="rank-list"></div>
+          </article>
+
+          <article class="panel page-panel" data-view="dashboard" data-dashboard-mode="all">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">All in One</p>
+                <h2>Most subscribers gained overall</h2>
+              </div>
+            </div>
+            <div id="allInOneTopContent" class="rank-list"></div>
+          </article>
+
+          <article class="panel page-panel" data-view="dashboard" data-dashboard-mode="all">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Top faculties</p>
+                <h2>Cumulative faculty performance</h2>
+              </div>
+            </div>
+            <div class="faculty-grid">
+              <section>
+                <p class="eyebrow">Most views</p>
+                <div id="facultyViews" class="rank-list faculty-list"></div>
+              </section>
+              <section>
+                <p class="eyebrow">Most subscribers gained</p>
+                <div id="facultySubscribers" class="rank-list faculty-list"></div>
+              </section>
+            </div>
+          </article>
+
+          <article class="panel page-panel competitor-panel" data-view="competitors">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow" id="competitorPageTitle">Channel benchmark</p>
+                <h2 id="competitorCategoryHeading">UGC NET</h2>
+              </div>
+              <strong id="competitorRangeLabel" class="panel-total">Last 7 days</strong>
+            </div>
+            <div id="competitorCategoryTabs" class="category-tabs"></div>
+            <div id="competitorBenchmark" class="benchmark-page"></div>
+          </article>
+
+          <article class="panel page-panel research-panel" data-view="research">
+            <div class="panel-header research-header">
+              <div>
+                <p class="eyebrow">YouTube research</p>
+                <h2>Keyword outliers and topic ideas</h2>
+              </div>
+            </div>
+            <div class="research-toolbar">
+              <label class="research-field research-keyword">
+                <span>Keyword</span>
+                <input id="researchKeywordInput" type="text" placeholder="e.g. RRB ALP" autocomplete="off" />
+              </label>
+              <label class="research-field research-range">
+                <span>Time frame</span>
+                <select id="researchRangeSelect">
+                  <option value="48h">Last 48 hours</option>
+                  <option value="30d">Last 30 days</option>
+                  <option value="90d">Last 90 days</option>
+                  <option value="365d">Last 365 days</option>
+                </select>
+              </label>
+              <button class="connect-button research-run" type="button" id="researchRunButton">Run research</button>
+            </div>
+            <div class="research-filter-row" id="researchFilterRow">
+              <button class="filter-chip active" type="button" data-research-filter="All">All</button>
+              <button class="filter-chip" type="button" data-research-filter="Shorts">Shorts</button>
+              <button class="filter-chip" type="button" data-research-filter="Video">Videos</button>
+              <button class="filter-chip" type="button" data-research-filter="Live">Live</button>
+            </div>
+            <div id="researchSummary" class="research-summary"></div>
+            <div id="researchResults" class="research-results"></div>
+            <div class="research-ideas-panel">
+              <div class="research-ideas-header">
+                <div>
+                  <p class="eyebrow">AI ideas</p>
+                  <h3>Suggest topics from these winners</h3>
+                </div>
+                <button class="ghost-button" type="button" id="suggestTopicsButton">Suggest topics</button>
+              </div>
+              <div id="researchIdeas" class="research-ideas"></div>
+            </div>
+          </article>
+
+          <article class="panel page-panel seo-audit-panel" data-view="seo-audit">
+            <div class="panel-header research-header">
+              <div>
+                <p class="eyebrow">SEO audit</p>
+                <h2>Last 24 hours of owned videos and lives</h2>
+              </div>
+              <button class="ghost-button" type="button" id="seoAuditRunButton">Refresh audit</button>
+            </div>
+            <div class="seo-audit-toolbar">
+              <div class="seo-audit-note">
+                Manual refresh only. Scan the last 24 hours of owned long-form videos and live streams only when you want to audit SEO.
+              </div>
+              <div class="seo-audit-controls">
+                <div class="research-filter-row seo-channel-row" id="seoAuditChannelRow"></div>
+                <div class="research-filter-row" id="seoAuditFilterRow">
+                  <button class="filter-chip active" type="button" data-seo-filter="All">All</button>
+                  <button class="filter-chip" type="button" data-seo-filter="Video">Videos</button>
+                  <button class="filter-chip" type="button" data-seo-filter="Live">Live</button>
+                  <button class="filter-chip" type="button" data-seo-filter="Lowest">Lowest score</button>
+                </div>
+              </div>
+            </div>
+            <div id="seoAuditSummary" class="research-summary"></div>
+            <div id="seoAuditResults" class="research-results"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="channelDialog" class="modal">
+      <form method="dialog" id="channelForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Connect</p>
+            <h2>Add YouTube channel</h2>
+          </div>
+          <button value="cancel" class="icon-button" aria-label="Close">×</button>
+        </div>
+        <label>
+          Channel name
+          <input id="channelNameInput" type="text" placeholder="e.g. Tech With Arjun" required />
+        </label>
+        <label>
+          Channel handle or URL
+          <input id="channelHandleInput" type="text" placeholder="@yourchannel or youtube.com/..." required />
+        </label>
+        <p class="form-note">This prototype stores connected channels locally. The backend can later exchange OAuth tokens and load YouTube Analytics API data into the same dashboard.</p>
+        <div class="modal-actions">
+          <button value="cancel" class="ghost-button">Cancel</button>
+          <button class="connect-button" type="submit">Add channel</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="competitorDialog" class="modal">
+      <form method="dialog" id="competitorForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Benchmark</p>
+            <h2>Add competitor</h2>
+          </div>
+          <button value="cancel" class="icon-button" aria-label="Close">×</button>
+        </div>
+        <label>
+          Attach to your channel
+          <select id="competitorOwnerInput" required></select>
+        </label>
+        <label>
+          Search competitor channel
+          <span class="search-line">
+            <input id="competitorNameInput" type="text" placeholder="Channel name, @handle, or UC..." required />
+            <button class="ghost-button" type="button" data-action="search-competitor">Search</button>
+          </span>
+        </label>
+        <input id="competitorChannelIdInput" type="hidden" />
+        <div id="competitorSearchResults" class="search-results"></div>
+        <label>
+          Main content format
+          <select id="competitorFormatInput">
+            <option>Shorts-led</option>
+            <option>Video-led</option>
+            <option>Live-led</option>
+            <option>Balanced</option>
+          </select>
+        </label>
+        <div class="modal-actions">
+          <button value="cancel" class="ghost-button">Cancel</button>
+          <button class="connect-button" type="submit">Add competitor</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
