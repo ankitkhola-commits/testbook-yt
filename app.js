@@ -35,10 +35,6 @@ let state = {
   researchFilter: "All",
   researchResults: [],
   researchIdeas: [],
-  seoAuditRequestId: 0,
-  seoAuditFilter: "All",
-  seoAuditChannel: "All",
-  seoAuditItems: [],
   report: null,
 };
 
@@ -65,27 +61,21 @@ document.querySelector("#teamLoginButton")?.addEventListener("click", () => {
 
 document.querySelector("#refreshButton").addEventListener("click", () => {
   if (state.activeView === "competitors") {
-    loadCategoryCompetitors();
+    loadCategoryCompetitors({ force: true });
     return;
   }
   if (state.activeView === "research") {
     loadResearch({ force: true });
     return;
   }
-  if (state.activeView === "seo-audit") {
-    loadSeoAudit({ force: true });
-    return;
-  }
-  loadDashboard();
+  loadDashboard({ force: true });
 });
 
 document.querySelectorAll("[data-view-tab]").forEach((button) => {
   button.addEventListener("click", () => {
     state.activeView = button.dataset.viewTab;
     applyView();
-    if (state.activeView === "competitors") loadCategoryCompetitors();
     if (state.activeView === "research") renderResearchView();
-    if (state.activeView === "seo-audit") renderSeoAuditView();
   });
 });
 
@@ -156,16 +146,6 @@ document.addEventListener("click", async (event) => {
     return;
   }
 
-  const facultyToggle = event.target.closest(".faculty-video-toggle");
-  if (facultyToggle) {
-    const links = facultyToggle.closest(".faculty-meta")?.querySelector(".faculty-video-links");
-    if (links) {
-      links.hidden = !links.hidden;
-      facultyToggle.classList.toggle("active", !links.hidden);
-    }
-    return;
-  }
-
   const target = event.target.closest("[data-action]");
   if (!target) return;
   const action = target.dataset.action;
@@ -204,28 +184,6 @@ document.querySelector("#researchFilterRow")?.addEventListener("click", (event) 
   renderResearchResults();
 });
 
-document.querySelector("#seoAuditFilterRow")?.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-seo-filter]");
-  if (!button) return;
-  state.seoAuditFilter = button.dataset.seoFilter;
-  renderSeoAuditFilters();
-  renderSeoAuditSummary();
-  renderSeoAuditResults();
-});
-
-document.querySelector("#seoAuditChannelRow")?.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-seo-channel]");
-  if (!button) return;
-  state.seoAuditChannel = button.dataset.seoChannel;
-  renderSeoAuditChannels();
-  renderSeoAuditSummary();
-  renderSeoAuditResults();
-});
-
-document.querySelector("#seoAuditRunButton")?.addEventListener("click", () => {
-  loadSeoAudit({ force: true });
-});
-
 boot();
 
 async function boot() {
@@ -247,7 +205,9 @@ async function boot() {
     const status = await api("/api/status");
     state = { ...state, ...status };
     if (status.teamAuthEnabled && !status.viewer) {
-      showAccessOnly(status, `Sign in with your ${status.allowedEmailDomain || "team"} Google account to continue.`);
+      showAccessOnly(status, status.viewerAllowlistEnabled
+        ? "Login with an admin-approved Google email to continue."
+        : `Sign in with your ${status.allowedEmailDomain || "team"} Google account to continue.`);
       return;
     }
     if (!status.allConfigured) {
@@ -264,13 +224,14 @@ async function boot() {
   }
 }
 
-async function loadDashboard() {
+async function loadDashboard(options = {}) {
   try {
     showDashboard();
     setLoading();
     const channelQuery = state.selectedChannelId ? `&channelId=${encodeURIComponent(state.selectedChannelId)}` : "";
     const monthQuery = state.activeRange === "selectMonth" ? `&month=${encodeURIComponent(state.selectedMonth)}` : "";
-    const report = await api(`/api/dashboard?range=${state.activeRange}${monthQuery}${channelQuery}`);
+    const forceQuery = options.force ? "&force=1" : "";
+    const report = await api(`/api/dashboard?range=${state.activeRange}${monthQuery}${channelQuery}${forceQuery}`);
     state.report = report;
     state.channels = report.channels;
     state.selectedChannelId = report.selectedChannelId;
@@ -296,9 +257,7 @@ function renderReport(report) {
   }
   renderCompetitorCategoryTabs();
   renderResearchView();
-  renderSeoAuditView();
   applyView();
-  if (state.activeView === "competitors") loadCategoryCompetitors();
 }
 
 function renderChannels() {
@@ -371,12 +330,13 @@ function renderMetrics(totals, comparisonTotals = state.report?.comparisonTotals
   document.querySelector("#metric3Detail").textContent = "Long-form uploads";
   document.querySelector("#metric4Detail").textContent = "Shorts uploaded";
   document.querySelector("#metric5Detail").textContent = "Live streams";
-  document.querySelector("#videoCount").textContent = totals.uploads.videos.toLocaleString();
-  document.querySelector("#shortCount").textContent = totals.uploads.shorts.toLocaleString();
-  document.querySelector("#liveCount").textContent = totals.uploads.live.toLocaleString();
-  renderDelta("#videoDelta", totals.uploads.videos, comparisonTotals.uploads?.videos);
-  renderDelta("#shortDelta", totals.uploads.shorts, comparisonTotals.uploads?.shorts);
-  renderDelta("#liveDelta", totals.uploads.live, comparisonTotals.uploads?.live);
+  const uploadsKnown = totals.uploadsKnown !== false;
+  document.querySelector("#videoCount").textContent = formatKnownCount(totals.uploads.videos, uploadsKnown);
+  document.querySelector("#shortCount").textContent = formatKnownCount(totals.uploads.shorts, uploadsKnown);
+  document.querySelector("#liveCount").textContent = formatKnownCount(totals.uploads.live, uploadsKnown);
+  renderDelta("#videoDelta", uploadsKnown ? totals.uploads.videos : 0, comparisonTotals.uploads?.videos);
+  renderDelta("#shortDelta", uploadsKnown ? totals.uploads.shorts : 0, comparisonTotals.uploads?.shorts);
+  renderDelta("#liveDelta", uploadsKnown ? totals.uploads.live : 0, comparisonTotals.uploads?.live);
 }
 
 function renderUploadTable(series) {
@@ -395,10 +355,10 @@ function renderUploadTable(series) {
       <div class="publish-row">
         <strong>${escapeHtml(day.label)}</strong>
         <span class="organic-cell">${Number(day.organicViews || 0).toLocaleString()}</span>
-        <span>${day.uploads.videos}</span>
-        <span>${day.uploads.shorts}</span>
-        <span>${day.uploads.live}</span>
-        <b>${day.uploads.total}</b>
+        <span>${formatKnownCount(day.uploads.videos, day.uploadsKnown !== false)}</span>
+        <span>${formatKnownCount(day.uploads.shorts, day.uploadsKnown !== false)}</span>
+        <span>${formatKnownCount(day.uploads.live, day.uploadsKnown !== false)}</span>
+        <b>${formatKnownCount(day.uploads.total, day.uploadsKnown !== false)}</b>
         <span>${Number(day.shares || 0).toLocaleString()}</span>
       </div>
     `).join("") || `<div class="publish-row empty-row"><strong>No organic/search data in this range yet.</strong></div>`}
@@ -440,11 +400,11 @@ function renderSubscriberContent(content) {
 function renderAverageViews(totals) {
   document.querySelector("#averageViews").innerHTML = ["shorts", "videos", "live"].map((key) => {
     const publishedViews = totals.publishedViews?.[key] || 0;
-    const average = Math.round(publishedViews / Math.max(1, totals.uploads[key]));
+    const average = totals.uploadsKnown === false ? null : Math.round(publishedViews / Math.max(1, totals.uploads[key]));
     return `
       <div class="average-card">
         <span>${formats[key].label}</span>
-        <strong>${average.toLocaleString()}</strong>
+        <strong>${average == null ? "-" : average.toLocaleString()}</strong>
       </div>
     `;
   }).join("");
@@ -454,8 +414,6 @@ function renderAllInOneDashboard(report) {
   renderAllInOneTopContent(report.topContent || []);
   renderChannelRankings("#allInOneOrganicChannels", report.allInOne?.channelRankings?.organicViews || [], "organicViews");
   renderChannelRankings("#allInOneSubscriberChannels", report.allInOne?.channelRankings?.subscribers || [], "subscribers");
-  renderFacultyList("#facultyViews", report.allInOne?.faculties?.views || [], "views");
-  renderFacultyList("#facultySubscribers", report.allInOne?.faculties?.subscribers || [], "subscribers");
 }
 
 function renderAllInOneTopContent(content) {
@@ -483,29 +441,6 @@ function renderChannelRankings(selector, rows, key) {
       <em>${Number(row[key] || 0).toLocaleString()}</em>
     </div>
   `).join("") : emptyCard("No channel ranking available yet.");
-}
-
-function renderFacultyList(selector, rows, key) {
-  const container = document.querySelector(selector);
-  container.innerHTML = rows.length ? rows.map((row, index) => `
-    <div class="rank-row faculty-row all-in-one-row">
-      ${renderRankBadge(index)}
-      <span>
-        <strong>${escapeHtml(row.name)}</strong>
-        <span class="faculty-meta">
-          <button class="faculty-video-toggle" type="button" aria-label="Show tagged videos for ${escapeHtml(row.name)}"><sup>${row.videos}</sup></button>
-          <ol class="faculty-video-links" hidden>
-            ${dedupeFacultyVideos(row.taggedVideos || []).map((video, videoIndex) => `
-              <li>
-                <a href="${escapeHtml(video.url)}" target="_blank" rel="noreferrer">${escapeHtml(truncateTitle(video.title, 40))}</a>
-              </li>
-            `).join("")}
-          </ol>
-        </span>
-      </span>
-      <em>${Number(row[key] || 0).toLocaleString()}</em>
-    </div>
-  `).join("") : emptyCard("No faculty names detected in titles yet.");
 }
 
 function renderCompetitors(competitors) {
@@ -547,12 +482,13 @@ function renderCompetitorCategoryTabs() {
     button.addEventListener("click", async () => {
       state.activeCompetitorCategory = button.dataset.category;
       renderCompetitorCategoryTabs();
-      await loadCategoryCompetitors();
+      document.querySelector("#competitorCategoryHeading").textContent = state.activeCompetitorCategory;
+      document.querySelector("#competitorBenchmark").innerHTML = emptyCard("Click refresh to load this competitor category.");
     });
   });
 }
 
-async function loadCategoryCompetitors() {
+async function loadCategoryCompetitors(options = {}) {
   const target = document.querySelector("#competitorBenchmark");
   const requestId = ++state.competitorRequestId;
   const category = state.activeCompetitorCategory;
@@ -564,7 +500,8 @@ async function loadCategoryCompetitors() {
   document.querySelector("#competitorRangeLabel").textContent = "Last 7 days";
   target.innerHTML = emptyCard("Loading competitor benchmark...");
   try {
-    const data = await api(`/api/category-competitors?category=${encodeURIComponent(category)}&range=7`);
+    const forceQuery = options.force ? "&force=1" : "";
+    const data = await api(`/api/category-competitors?category=${encodeURIComponent(category)}&range=7${forceQuery}`);
     if (requestId !== state.competitorRequestId) return;
     renderCategoryBenchmark(data);
   } catch (error) {
@@ -721,9 +658,7 @@ function applyView() {
     ? (state.report?.title || "Channel Analytics")
     : state.activeView === "competitors"
       ? "Competitors"
-      : state.activeView === "research"
-        ? "Research"
-        : "SEO Audit";
+      : "Research";
 }
 
 function renderResearchView() {
@@ -733,13 +668,6 @@ function renderResearchView() {
   renderResearchSummary();
   renderResearchResults();
   renderResearchIdeas();
-}
-
-function renderSeoAuditView() {
-  renderSeoAuditChannels();
-  renderSeoAuditFilters();
-  renderSeoAuditSummary();
-  renderSeoAuditResults();
 }
 
 function renderResearchFilters() {
@@ -852,7 +780,8 @@ async function loadResearch(options = {}) {
   document.querySelector("#researchResults").innerHTML = emptyCard("Loading top videos...");
   document.querySelector("#researchIdeas").innerHTML = emptyCard("Topic ideas will appear here after analysis.");
   try {
-    const data = await api(`/api/research?keyword=${encodeURIComponent(keyword)}&range=${encodeURIComponent(state.researchRange)}`);
+    const forceQuery = options.force ? "&force=1" : "";
+    const data = await api(`/api/research?keyword=${encodeURIComponent(keyword)}&range=${encodeURIComponent(state.researchRange)}${forceQuery}`);
     if (requestId !== state.researchRequestId) return;
     state.researchResults = data.items || [];
     state.researchFilter = "All";
@@ -889,148 +818,6 @@ async function suggestResearchTopics() {
 function filteredResearchResults() {
   if (state.researchFilter === "All") return state.researchResults;
   return state.researchResults.filter((item) => item.format === state.researchFilter);
-}
-
-function filteredSeoAuditItems() {
-  const channelFiltered = state.seoAuditItems.filter((item) => item.channelId === state.seoAuditChannel);
-  if (state.seoAuditFilter === "All") return channelFiltered;
-  if (state.seoAuditFilter === "Lowest") {
-    return [...channelFiltered].sort((a, b) => {
-      if (a.score !== b.score) return a.score - b.score;
-      return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
-    });
-  }
-  return channelFiltered.filter((item) => item.format === state.seoAuditFilter);
-}
-
-function renderSeoAuditFilters() {
-  document.querySelectorAll("[data-seo-filter]").forEach((button) => {
-    button.classList.toggle("active", button.dataset.seoFilter === state.seoAuditFilter);
-  });
-}
-
-function renderSeoAuditChannels() {
-  const row = document.querySelector("#seoAuditChannelRow");
-  if (!row) return;
-  const channels = (state.channels || [])
-    .filter((channel) => channel.id && channel.id !== "all-in-one")
-    .map((channel) => ({ id: channel.id, name: channel.name }));
-  const fallbackChannels = Array.from(new Map((state.seoAuditItems || [])
-    .filter((item) => item.channelId && item.channelTitle)
-    .map((item) => [item.channelId, { id: item.channelId, name: item.channelTitle }]))).map(([, value]) => value);
-  const mergedChannels = (channels.length ? channels : fallbackChannels)
-    .sort((a, b) => a.name.localeCompare(b.name));
-  if (!mergedChannels.length) {
-    row.innerHTML = "";
-    return;
-  }
-  if (!mergedChannels.some((channel) => channel.id === state.seoAuditChannel)) {
-    state.seoAuditChannel = mergedChannels[0].id;
-  }
-  row.innerHTML = mergedChannels.map((channel) => `
-      <button class="filter-chip ${state.seoAuditChannel === channel.id ? "active" : ""}" type="button" data-seo-channel="${escapeHtml(channel.id)}">
-        ${escapeHtml(channel.name)}
-      </button>
-    `).join("");
-}
-
-function renderSeoAuditSummary() {
-  const summary = document.querySelector("#seoAuditSummary");
-  if (!summary) return;
-  if (!state.seoAuditItems.length) {
-    summary.innerHTML = "";
-    return;
-  }
-  const filtered = filteredSeoAuditItems();
-  const averageScore = filtered.length
-    ? Math.round(filtered.reduce((sum, item) => sum + Number(item.score || 0), 0) / filtered.length)
-    : 0;
-  const optimizedCount = filtered.filter((item) => item.status === "Optimized").length;
-  summary.innerHTML = `
-    <div class="research-stat">
-      <span>Window</span>
-      <strong>Last 24 hours</strong>
-    </div>
-    <div class="research-stat">
-      <span>Audited items</span>
-      <strong>${filtered.length}</strong>
-    </div>
-    <div class="research-stat">
-      <span>Average SEO score</span>
-      <strong>${averageScore}</strong>
-    </div>
-    <div class="research-stat">
-      <span>Optimized</span>
-      <strong>${optimizedCount}</strong>
-    </div>
-  `;
-}
-
-function renderSeoAuditResults() {
-  const container = document.querySelector("#seoAuditResults");
-  if (!container) return;
-  const filtered = filteredSeoAuditItems();
-  if (!state.seoAuditItems.length) {
-    container.innerHTML = emptyCard("Open SEO Audit to scan the last 24 hours of owned videos and live streams.");
-    return;
-  }
-  if (!filtered.length) {
-    const channelLabel = `${channelNameById(state.seoAuditChannel).toLowerCase()} ${state.seoAuditFilter.toLowerCase()}`;
-    container.innerHTML = emptyCard(`No ${channelLabel} items found in the last 24 hours.`);
-    return;
-  }
-  container.innerHTML = `
-    <div class="seo-audit-table">
-      <div class="seo-audit-row seo-audit-head">
-        <span>Score</span>
-        <span>Content</span>
-        <span>Channel</span>
-        <span>Type</span>
-        <span>Status</span>
-        <span>Missing</span>
-        <span>Link</span>
-      </div>
-      ${filtered.map((item) => `
-        <div class="seo-audit-row">
-          <div class="seo-score ${seoScoreClass(item.score)}">${Number(item.score || 0)}</div>
-          <div class="research-title-cell">
-            <strong>${escapeHtml(item.title)}</strong>
-            <small>${escapeHtml(formatPublishedAt(item.publishedAt))}</small>
-          </div>
-          <span class="research-channel"><mark class="channel-tag own-tag">${escapeHtml(item.channelTitle)}</mark></span>
-          <span class="research-format">${escapeHtml(item.format)}</span>
-          <span class="seo-status ${seoStatusClass(item.status)}">${escapeHtml(item.status)}</span>
-          <span class="seo-issues">${escapeHtml((item.issues || []).slice(0, 3).join(" · ") || "Looks good")}</span>
-          <a class="link-chip" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">YouTube</a>
-        </div>
-      `).join("")}
-    </div>
-  `;
-}
-
-async function loadSeoAudit(options = {}) {
-  if (!options.force && state.seoAuditItems.length) {
-    renderSeoAuditView();
-    return;
-  }
-  const requestId = ++state.seoAuditRequestId;
-  const results = document.querySelector("#seoAuditResults");
-  if (results) {
-    results.innerHTML = emptyCard("Scanning owned videos and live streams from the last 24 hours...");
-  }
-  try {
-    const data = await api("/api/seo-audit");
-    if (requestId !== state.seoAuditRequestId) return;
-    state.seoAuditItems = data.items || [];
-    state.seoAuditFilter = "All";
-    if (!state.seoAuditItems.some((item) => item.channelId === state.seoAuditChannel)) {
-      state.seoAuditChannel = "";
-    }
-    renderSeoAuditView();
-  } catch (error) {
-    if (requestId !== state.seoAuditRequestId) return;
-    if (results) results.innerHTML = emptyCard(error.message);
-  }
 }
 
 function channelNameById(channelId) {
@@ -1307,18 +1094,6 @@ function formatPublishedAt(value) {
   return date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
-function seoScoreClass(score) {
-  if (score >= 80) return "good";
-  if (score >= 60) return "warn";
-  return "bad";
-}
-
-function seoStatusClass(status) {
-  if (status === "Optimized") return "good";
-  if (status === "Needs review") return "warn";
-  return "bad";
-}
-
 function currentMonthValue() {
   return new Date().toISOString().slice(0, 7);
 }
@@ -1341,6 +1116,10 @@ function formatCompactNumber(value) {
 
 function formatOutlier(value) {
   return `${Number(value || 0).toFixed(2)}x`;
+}
+
+function formatKnownCount(value, known = true) {
+  return known ? Number(value || 0).toLocaleString() : "-";
 }
 
 function ideaFormatClass(format) {

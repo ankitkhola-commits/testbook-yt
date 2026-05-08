@@ -24,13 +24,13 @@
         </div>
         <div>
           <p class="eyebrow">Restricted access</p>
-          <h1>Sign in with your Testbook Google account</h1>
-          <p class="setup-lead">Only users with an approved <strong>@testbook.com</strong> email can access this dashboard. Once you sign in, you can view all shared channel data your admins have connected.</p>
+          <h1>Login with Testbook</h1>
+          <p class="setup-lead">Only email IDs added by the admin in Vercel environment variables can access this dashboard. Once approved, users can view the shared channel data your admins have connected.</p>
         </div>
         <div class="setup-actions access-actions">
-          <button class="connect-button" type="button" id="teamLoginButton">Continue with Google</button>
+          <button class="connect-button" type="button" id="teamLoginButton">Login with Testbook</button>
         </div>
-        <p class="setup-note" id="accessMessage">Use your team Google account to continue.</p>
+        <p class="setup-note" id="accessMessage">Use an approved Google account to continue.</p>
       </section>
     </main>
 
@@ -105,7 +105,6 @@
           <button class="side-nav-button active" type="button" data-view-tab="dashboard">Dashboard</button>
           <button class="side-nav-button" type="button" data-view-tab="competitors">Competitors</button>
           <button class="side-nav-button" type="button" data-view-tab="research">Research</button>
-          <button class="side-nav-button" type="button" data-view-tab="seo-audit">SEO Audit</button>
         </nav>
 
         <button class="connect-button" id="connectChannelButton" data-sidebar-view="dashboard">
@@ -271,25 +270,6 @@
             <div id="allInOneTopContent" class="rank-list"></div>
           </article>
 
-          <article class="panel page-panel" data-view="dashboard" data-dashboard-mode="all">
-            <div class="panel-header">
-              <div>
-                <p class="eyebrow">Top faculties</p>
-                <h2>Cumulative faculty performance</h2>
-              </div>
-            </div>
-            <div class="faculty-grid">
-              <section>
-                <p class="eyebrow">Most views</p>
-                <div id="facultyViews" class="rank-list faculty-list"></div>
-              </section>
-              <section>
-                <p class="eyebrow">Most subscribers gained</p>
-                <div id="facultySubscribers" class="rank-list faculty-list"></div>
-              </section>
-            </div>
-          </article>
-
           <article class="panel page-panel competitor-panel" data-view="competitors">
             <div class="panel-header">
               <div>
@@ -345,31 +325,6 @@
             </div>
           </article>
 
-          <article class="panel page-panel seo-audit-panel" data-view="seo-audit">
-            <div class="panel-header research-header">
-              <div>
-                <p class="eyebrow">SEO audit</p>
-                <h2>Last 24 hours of owned videos and lives</h2>
-              </div>
-              <button class="ghost-button" type="button" id="seoAuditRunButton">Refresh audit</button>
-            </div>
-            <div class="seo-audit-toolbar">
-              <div class="seo-audit-note">
-                Manual refresh only. Scan the last 24 hours of owned long-form videos and live streams only when you want to audit SEO.
-              </div>
-              <div class="seo-audit-controls">
-                <div class="research-filter-row seo-channel-row" id="seoAuditChannelRow"></div>
-                <div class="research-filter-row" id="seoAuditFilterRow">
-                  <button class="filter-chip active" type="button" data-seo-filter="All">All</button>
-                  <button class="filter-chip" type="button" data-seo-filter="Video">Videos</button>
-                  <button class="filter-chip" type="button" data-seo-filter="Live">Live</button>
-                  <button class="filter-chip" type="button" data-seo-filter="Lowest">Lowest score</button>
-                </div>
-              </div>
-            </div>
-            <div id="seoAuditSummary" class="research-summary"></div>
-            <div id="seoAuditResults" class="research-results"></div>
-          </article>
         </section>
       </main>
     </div>

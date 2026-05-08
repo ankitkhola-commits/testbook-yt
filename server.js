@@ -22,6 +22,17 @@ const maxChannels = 20;
 const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
 const sql = databaseUrl ? postgres(databaseUrl, { prepare: false }) : null;
 let storageReadyPromise;
+const responseCache = new Map();
+const inFlightRequests = new Map();
+const ttl = {
+  dashboard: 10 * 60 * 1000,
+  uploads: 30 * 60 * 1000,
+  videoDetails: 60 * 60 * 1000,
+  publicChannels: 24 * 60 * 60 * 1000,
+  publicVideos: 30 * 60 * 1000,
+  research: 6 * 60 * 60 * 1000,
+  competitors: 30 * 60 * 1000,
+};
 const teamScopes = [
   "openid",
   "email",
@@ -173,6 +184,7 @@ app.get("/api/config", async (req, res) => {
     viewer: readViewerSession(req),
     teamAuthEnabled: teamAuthEnabled(),
     allowedEmailDomain: allowedEmailDomain(),
+    viewerAllowlistEnabled: allowedViewerEmails().length > 0,
   });
 });
 
@@ -209,6 +221,7 @@ app.get("/api/status", async (req, res) => {
     viewer: readViewerSession(req),
     teamAuthEnabled: teamAuthEnabled(),
     allowedEmailDomain: allowedEmailDomain(),
+    viewerAllowlistEnabled: allowedViewerEmails().length > 0,
   });
 });
 
@@ -218,6 +231,7 @@ app.get("/api/session", async (req, res) => {
     viewer,
     teamAuthEnabled: teamAuthEnabled(),
     allowedEmailDomain: allowedEmailDomain(),
+    viewerAllowlistEnabled: allowedViewerEmails().length > 0,
   });
 });
 
@@ -251,7 +265,7 @@ app.get("/oauth2callback/team", async (req, res, next) => {
     const email = String(me.data.email || "").toLowerCase();
     if (!isAllowedViewerEmail(email)) {
       clearViewerSession(res);
-      res.status(403).send("Only allowed team email IDs can access this app.");
+      res.status(403).send("Only approved team email IDs can access this app.");
       return;
     }
     setViewerSession(res, {
@@ -367,33 +381,37 @@ app.get("/api/dashboard", async (req, res, next) => {
       : entries.filter((entry) => entry.channel.id === activeChannelId);
     const dates = dateWindow(range, month);
     const compareDates = comparisonWindow(dates, range);
-    const competitors = await readCompetitors();
-    const [channelReports, comparisonReports] = await Promise.all([
-      Promise.all(selectedEntries.map((entry) => channelReport(entry.auth, entry.channel, dates))),
-      Promise.all(selectedEntries.map((entry) => channelReport(entry.auth, entry.channel, compareDates))),
-    ]);
-    const merged = mergeReports(channelReports, dates.days);
-    const comparison = mergeReports(comparisonReports, compareDates.days);
-    const competitorCards = await competitorAnalysis(activeChannelId, competitors, dates);
-    const insights = buildLiveInsights(competitorCards, merged);
-
-    res.json({
-      range,
-      dates,
-      comparisonDates: compareDates,
-      channels,
-      connectedCount: entries.length,
-      selectedChannelId: activeChannelId,
-      isAllInOne: activeChannelId === "all-in-one",
-      title: activeChannelId === "all-in-one" ? "All in One" : (selectedEntries[0]?.channel.name || "Channel analytics"),
-      totals: merged.totals,
-      comparisonTotals: comparison.totals,
-      series: merged.series,
-      topContent: merged.topContent,
-      competitors: competitorCards,
-      insights,
-      allInOne: activeChannelId === "all-in-one" ? buildAllInOneDashboard(selectedEntries, channelReports, dates) : null,
-    });
+    const payload = await cached(
+      makeCacheKey("dashboard", activeChannelId, range, month, dates.startDate, dates.endDate, selectedEntries.map((entry) => entry.channel.id).sort()),
+      ttl.dashboard,
+      async () => {
+        const [channelReports, comparisonReports] = await Promise.all([
+          Promise.all(selectedEntries.map((entry) => cachedChannelReport(entry.auth, entry.channel, dates))),
+          Promise.all(selectedEntries.map((entry) => cachedChannelReport(entry.auth, entry.channel, compareDates))),
+        ]);
+        const merged = mergeReports(channelReports, dates.days);
+        const comparison = mergeReports(comparisonReports, compareDates.days);
+        return {
+          range,
+          dates,
+          comparisonDates: compareDates,
+          channels,
+          connectedCount: entries.length,
+          selectedChannelId: activeChannelId,
+          isAllInOne: activeChannelId === "all-in-one",
+          title: activeChannelId === "all-in-one" ? "All in One" : (selectedEntries[0]?.channel.name || "Channel analytics"),
+          totals: merged.totals,
+          comparisonTotals: comparison.totals,
+          series: merged.series,
+          topContent: merged.topContent,
+          competitors: [],
+          insights: buildLiveInsights([], merged),
+          allInOne: activeChannelId === "all-in-one" ? buildAllInOneDashboard(selectedEntries, channelReports, dates) : null,
+        };
+      },
+      { force: req.query.force === "1" }
+    );
+    res.json(payload);
   } catch (error) {
     next(error);
   }
@@ -478,7 +496,12 @@ app.get("/api/category-competitors", async (req, res, next) => {
       return;
     }
     const dates = dateWindow(range, month);
-    const data = await categoryCompetitorReport(category, mappings, dates);
+    const data = await cached(
+      makeCacheKey("category-competitors", category, range, month, dates.startDate, dates.endDate),
+      ttl.competitors,
+      () => categoryCompetitorReport(category, mappings, dates),
+      { force: req.query.force === "1" }
+    );
     res.json(data);
   } catch (error) {
     next(error);
@@ -497,7 +520,12 @@ app.get("/api/research", async (req, res, next) => {
       res.status(400).json({ error: "Enter a keyword to run research." });
       return;
     }
-    const items = await researchKeywordVideos(keyword, range);
+    const items = await cached(
+      makeCacheKey("research", keyword.toLowerCase(), range),
+      ttl.research,
+      () => researchKeywordVideos(keyword, range),
+      { force: req.query.force === "1" }
+    );
     res.json({ keyword, range, items });
   } catch (error) {
     next(error);
@@ -519,22 +547,6 @@ app.post("/api/research/suggest", async (req, res, next) => {
     }
     const ideas = await suggestTopicsFromResearch(keyword, range, items);
     res.json({ keyword, range, ideas });
-  } catch (error) {
-    next(error);
-  }
-});
-
-app.get("/api/seo-audit", async (_req, res, next) => {
-  try {
-    const entries = (await connectedChannelEntries()).slice(0, maxChannels);
-    if (!entries.length) {
-      res.json({ items: [] });
-      return;
-    }
-    const items = (await Promise.all(entries.map((entry) => recentOwnedSeoVideos(entry.auth, entry.channel, 24))))
-      .flat()
-      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-    res.json({ items });
   } catch (error) {
     next(error);
   }
@@ -564,6 +576,38 @@ if (isDirectRun) {
   app.listen(port, () => {
     console.log(`YouTube dashboard running at http://localhost:${port}`);
   });
+}
+
+function makeCacheKey(...parts) {
+  return parts.map((part) => {
+    if (part === null || part === undefined) return "";
+    if (Array.isArray(part)) return part.join(",");
+    if (typeof part === "object") return JSON.stringify(part);
+    return String(part);
+  }).join("|");
+}
+
+async function cached(key, maxAgeMs, loader, options = {}) {
+  if (!options.force) {
+    const existing = responseCache.get(key);
+    if (existing && Date.now() - existing.createdAt < maxAgeMs) {
+      return existing.value;
+    }
+    if (inFlightRequests.has(key)) {
+      return inFlightRequests.get(key);
+    }
+  }
+  const promise = Promise.resolve()
+    .then(loader)
+    .then((value) => {
+      responseCache.set(key, { createdAt: Date.now(), value });
+      return value;
+    })
+    .finally(() => {
+      inFlightRequests.delete(key);
+    });
+  inFlightRequests.set(key, promise);
+  return promise;
 }
 
 export default app;
@@ -620,7 +664,14 @@ function teamAuthEnabled() {
 }
 
 function allowedEmailDomain() {
-  return String(process.env.ALLOWED_EMAIL_DOMAIN || "testbook.com").toLowerCase();
+  return String(process.env.ALLOWED_EMAIL_DOMAIN || "").toLowerCase().trim();
+}
+
+function allowedViewerEmails() {
+  return String(process.env.ALLOWED_VIEWER_EMAILS || "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
 }
 
 function sessionSecret() {
@@ -629,7 +680,11 @@ function sessionSecret() {
 
 function isAllowedViewerEmail(email = "") {
   const normalized = String(email || "").toLowerCase().trim();
-  return normalized.endsWith(`@${allowedEmailDomain()}`);
+  const allowlist = allowedViewerEmails();
+  if (allowlist.length) return allowlist.includes(normalized);
+  const domain = allowedEmailDomain();
+  if (!domain) return false;
+  return normalized.endsWith(`@${domain}`);
 }
 
 function parseCookies(req) {
@@ -987,7 +1042,7 @@ async function listOwnedChannels(auth) {
 }
 
 async function channelReport(auth, channel, dates) {
-  const [daily, contentType, searchTraffic, uploads, topContent, uploadedVideoViews, uploadedVideoSubscribers] = await Promise.all([
+  const [daily, contentType, searchTraffic, uploadResult, topContent, uploadedVideoViews, uploadedVideoSubscribers] = await Promise.all([
     analyticsRows(auth, {
       ids: `channel==${channel.id}`,
       startDate: dates.startDate,
@@ -1012,13 +1067,31 @@ async function channelReport(auth, channel, dates) {
       metrics: "views",
       sort: "day",
     }).catch(() => []),
-    publishedContent(auth, channel, dates),
+    publishedContentResult(auth, channel, dates),
     topVideos(auth, channel.id, dates),
     uploadedVideoViewsById(auth, channel.id, dates),
     uploadedVideoSubscribersById(auth, channel.id, dates),
   ]);
 
-  return { channel, daily, contentType, searchTraffic, uploads, topContent, uploadedVideoViews, uploadedVideoSubscribers };
+  return {
+    channel,
+    daily,
+    contentType,
+    searchTraffic,
+    uploads: uploadResult.items,
+    uploadsKnown: uploadResult.known,
+    topContent,
+    uploadedVideoViews,
+    uploadedVideoSubscribers,
+  };
+}
+
+async function cachedChannelReport(auth, channel, dates) {
+  return cached(
+    makeCacheKey("channel-report", channel.id, dates.startDate, dates.endDate),
+    ttl.dashboard,
+    () => channelReport(auth, channel, dates)
+  );
 }
 
 async function analyticsRows(auth, params) {
@@ -1103,6 +1176,23 @@ async function uploadedVideoSubscribersById(auth, channelId, dates) {
 
 async function publishedContent(auth, channel, dates) {
   if (!channel.uploadsPlaylistId) return [];
+  return cached(
+    makeCacheKey("uploads-playlist", channel.id, channel.uploadsPlaylistId, dates.startDate, dates.endDate),
+    ttl.uploads,
+    () => loadPublishedContent(auth, channel, dates)
+  );
+}
+
+async function publishedContentResult(auth, channel, dates) {
+  try {
+    return { known: true, items: await publishedContent(auth, channel, dates) };
+  } catch (error) {
+    console.warn(`Could not load uploads playlist for ${channel.id}:`, error.message);
+    return { known: false, items: [] };
+  }
+}
+
+async function loadPublishedContent(auth, channel, dates) {
   const youtube = google.youtube({ version: "v3", auth });
   const videos = [];
   let pageToken;
@@ -1137,151 +1227,35 @@ async function publishedContent(auth, channel, dates) {
   }));
 }
 
-async function recentOwnedSeoVideos(auth, channel, hours = 48) {
-  if (!channel.uploadsPlaylistId) return [];
-  const youtube = google.youtube({ version: "v3", auth });
-  const cutoff = Date.now() - hours * 60 * 60 * 1000;
-  const videos = [];
-  let pageToken;
-  let reachedOlderVideos = false;
-  do {
-    const response = await youtube.playlistItems.list({
-      part: ["snippet", "contentDetails"],
-      playlistId: channel.uploadsPlaylistId,
-      maxResults: 50,
-      pageToken,
-    });
-    for (const item of response.data.items || []) {
-      const publishedAt = item.contentDetails?.videoPublishedAt || item.snippet?.publishedAt;
-      if (!publishedAt) continue;
-      if (new Date(publishedAt).getTime() < cutoff) {
-        reachedOlderVideos = true;
-        break;
-      }
-      videos.push({ id: item.contentDetails?.videoId, publishedAt });
-    }
-    pageToken = reachedOlderVideos ? undefined : response.data.nextPageToken;
-  } while (pageToken && videos.length < 150);
-
-  const ids = videos.map((video) => video.id).filter(Boolean);
-  const [details, performanceByVideo] = await Promise.all([
-    ownedVideoSeoDetails(auth, ids),
-    ownedVideoPerformance(auth, channel.id, ids, cutoff),
-  ]);
-  return videos
-    .map((video) => {
-      const detail = details[video.id];
-      if (!detail) return null;
-      if (detail.format === "Shorts") return null;
-      const audit = scoreSeoVideo({
-        ...detail,
-        performance: performanceByVideo[video.id] || null,
-      });
-      return {
-        id: video.id,
-        title: detail.title,
-        channelId: channel.id,
-        channelTitle: channel.name,
-        format: detail.format,
-        publishedAt: detail.publishedAt || video.publishedAt,
-        url: `https://www.youtube.com/watch?v=${video.id}`,
-        score: audit.score,
-        status: audit.status,
-        issues: audit.issues,
-        tagsCount: detail.tags.length,
-        descriptionLength: detail.description.length,
-      };
-    })
-    .filter(Boolean);
-}
-
 async function videoDetails(auth, ids) {
-  const youtube = google.youtube({ version: "v3", auth });
+  const cleanIds = [...new Set(ids.filter(Boolean))];
   const detailMap = {};
-  for (let index = 0; index < ids.length; index += 50) {
-    const chunk = ids.slice(index, index + 50).filter(Boolean);
-    if (!chunk.length) continue;
-    const response = await youtube.videos.list({
-      part: ["snippet", "contentDetails", "liveStreamingDetails", "statistics"],
-      id: chunk,
-      maxResults: 50,
-    });
-    for (const item of response.data.items || []) {
-      detailMap[item.id] = {
+  for (let index = 0; index < cleanIds.length; index += 50) {
+    const chunk = cleanIds.slice(index, index + 50).sort();
+    const chunkDetails = await cached(
+      makeCacheKey("owned-video-details", chunk),
+      ttl.videoDetails,
+      async () => {
+      const youtube = google.youtube({ version: "v3", auth });
+      const response = await youtube.videos.list({
+        part: ["snippet", "contentDetails", "liveStreamingDetails", "statistics"],
+          id: chunk,
+          maxResults: 50,
+      });
+        return (response.data.items || []).map((item) => ({
+        id: item.id,
         title: item.snippet?.title || item.id,
         channelTitle: item.snippet?.channelTitle || "",
         format: classifyVideo(item),
         views: Number(item.statistics?.viewCount || 0),
-      };
+        }));
+      }
+    );
+    for (const detail of chunkDetails) {
+      detailMap[detail.id] = detail;
     }
   }
   return detailMap;
-}
-
-async function ownedVideoSeoDetails(auth, ids) {
-  const youtube = google.youtube({ version: "v3", auth });
-  const detailMap = {};
-  for (let index = 0; index < ids.length; index += 50) {
-    const chunk = ids.slice(index, index + 50).filter(Boolean);
-    if (!chunk.length) continue;
-    const response = await youtube.videos.list({
-      part: ["snippet", "contentDetails", "liveStreamingDetails", "statistics", "status"],
-      id: chunk,
-      maxResults: 50,
-    });
-    for (const item of response.data.items || []) {
-      detailMap[item.id] = {
-        title: item.snippet?.title || item.id,
-        description: item.snippet?.description || "",
-        tags: Array.isArray(item.snippet?.tags) ? item.snippet.tags : [],
-        publishedAt: item.snippet?.publishedAt || "",
-        format: classifyVideo(item),
-        privacyStatus: item.status?.privacyStatus || "",
-        liveBroadcastContent: item.snippet?.liveBroadcastContent || "",
-        likeCount: Number(item.statistics?.likeCount || 0),
-        dislikeCount: Number(item.statistics?.dislikeCount || 0),
-        actualStartTime: item.liveStreamingDetails?.actualStartTime || "",
-        actualEndTime: item.liveStreamingDetails?.actualEndTime || "",
-        scheduledStartTime: item.liveStreamingDetails?.scheduledStartTime || "",
-      };
-    }
-  }
-  return detailMap;
-}
-
-async function ownedVideoPerformance(auth, channelId, ids, cutoffMs) {
-  const performance = Object.fromEntries(ids.map((id) => [id, {
-    ctr: null,
-    avp: null,
-    likes: null,
-    dislikes: null,
-    comments: null,
-  }]));
-  if (!ids.length) return performance;
-  const startDate = new Date(cutoffMs).toISOString().slice(0, 10);
-  const endDate = new Date().toISOString().slice(0, 10);
-  for (let index = 0; index < ids.length; index += 200) {
-    const chunk = ids.slice(index, index + 200);
-    const rows = await analyticsRows(auth, {
-      ids: `channel==${channelId}`,
-      startDate,
-      endDate,
-      dimensions: "video",
-      metrics: "likes,dislikes,comments,averageViewPercentage,videoThumbnailImpressionsClickRate",
-      filters: `video==${chunk.join(",")}`,
-      maxResults: 500,
-    }).catch(() => []);
-    for (const row of rows) {
-      performance[row[0]] = {
-        likes: Number(row[1] || 0),
-        dislikes: Number(row[2] || 0),
-        comments: Number(row[3] || 0),
-        avp: row[4] === null || row[4] === undefined ? null : Number(row[4]),
-        ctr: row[5] === null || row[5] === undefined ? null : Number(row[5]),
-      };
-    }
-  }
-  return performance;
 }
 
 function classifyVideo(video) {
@@ -1298,185 +1272,6 @@ function classifyVideo(video) {
   return seconds > 0 && seconds <= 180 ? "Shorts" : "Video";
 }
 
-function scoreSeoVideo(video) {
-  const title = String(video.title || "").trim();
-  const description = String(video.description || "").trim();
-  const tags = Array.isArray(video.tags) ? video.tags.map((tag) => String(tag).trim()).filter(Boolean) : [];
-  const normalizedTitle = title.toLowerCase();
-  const normalizedDescription = description.toLowerCase();
-  const keywordSet = extractSeoKeywords(title);
-  const descriptionKeywordHits = [...keywordSet].filter((keyword) => normalizedDescription.includes(keyword)).length;
-  const tagKeywordHits = countMatchingTagKeywords(tags, keywordSet);
-  const hashtagKeywordHits = countMatchingHashtags(normalizedDescription, keywordSet);
-  const issues = [];
-  let score = 0;
-
-  if (title.length >= 45 && title.length <= 100) {
-    score += 20;
-  } else if (title.length >= 35) {
-    score += 14;
-    issues.push("Title can be stronger");
-  } else if (title.length >= 20) {
-    score += 8;
-    issues.push("Title too short");
-  } else {
-    issues.push("Weak title");
-  }
-
-  if (description.length >= 300) {
-    score += 16;
-  } else if (description.length >= 150) {
-    score += 10;
-    issues.push("Description can be deeper");
-  } else if (description.length >= 80) {
-    score += 6;
-    issues.push("Description too thin");
-  } else if (description.length > 0) {
-    score += 3;
-    issues.push("Description is near-default");
-  } else {
-    issues.push("Missing description");
-  }
-
-  if (descriptionKeywordHits >= Math.min(3, Math.max(1, keywordSet.size))) {
-    score += 18;
-  } else if (descriptionKeywordHits >= 1) {
-    score += 8;
-    issues.push("Description needs more title keywords");
-  } else {
-    issues.push("Description needs more title keywords");
-  }
-
-  if (hashtagKeywordHits >= 1) {
-    score += 12;
-  } else {
-    issues.push("Hashtags missing");
-  }
-
-  if (tags.length >= 10) {
-    score += 14;
-  } else if (tags.length >= 5) {
-    score += 8;
-    issues.push("Tags missing");
-  } else if (tags.length >= 1) {
-    score += 3;
-    issues.push("Tags missing");
-  } else {
-    issues.push("Tags missing");
-  }
-
-  const requiredTagMatches = keywordSet.size >= 6 ? 3 : keywordSet.size >= 3 ? 2 : 1;
-  if (tagKeywordHits >= requiredTagMatches) {
-    score += 20;
-  } else if (tagKeywordHits >= 1) {
-    score += 8;
-    issues.push("Title related tags missing");
-  } else if (tags.length) {
-    issues.push("Title related tags missing");
-  }
-
-  if (description.length >= 80 && normalizedDescription !== normalizedTitle) {
-    score += 4;
-  }
-
-  const publishedAtMs = video.publishedAt ? new Date(video.publishedAt).getTime() : 0;
-  const isFresh = publishedAtMs && (Date.now() - publishedAtMs) < 2 * 60 * 60 * 1000;
-  const isScheduledLive = video.format === "Live" && (!video.actualStartTime || video.liveBroadcastContent === "upcoming");
-  const isPublic = video.privacyStatus === "public";
-  const performance = video.performance || {};
-  if (!isFresh && !isScheduledLive && isPublic) {
-    if (typeof performance.ctr === "number" && performance.ctr > 0 && performance.ctr < 5) {
-      issues.push("Low CTR");
-      score -= 8;
-    }
-    if (typeof performance.avp === "number" && performance.avp > 0 && performance.avp < 15) {
-      issues.push("Low AVD");
-      score -= 8;
-    }
-    const dislikes = Number.isFinite(performance.dislikes) ? Number(performance.dislikes) : Number(video.dislikeCount || 0);
-    const likes = Number.isFinite(performance.likes) ? Number(performance.likes) : Number(video.likeCount || 0);
-    const ratingsTotal = likes + dislikes;
-    if (ratingsTotal > 0) {
-      const likeRatio = (likes / ratingsTotal) * 100;
-      if (likeRatio < 80) {
-        issues.push("Bad Content");
-        score -= 10;
-      }
-    }
-  }
-
-  score = Math.max(0, Math.min(100, Math.round(score)));
-  const status = score >= 80 ? "Optimized" : score >= 60 ? "Needs review" : "Not optimized";
-  return { score, status, issues: [...new Set(issues)].slice(0, 6) };
-}
-
-function countMatchingHashtags(description = "", keywordSet = new Set()) {
-  const hashtags = [...String(description).matchAll(/#([a-z0-9_]+)/gi)]
-    .map((match) => normalizeHashtagToken(match[1]))
-    .filter(Boolean);
-  if (!hashtags.length || !keywordSet.size) return 0;
-  const tokens = [...keywordSet].map((keyword) => normalizeHashtagToken(keyword)).filter(Boolean);
-  let matches = 0;
-  for (const token of tokens) {
-    const matched = hashtags.some((hashtag) => {
-      if (hashtag === token) return true;
-      if (hashtag.includes(token) || token.includes(hashtag)) return true;
-      if (token.length >= 4 && (hashtag.startsWith(token) || token.startsWith(hashtag))) return true;
-      return false;
-    });
-    if (matched) matches += 1;
-  }
-  return matches;
-}
-
-function normalizeHashtagToken(value = "") {
-  return String(value).toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-function countMatchingTagKeywords(tags = [], keywordSet = new Set()) {
-  if (!tags.length || !keywordSet.size) return 0;
-  const tagStrings = tags
-    .map((tag) => String(tag).toLowerCase())
-    .filter(Boolean);
-  const tagTokens = new Set(
-    tagStrings
-      .flatMap((tag) => tokenizeSeoText(tag))
-      .filter(Boolean)
-  );
-  let matches = 0;
-  for (const keyword of keywordSet) {
-    const normalizedKeyword = normalizeHashtagToken(keyword);
-    const keywordTokens = tokenizeSeoText(keyword);
-    const exactOrContains = tagStrings.some((tag) => {
-      const normalizedTag = normalizeHashtagToken(tag);
-      return normalizedTag.includes(normalizedKeyword) || normalizedKeyword.includes(normalizedTag);
-    });
-    const tokenOverlap = keywordTokens.some((token) => tagTokens.has(token));
-    if (exactOrContains || tokenOverlap) matches += 1;
-  }
-  return matches;
-}
-
-function tokenizeSeoText(text = "") {
-  return String(text)
-    .toLowerCase()
-    .replace(/[^a-z0-9#\s]/g, " ")
-    .split(/\s+/)
-    .filter((token) => token.length >= 3);
-}
-
-function extractSeoKeywords(title = "") {
-  const stopwords = new Set([
-    "for", "with", "from", "that", "this", "your", "into", "will", "have", "what",
-    "when", "where", "how", "and", "the", "are", "sir", "maam", "mam", "live", "video",
-    "class", "lecture", "session", "today", "paper", "exam", "new", "latest", "top"
-  ]);
-  const words = tokenizeSeoText(title)
-    .filter((word) => word.length >= 3 && !stopwords.has(word));
-  return new Set(words.slice(0, 8));
-}
-
-
 function mergeReports(reports, days) {
   const labels = eachDate(days.startDate, days.endDate);
   const series = labels.map((date) => ({
@@ -1491,6 +1286,7 @@ function mergeReports(reports, days) {
     ctrNumerator: 0,
     ctrWeight: 0,
     ctr: 0,
+    uploadsKnown: reports.length ? reports.every((report) => report.uploadsKnown !== false) : true,
     uploads: { videos: 0, shorts: 0, live: 0, posts: 0, total: 0 },
     publishedViews: { videos: 0, shorts: 0, live: 0, posts: 0, total: 0 },
     content: [],
@@ -1562,6 +1358,7 @@ function mergeReports(reports, days) {
   }
 
   const totals = summarizeSeries(series);
+  totals.uploadsKnown = reports.length ? reports.every((report) => report.uploadsKnown !== false) : true;
   const topContent = reports
     .flatMap((report) => report.topContent)
     .sort((a, b) => (b.subscribers - a.subscribers) || (b.views - a.views))
@@ -1580,35 +1377,10 @@ function buildAllInOneDashboard(entries, reports, dates) {
     };
   });
 
-  const faculties = new Map();
-  for (const report of reports) {
-    for (const item of report.topContent || []) {
-      const names = extractFacultyNames(item.title);
-      if (!names.length) continue;
-      for (const name of names) {
-        const current = faculties.get(name) || { name, views: 0, subscribers: 0, videos: 0, taggedVideos: [] };
-        current.views += Number(item.views || 0);
-        current.subscribers += Number(item.subscribers || 0);
-        current.videos += 1;
-        current.taggedVideos.push({
-          id: item.id,
-          title: item.title,
-          url: `https://www.youtube.com/watch?v=${item.id}`,
-        });
-        faculties.set(name, current);
-      }
-    }
-  }
-
-  const facultyList = [...faculties.values()].sort((a, b) => b.views - a.views);
   return {
     channelRankings: {
       organicViews: perChannel.slice().sort((a, b) => b.organicViews - a.organicViews).slice(0, 10),
       subscribers: perChannel.slice().sort((a, b) => b.subscribers - a.subscribers).slice(0, 10),
-    },
-    faculties: {
-      views: facultyList.slice().sort((a, b) => b.views - a.views).slice(0, 12),
-      subscribers: facultyList.slice().sort((a, b) => b.subscribers - a.subscribers).slice(0, 12),
     },
   };
 }
@@ -1731,16 +1503,29 @@ async function categoryCompetitorReport(category, mappings, dates) {
 }
 
 async function publicChannelsByIds(ids) {
+  const uniqueIds = [...new Set(ids.filter(Boolean))];
   const details = {};
-  for (let index = 0; index < ids.length; index += 50) {
-    const chunk = ids.slice(index, index + 50);
-    const url = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${chunk.join(",")}&key=${process.env.YOUTUBE_API_KEY}`;
-    const data = await fetchJson(url);
-    for (const item of data.items || []) {
+  for (let index = 0; index < uniqueIds.length; index += 50) {
+    const chunk = uniqueIds.slice(index, index + 50).sort();
+    const chunkDetails = await cached(
+      makeCacheKey("public-channels", chunk),
+      ttl.publicChannels,
+      async () => {
+        const url = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${chunk.join(",")}&key=${process.env.YOUTUBE_API_KEY}`;
+        const data = await fetchJson(url);
+        return (data.items || []).map((item) => ({
+          id: item.id,
+          title: item.snippet?.title || item.id,
+          totalViews: Number(item.statistics?.viewCount || 0),
+          subscribers: Number(item.statistics?.subscriberCount || 0),
+        }));
+      }
+    );
+    for (const item of chunkDetails) {
       details[item.id] = {
-        title: item.snippet?.title || item.id,
-        totalViews: Number(item.statistics?.viewCount || 0),
-        subscribers: Number(item.statistics?.subscriberCount || 0),
+        title: item.title,
+        totalViews: item.totalViews,
+        subscribers: item.subscribers,
       };
     }
   }
@@ -1748,6 +1533,14 @@ async function publicChannelsByIds(ids) {
 }
 
 async function publicChannelVideos(channelId, dates, group, channelTitle) {
+  return cached(
+    makeCacheKey("public-channel-videos", channelId, group, dates.startDate, dates.endDate),
+    ttl.publicVideos,
+    () => loadPublicChannelVideos(channelId, dates, group, channelTitle)
+  );
+}
+
+async function loadPublicChannelVideos(channelId, dates, group, channelTitle) {
   const after = `${dates.startDate}T00:00:00Z`;
   const beforeDate = new Date(`${dates.endDate}T00:00:00Z`);
   beforeDate.setUTCDate(beforeDate.getUTCDate() + 1);
@@ -1837,18 +1630,22 @@ async function researchKeywordVideos(keyword, range) {
 }
 
 async function publicVideoDetails(ids) {
+  const cleanIds = [...new Set(ids.filter(Boolean))];
   const detailMap = {};
-  for (let index = 0; index < ids.length; index += 50) {
-    const chunk = ids.slice(index, index + 50).filter(Boolean);
-    if (!chunk.length) continue;
-    const params = new URLSearchParams({
-      part: "snippet,statistics,contentDetails,liveStreamingDetails",
-      id: chunk.join(","),
-      key: process.env.YOUTUBE_API_KEY,
-    });
-    const data = await fetchJson(`https://www.googleapis.com/youtube/v3/videos?${params.toString()}`);
-    for (const item of data.items || []) {
-      detailMap[item.id] = {
+  for (let index = 0; index < cleanIds.length; index += 50) {
+    const chunk = cleanIds.slice(index, index + 50).sort();
+    const chunkDetails = await cached(
+      makeCacheKey("public-video-details", chunk),
+      ttl.videoDetails,
+      async () => {
+      const params = new URLSearchParams({
+        part: "snippet,statistics,contentDetails,liveStreamingDetails",
+          id: chunk.join(","),
+        key: process.env.YOUTUBE_API_KEY,
+      });
+      const data = await fetchJson(`https://www.googleapis.com/youtube/v3/videos?${params.toString()}`);
+        return (data.items || []).map((item) => ({
+        id: item.id,
         title: item.snippet?.title || item.id,
         channelId: item.snippet?.channelId || "",
         channelTitle: item.snippet?.channelTitle || "",
@@ -1857,7 +1654,11 @@ async function publicVideoDetails(ids) {
         views: Number(item.statistics?.viewCount || 0),
         likes: Number(item.statistics?.likeCount || 0),
         comments: Number(item.statistics?.commentCount || 0),
-      };
+        }));
+      }
+    );
+    for (const detail of chunkDetails) {
+      detailMap[detail.id] = detail;
     }
   }
   return detailMap;
@@ -2013,24 +1814,6 @@ function normalizeResearchFormat(value) {
   if (text === "short" || text === "shorts") return "Shorts";
   if (text === "live") return "Live";
   return "Video";
-}
-
-function extractFacultyNames(title = "") {
-  const matches = new Map();
-  const regex = /\b([A-Za-z][A-Za-z'.-]{1,})\s+(sir|ma['’]?am)\b/gi;
-  let match;
-  while ((match = regex.exec(title))) {
-    const normalized = normalizeFacultyName(match[1]);
-    if (normalized.length >= 3) matches.set(normalized, true);
-  }
-  return [...matches.keys()];
-}
-
-function normalizeFacultyName(value = "") {
-  return String(value)
-    .toLowerCase()
-    .replace(/[^a-z'.-]/g, "")
-    .replace(/^\w/, (char) => char.toUpperCase());
 }
 
 function dateWindow(range, monthValue = "") {
