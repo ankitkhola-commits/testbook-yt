@@ -18,7 +18,7 @@ const competitorPath = path.join(dataDir, "competitors.json");
 const competitorViewHistoryPath = path.join(dataDir, "competitor-view-history.json");
 const envPath = path.join(__dirname, ".env");
 const assetDir = path.join(__dirname, "assets");
-const maxChannels = 40;
+const maxChannels = Number(process.env.MAX_CONNECTED_CHANNELS || 200);
 const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
 const sql = databaseUrl ? postgres(databaseUrl, { prepare: false }) : null;
 let storageReadyPromise;
@@ -362,7 +362,7 @@ app.post("/api/reset", async (_req, res) => {
 app.get("/api/channels", async (_req, res, next) => {
   try {
     const entries = await connectedChannelEntries();
-    res.json({ channels: publicChannels(entries).slice(0, maxChannels) });
+    res.json({ channels: publicChannels(entries) });
   } catch (error) {
     next(error);
   }
@@ -370,7 +370,7 @@ app.get("/api/channels", async (_req, res, next) => {
 
 app.get("/api/dashboard", async (req, res, next) => {
   try {
-    const entries = (await connectedChannelEntries()).slice(0, maxChannels);
+    const entries = await connectedChannelEntries();
     const channels = [{ id: "all-in-one", name: "All in One", handle: "@all-in-one" }, ...publicChannels(entries)];
     const range = String(req.query.range || "month");
     const month = String(req.query.month || "");
@@ -419,7 +419,7 @@ app.get("/api/dashboard", async (req, res, next) => {
 
 app.get("/api/search-keywords", async (req, res, next) => {
   try {
-    const entries = (await connectedChannelEntries()).slice(0, maxChannels);
+    const entries = await connectedChannelEntries();
     const channels = publicChannels(entries);
     const range = String(req.query.range || "7");
     const month = String(req.query.month || "");
@@ -1024,12 +1024,22 @@ async function saveCompetitorViewHistory(history) {
 
 async function listOwnedChannels(auth) {
   const youtube = google.youtube({ version: "v3", auth });
-  const response = await youtube.channels.list({
-    part: ["snippet", "statistics", "contentDetails"],
-    mine: true,
-    maxResults: maxChannels,
-  });
-  return (response.data.items || []).map((item) => ({
+  const items = [];
+  let pageToken = undefined;
+
+  do {
+    const remaining = Math.max(1, maxChannels - items.length);
+    const response = await youtube.channels.list({
+      part: ["snippet", "statistics", "contentDetails"],
+      mine: true,
+      maxResults: Math.min(50, remaining),
+      pageToken,
+    });
+    items.push(...(response.data.items || []));
+    pageToken = response.data.nextPageToken;
+  } while (pageToken && items.length < maxChannels);
+
+  return items.map((item) => ({
     id: item.id,
     name: item.snippet?.title || "Untitled channel",
     handle: item.snippet?.customUrl || item.id,
@@ -1362,11 +1372,12 @@ function mergeReports(reports, days) {
   const topContent = reports
     .flatMap((report) => report.topContent)
     .sort((a, b) => (b.subscribers - a.subscribers) || (b.views - a.views))
-    .slice(0, 15);
+    .slice(0, 20);
   return { series, totals, topContent };
 }
 
 function buildAllInOneDashboard(entries, reports, dates) {
+  const merged = mergeReports(reports, dates.days);
   const perChannel = reports.map((report, index) => {
     const totals = mergeReports([report], dates.days).totals;
     return {
@@ -1378,9 +1389,15 @@ function buildAllInOneDashboard(entries, reports, dates) {
   });
 
   return {
+    dailyTotals: merged.series.map((day) => ({
+      date: day.date,
+      label: day.label,
+      organicViews: Number(day.organicViews || 0),
+      subscribers: Number(day.subscribers || 0),
+    })),
     channelRankings: {
-      organicViews: perChannel.slice().sort((a, b) => b.organicViews - a.organicViews).slice(0, 10),
-      subscribers: perChannel.slice().sort((a, b) => b.subscribers - a.subscribers).slice(0, 10),
+      organicViews: perChannel.slice().sort((a, b) => b.organicViews - a.organicViews),
+      subscribers: perChannel.slice().sort((a, b) => b.subscribers - a.subscribers),
     },
   };
 }

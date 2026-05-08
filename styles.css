@@ -869,7 +869,8 @@ input {
 .rank-list,
 .competitor-grid,
 .keyword-list,
-.average-grid {
+.average-grid,
+.daily-total-list {
   display: grid;
   gap: 8px;
 }
@@ -1070,9 +1071,79 @@ input {
 }
 
 .rank-list {
-  max-height: 390px;
-  overflow-y: auto;
   padding-right: 2px;
+}
+
+.scroll-rank-list {
+  max-height: 508px;
+  overflow-y: auto;
+}
+
+.fixed-rank-list {
+  max-height: none;
+  overflow: visible;
+}
+
+.daily-total-list {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.daily-total-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(140px, 1fr) minmax(130px, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #eef1f5;
+  background: #fff;
+}
+
+.daily-total-row:last-child {
+  border-bottom: 0;
+}
+
+.daily-total-head {
+  min-height: 36px;
+  background: #f6f8fb;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.daily-total-row span,
+.daily-total-row em {
+  justify-self: start;
+  text-align: left;
+}
+
+.daily-total-row:not(.daily-total-head) span,
+.daily-total-row:not(.daily-total-head) em {
+  font-size: 18px;
+}
+
+.daily-total-row:not(.daily-total-head) span {
+  color: var(--green);
+  font-weight: 900;
+}
+
+.daily-total-row strong,
+.daily-total-row span,
+.daily-total-row em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.daily-total-row em {
+  color: var(--green);
+  font-style: normal;
+  font-weight: 900;
+  text-align: right;
 }
 
 .rank-row em {

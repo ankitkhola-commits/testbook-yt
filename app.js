@@ -20,7 +20,7 @@ let state = {
   youtubeApiKeyConfigured: false,
   claudeConfigured: false,
   allConfigured: false,
-  maxChannels: 40,
+  maxChannels: 200,
   channels: [],
   selectedChannelId: "",
   channelSearch: "",
@@ -411,14 +411,37 @@ function renderAverageViews(totals) {
 }
 
 function renderAllInOneDashboard(report) {
+  renderAllInOneDailyTotals(report.allInOne?.dailyTotals || []);
   renderAllInOneTopContent(report.topContent || []);
   renderChannelRankings("#allInOneOrganicChannels", report.allInOne?.channelRankings?.organicViews || [], "organicViews");
   renderChannelRankings("#allInOneSubscriberChannels", report.allInOne?.channelRankings?.subscribers || [], "subscribers");
 }
 
+function renderAllInOneDailyTotals(days) {
+  const container = document.querySelector("#allInOneDailyTotals");
+  const visibleDays = days
+    .filter((day) => Number(day.organicViews || 0) !== 0 || Number(day.subscribers || 0) !== 0)
+    .slice()
+    .reverse();
+  container.innerHTML = `
+    <div class="daily-total-row daily-total-head">
+      <span>Date</span>
+      <span>Total views</span>
+      <span>Subscribers</span>
+    </div>
+    ${visibleDays.map((day) => `
+      <div class="daily-total-row">
+        <strong>${escapeHtml(day.label)}</strong>
+        <span>${Number(day.organicViews || 0).toLocaleString()}</span>
+        <em>${Number(day.subscribers || 0) >= 0 ? "+" : ""}${Number(day.subscribers || 0).toLocaleString()}</em>
+      </div>
+    `).join("") || `<div class="daily-total-row empty-row"><strong>No daily totals returned yet.</strong></div>`}
+  `;
+}
+
 function renderAllInOneTopContent(content) {
   const container = document.querySelector("#allInOneTopContent");
-  container.innerHTML = content.length ? content.map((row, index) => `
+  container.innerHTML = content.length ? content.slice(0, 20).map((row, index) => `
     <div class="rank-row all-in-one-row">
       ${renderRankBadge(index)}
       <span>
