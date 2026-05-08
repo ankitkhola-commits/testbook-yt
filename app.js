@@ -20,7 +20,7 @@ let state = {
   youtubeApiKeyConfigured: false,
   claudeConfigured: false,
   allConfigured: false,
-  maxChannels: 20,
+  maxChannels: 40,
   channels: [],
   selectedChannelId: "",
   channelSearch: "",
