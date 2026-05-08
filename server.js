@@ -18,7 +18,7 @@ const competitorPath = path.join(dataDir, "competitors.json");
 const competitorViewHistoryPath = path.join(dataDir, "competitor-view-history.json");
 const envPath = path.join(__dirname, ".env");
 const assetDir = path.join(__dirname, "assets");
-const maxChannels = 20;
+const maxChannels = 40;
 const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
 const sql = databaseUrl ? postgres(databaseUrl, { prepare: false }) : null;
 let storageReadyPromise;
