@@ -10,6 +10,8 @@ const formats = {
 };
 
 const competitorCategories = ["Testbook", "Teaching", "UGC NET", "CGL", "Odisha", "Bengali", "Marathi", "MPSC", "AE JE", "Bihar", "Banking", "Railways", "UPSC", "Punjab", "Telugu"];
+const competitorAutoRefreshMs = 5 * 60 * 1000;
+let competitorAutoRefreshTimer = null;
 
 let state = {
   connected: false,
@@ -29,6 +31,7 @@ let state = {
   activeView: "dashboard",
   activeCompetitorCategory: "UGC NET",
   competitorRequestId: 0,
+  competitorLastLoadedAt: 0,
   researchRequestId: 0,
   researchKeyword: "",
   researchRange: "48h",
@@ -75,6 +78,11 @@ document.querySelectorAll("[data-view-tab]").forEach((button) => {
   button.addEventListener("click", () => {
     state.activeView = button.dataset.viewTab;
     applyView();
+    if (state.activeView === "competitors") {
+      enterCompetitorView();
+      return;
+    }
+    stopCompetitorAutoRefresh();
     if (state.activeView === "research") renderResearchView();
   });
 });
@@ -506,9 +514,29 @@ function renderCompetitorCategoryTabs() {
       state.activeCompetitorCategory = button.dataset.category;
       renderCompetitorCategoryTabs();
       document.querySelector("#competitorCategoryHeading").textContent = state.activeCompetitorCategory;
-      document.querySelector("#competitorBenchmark").innerHTML = emptyCard("Click refresh to load this competitor category.");
+      await loadCategoryCompetitors({ force: true });
     });
   });
+}
+
+function enterCompetitorView() {
+  loadCategoryCompetitors({ force: true });
+  startCompetitorAutoRefresh();
+}
+
+function startCompetitorAutoRefresh() {
+  stopCompetitorAutoRefresh();
+  competitorAutoRefreshTimer = setInterval(() => {
+    if (state.activeView === "competitors") {
+      loadCategoryCompetitors({ force: true, silent: true });
+    }
+  }, competitorAutoRefreshMs);
+}
+
+function stopCompetitorAutoRefresh() {
+  if (!competitorAutoRefreshTimer) return;
+  clearInterval(competitorAutoRefreshTimer);
+  competitorAutoRefreshTimer = null;
 }
 
 async function loadCategoryCompetitors(options = {}) {
@@ -521,17 +549,34 @@ async function loadCategoryCompetitors(options = {}) {
   document.querySelector("#competitorPageTitle").textContent = "Channel benchmark";
   document.querySelector("#competitorCategoryHeading").textContent = category;
   document.querySelector("#competitorRangeLabel").textContent = "Last 7 days";
-  target.innerHTML = emptyCard("Loading competitor benchmark...");
+  if (!options.silent) {
+    target.innerHTML = emptyCard("Loading competitor benchmark...");
+  }
   try {
     const forceQuery = options.force ? "&force=1" : "";
     const data = await api(`/api/category-competitors?category=${encodeURIComponent(category)}&range=7${forceQuery}`);
     if (requestId !== state.competitorRequestId) return;
+    state.competitorLastLoadedAt = Date.now();
     renderCategoryBenchmark(data);
   } catch (error) {
     if (requestId !== state.competitorRequestId) return;
     target.innerHTML = emptyCard(error.message);
   }
 }
+
+window.addEventListener("focus", () => {
+  if (state.activeView !== "competitors") return;
+  if (Date.now() - state.competitorLastLoadedAt > 60 * 1000) {
+    loadCategoryCompetitors({ force: true, silent: true });
+  }
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden || state.activeView !== "competitors") return;
+  if (Date.now() - state.competitorLastLoadedAt > 60 * 1000) {
+    loadCategoryCompetitors({ force: true, silent: true });
+  }
+});
 
 function renderCategoryBenchmark(data) {
   const target = document.querySelector("#competitorBenchmark");

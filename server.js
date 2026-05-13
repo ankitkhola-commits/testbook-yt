@@ -496,11 +496,12 @@ app.get("/api/category-competitors", async (req, res, next) => {
       return;
     }
     const dates = dateWindow(range, month);
+    const force = req.query.force === "1";
     const data = await cached(
       makeCacheKey("category-competitors", category, range, month, dates.startDate, dates.endDate),
       ttl.competitors,
-      () => categoryCompetitorReport(category, mappings, dates),
-      { force: req.query.force === "1" }
+      () => categoryCompetitorReport(category, mappings, dates, { force }),
+      { force }
     );
     res.json(data);
   } catch (error) {
@@ -1481,12 +1482,12 @@ async function recentPublicVideos(channelId, dates) {
   })).filter((item) => item.publishedAt?.slice(0, 10) <= dates.endDate);
 }
 
-async function categoryCompetitorReport(category, mappings, dates) {
+async function categoryCompetitorReport(category, mappings, dates, options = {}) {
   const connectedEntries = await connectedChannelEntries().catch(() => []);
   const ownedChannelIds = [...new Set(connectedEntries.map((entry) => entry.channel.id))];
   const groups = await Promise.all(mappings.map(async (mapping) => {
     const channelDetails = await publicChannelsByIds(mapping.ids);
-    const channelReports = await Promise.all(mapping.ids.map((channelId) => publicChannelVideos(channelId, dates, mapping.group, channelDetails[channelId]?.title || channelId)));
+    const channelReports = await Promise.all(mapping.ids.map((channelId) => publicChannelVideos(channelId, dates, mapping.group, channelDetails[channelId]?.title || channelId, options)));
     const videos = channelReports.flat();
     return {
       name: mapping.group,
@@ -1549,11 +1550,12 @@ async function publicChannelsByIds(ids) {
   return details;
 }
 
-async function publicChannelVideos(channelId, dates, group, channelTitle) {
+async function publicChannelVideos(channelId, dates, group, channelTitle, options = {}) {
   return cached(
     makeCacheKey("public-channel-videos", channelId, group, dates.startDate, dates.endDate),
     ttl.publicVideos,
-    () => loadPublicChannelVideos(channelId, dates, group, channelTitle)
+    () => loadPublicChannelVideos(channelId, dates, group, channelTitle),
+    { force: Boolean(options.force) }
   );
 }
 
