@@ -1606,37 +1606,16 @@ input {
   line-height: 1.45;
 }
 
-.seo-panel,
-.thumbnail-panel,
-.kpi-panel {
+.seo-panel {
   display: grid;
   gap: 14px;
 }
 
-.shorts-cutter-panel {
-  padding: 0;
-  overflow: hidden;
-}
-
-.shorts-cutter-frame {
-  display: block;
-  width: 100%;
-  min-height: calc(100vh - 170px);
-  border: 0;
-  background: #f4f0ea;
-}
-
-.seo-toolbar,
-.thumbnail-toolbar {
+.seo-toolbar {
   display: flex;
   gap: 12px;
   align-items: end;
   justify-content: space-between;
-}
-
-.thumbnail-toolbar {
-  display: grid;
-  grid-template-columns: minmax(220px, 520px);
 }
 
 .seo-copy {
@@ -2005,83 +1984,11 @@ input {
   color: #1d6b42;
 }
 
-.thumbnail-layout {
-  display: grid;
-  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
-  gap: 14px;
-}
-
-.thumbnail-preview-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  align-content: start;
-}
-
-.thumbnail-source {
-  display: grid;
-  gap: 8px;
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--ink);
-  text-decoration: none;
-}
-
-.thumbnail-source img {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
-  border-radius: 6px;
-  background: #f2f4f7;
-}
-
-.thumbnail-source strong {
-  display: -webkit-box;
-  min-height: 36px;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  font-size: 12px;
-}
-
-.thumbnail-source span {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.thumbnail-prompt-card,
 .ai-copy-card {
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fbfcfe;
-}
-
-.thumbnail-prompt-card pre {
-  margin: 8px 0 14px;
-  white-space: pre-wrap;
-  font: inherit;
-  line-height: 1.45;
-}
-
-.thumbnail-prompt-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 6px;
-}
-
-.thumbnail-prompt-header .eyebrow {
-  margin: 0;
-}
-
-.thumbnail-prompt-card ul {
-  margin: 8px 0 0;
-  padding-left: 18px;
-  color: var(--muted);
 }
 
 .ai-result-dialog {
