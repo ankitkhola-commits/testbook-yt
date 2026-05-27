@@ -9,11 +9,6 @@
     { "source": "/assets/(.*)", "destination": "/api" },
     { "source": "/", "destination": "/api" }
   ],
-  "functions": {
-    "api/index.js": {
-      "includeFiles": ["index.html", "app.js", "styles.css", "assets/**"]
-    }
-  },
   "crons": [
     { "path": "/api/cron/warm-competitors/testbook", "schedule": "30 5 * * *" },
     { "path": "/api/cron/warm-competitors/teaching", "schedule": "31 5 * * *" },

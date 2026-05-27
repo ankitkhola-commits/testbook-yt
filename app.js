@@ -12,6 +12,12 @@ const formats = {
 const competitorCategories = ["Testbook", "Teaching", "UGC NET", "CGL", "Odisha", "Bengali", "Marathi", "MPSC", "AE JE", "Bihar", "Banking", "Railways", "UPSC", "Punjab", "Telugu"];
 const competitorAutoRefreshMs = 5 * 60 * 1000;
 let competitorAutoRefreshTimer = null;
+const kpiMetricLabels = {
+  views: "Organic views",
+  subscribers: "Subscribers",
+  ytSearchViews: "YT search views",
+};
+
 let state = {
   connected: false,
   viewer: null,
@@ -41,6 +47,9 @@ let state = {
   seoResults: [],
   seoSortLowest: false,
   seoChannelFilter: "",
+  kpis: [],
+  kpiQuarter: null,
+  kpiRequestId: 0,
   report: null,
 };
 
@@ -56,6 +65,11 @@ const researchKeywordInput = document.querySelector("#researchKeywordInput");
 const researchRangeSelect = document.querySelector("#researchRangeSelect");
 const seoRunButton = document.querySelector("#seoRunButton");
 const seoLowestButton = document.querySelector("#seoLowestButton");
+const kpiFormCard = document.querySelector("#kpiFormCard");
+const kpiEditingId = document.querySelector("#kpiEditingId");
+const kpiEmployeeName = document.querySelector("#kpiEmployeeName");
+const kpiChannelPicker = document.querySelector("#kpiChannelPicker");
+const kpiTargetGrid = document.querySelector("#kpiTargetGrid");
 const aiResultDialog = document.querySelector("#aiResultDialog");
 const aiDialogTitle = document.querySelector("#aiDialogTitle");
 const aiDialogBody = document.querySelector("#aiDialogBody");
@@ -83,6 +97,10 @@ document.querySelector("#refreshButton").addEventListener("click", () => {
     loadSeoAudit({ force: true });
     return;
   }
+  if (state.activeView === "kpi") {
+    loadKpis({ force: true });
+    return;
+  }
   loadDashboard({ force: true });
 });
 
@@ -97,6 +115,7 @@ document.querySelectorAll("[data-view-tab]").forEach((button) => {
     stopCompetitorAutoRefresh();
     if (state.activeView === "research") renderResearchView();
     if (state.activeView === "seo") renderSeoAuditView();
+    if (state.activeView === "kpi") loadKpis();
   });
 });
 
@@ -231,6 +250,37 @@ document.addEventListener("click", async (event) => {
     await searchCompetitors();
   }
 
+  if (action === "add-kpi") {
+    openKpiForm();
+  }
+
+  if (action === "cancel-kpi") {
+    closeKpiForm();
+  }
+
+  if (action === "save-kpi") {
+    await saveKpi();
+  }
+
+  if (action === "edit-kpi") {
+    openKpiForm(target.dataset.kpiId);
+  }
+
+  if (action === "delete-kpi") {
+    await deleteKpi(target.dataset.kpiId);
+  }
+});
+
+document.addEventListener("change", (event) => {
+  if (event.target.closest("#kpiChannelPicker")) {
+    const selected = kpiSelectedChannelIds();
+    if (selected.length > 10) {
+      event.target.checked = false;
+      alert("You can map maximum 10 channels to one employee.");
+      return;
+    }
+    renderKpiTargetGrid(collectKpiFormTargets());
+  }
 });
 
 document.querySelector("#researchFilterRow")?.addEventListener("click", (event) => {
@@ -779,6 +829,8 @@ function applyView() {
         competitors: "Competitors",
         research: "Research",
         seo: "SEO Audit",
+        kpi: "KPI Tracker",
+        "shorts-cutter": "Shorts Cutter",
       }[state.activeView] || "Channel Analytics");
 }
 
@@ -1091,10 +1143,256 @@ async function runSeoSuggestion(videoId) {
   }
 }
 
+async function loadKpis(options = {}) {
+  const requestId = ++state.kpiRequestId;
+  document.querySelector("#kpiResults").innerHTML = emptyCard("Loading KPI tracker...");
+  try {
+    const data = await api(`/api/kpis${options.force ? "?force=1" : ""}`);
+    if (requestId !== state.kpiRequestId) return;
+    state.kpis = data.kpis || [];
+    state.kpiQuarter = data.quarter || null;
+    if (data.channels?.length) state.channels = mergeChannels(state.channels, data.channels);
+    renderKpiView();
+  } catch (error) {
+    if (requestId !== state.kpiRequestId) return;
+    document.querySelector("#kpiResults").innerHTML = emptyCard(error.message);
+  }
+}
+
+function renderKpiView() {
+  renderKpiSummary();
+  renderKpiChannelPicker();
+  renderKpiTargetGrid(collectKpiFormTargets());
+  renderKpiResults();
+}
+
+function renderKpiSummary() {
+  const summary = document.querySelector("#kpiSummary");
+  if (!summary) return;
+  const rows = state.kpis || [];
+  const average = rows.length ? Math.round(rows.reduce((sum, item) => sum + Number(item.progress?.score || 0), 0) / rows.length) : 0;
+  const excellent = rows.filter((item) => item.progress?.status === "excellent").length;
+  const needsWork = rows.filter((item) => item.progress?.status === "need-attention").length;
+  summary.innerHTML = `
+    <div class="research-stat">
+      <span>Quarter</span>
+      <strong>${escapeHtml(state.kpiQuarter?.label || "AMJ")}</strong>
+    </div>
+    <div class="research-stat">
+      <span>Employees</span>
+      <strong>${rows.length}</strong>
+    </div>
+    <div class="research-stat">
+      <span>Average KPI</span>
+      <strong>${average}%</strong>
+    </div>
+    <div class="research-stat">
+      <span>Need attention</span>
+      <strong>${needsWork}</strong>
+    </div>
+    <div class="research-stat">
+      <span>Excellent</span>
+      <strong>${excellent}</strong>
+    </div>
+  `;
+}
+
+function renderKpiChannelPicker(selectedIds = kpiSelectedChannelIds()) {
+  if (!kpiChannelPicker) return;
+  const channels = kpiAvailableChannels();
+  if (!channels.length) {
+    kpiChannelPicker.innerHTML = emptyCard("Connect channels first to map employee KPIs.");
+    return;
+  }
+  const selected = new Set(selectedIds);
+  kpiChannelPicker.innerHTML = channels.map((channel) => `
+    <label class="kpi-channel-option">
+      <input type="checkbox" value="${escapeHtml(channel.id)}" ${selected.has(channel.id) ? "checked" : ""} />
+      <span>${escapeHtml(channel.name)}</span>
+    </label>
+  `).join("");
+}
+
+function renderKpiTargetGrid(existingTargets = {}) {
+  if (!kpiTargetGrid) return;
+  const selectedChannels = kpiAvailableChannels().filter((channel) => kpiSelectedChannelIds().includes(channel.id));
+  if (!selectedChannels.length) {
+    kpiTargetGrid.innerHTML = emptyCard("Select mapped channels to add AMJ quarterly targets.");
+    return;
+  }
+  kpiTargetGrid.innerHTML = `
+    <div class="kpi-target-table">
+      <div class="kpi-target-row kpi-target-head">
+        <span>Channel</span>
+        <span>AMJ views target</span>
+        <span>AMJ subscribers target</span>
+        <span>AMJ YT search target</span>
+      </div>
+      ${selectedChannels.map((channel) => {
+        const target = existingTargets?.[channel.id] || {};
+        return `
+          <div class="kpi-target-row">
+            <strong>${escapeHtml(channel.name)}</strong>
+            ${kpiTargetInput(channel.id, "views", target.views)}
+            ${kpiTargetInput(channel.id, "subscribers", target.subscribers)}
+            ${kpiTargetInput(channel.id, "ytSearchViews", target.ytSearchViews)}
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function kpiTargetInput(channelId, metric, value) {
+  return `<input type="number" min="0" value="${Number(value || 0)}" data-kpi-target data-channel="${escapeHtml(channelId)}" data-metric="${escapeHtml(metric)}" />`;
+}
+
+function renderKpiResults() {
+  const container = document.querySelector("#kpiResults");
+  if (!container) return;
+  const rows = state.kpis || [];
+  if (!rows.length) {
+    container.innerHTML = emptyCard("No employee KPIs added yet.");
+    return;
+  }
+  container.innerHTML = rows.map((item) => `
+    <article class="kpi-card">
+      <div class="kpi-card-head">
+        <div>
+          <p class="eyebrow">${escapeHtml((item.channelNames || []).slice(0, 3).join(", ") || "No channels")}${(item.channelNames || []).length > 3 ? ` +${(item.channelNames || []).length - 3}` : ""}</p>
+          <h3>${escapeHtml(item.employeeName)}</h3>
+        </div>
+        <div class="kpi-score ${kpiStatusClass(item.progress?.status)}">
+          <strong>${Number(item.progress?.projectedScore || 0)}%</strong>
+          <span>${kpiStatusLabel(item.progress?.status)}</span>
+        </div>
+      </div>
+      <p class="kpi-projection-note">Projected from ${Number(item.projection?.elapsedDays || 0)} days of AMJ data to ${Number(item.projection?.quarterDays || 91)} days. Current actual KPI is ${Number(item.progress?.score || 0)}%.</p>
+      <div class="kpi-metric-grid">
+        ${Object.keys(kpiMetricLabels).map((metric) => `
+          <div class="kpi-metric">
+            <span>${kpiMetricLabels[metric]}</span>
+            <strong>${formatCompactNumber(item.totals?.actual?.[metric] || 0)} / ${formatCompactNumber(item.totals?.target?.[metric] || 0)}</strong>
+            <small>${Number(item.progress?.metricProgress?.[metric] || 0)}% actual · ${Number(item.progress?.projectedMetricProgress?.[metric] || 0)}% projected · ${Number(item.weights?.[metric] || 0)} weight</small>
+          </div>
+        `).join("")}
+      </div>
+      <details class="kpi-details">
+        <summary>Channel target breakdown</summary>
+        <div class="kpi-breakdown">
+          ${(item.channelRows || []).map((row) => `
+            <div class="kpi-breakdown-row">
+              <strong>${escapeHtml(row.channelName)}</strong>
+              <span>Views ${formatCompactNumber(row.actual?.views || 0)} / ${formatCompactNumber(row.target?.views || 0)}</span>
+              <span>Subs ${formatCompactNumber(row.actual?.subscribers || 0)} / ${formatCompactNumber(row.target?.subscribers || 0)}</span>
+              <span>Search ${formatCompactNumber(row.actual?.ytSearchViews || 0)} / ${formatCompactNumber(row.target?.ytSearchViews || 0)}</span>
+            </div>
+          `).join("")}
+        </div>
+      </details>
+      <div class="kpi-actions">
+        <button class="ghost-button mini-button" type="button" data-action="edit-kpi" data-kpi-id="${escapeHtml(item.id)}">Edit</button>
+        <button class="link-chip" type="button" data-action="delete-kpi" data-kpi-id="${escapeHtml(item.id)}">Delete</button>
+      </div>
+    </article>
+  `).join("");
+}
+
+function openKpiForm(kpiId = "") {
+  const item = (state.kpis || []).find((row) => row.id === kpiId);
+  kpiFormCard?.classList.remove("is-hidden");
+  document.querySelector("#kpiFormMode").textContent = item ? "Edit KPI" : "New KPI";
+  kpiEditingId.value = item?.id || "";
+  kpiEmployeeName.value = item?.employeeName || "";
+  document.querySelector("#kpiWeightViews").value = item?.weights?.views ?? 50;
+  document.querySelector("#kpiWeightSubscribers").value = item?.weights?.subscribers ?? 30;
+  document.querySelector("#kpiWeightSearch").value = item?.weights?.ytSearchViews ?? 20;
+  renderKpiChannelPicker(item?.channels || []);
+  renderKpiTargetGrid(item?.targets || {});
+  kpiFormCard?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function closeKpiForm() {
+  kpiFormCard?.classList.add("is-hidden");
+  kpiEditingId.value = "";
+}
+
+async function saveKpi() {
+  try {
+    const payload = collectKpiFormPayload();
+    const editingId = kpiEditingId.value;
+    const data = await api(editingId ? `/api/kpis/${encodeURIComponent(editingId)}` : "/api/kpis", {
+      method: editingId ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    state.kpis = data.kpis || [];
+    closeKpiForm();
+    renderKpiView();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function deleteKpi(kpiId) {
+  if (!kpiId || !confirm("Delete this employee KPI?")) return;
+  const data = await api(`/api/kpis/${encodeURIComponent(kpiId)}`, { method: "DELETE" });
+  state.kpis = data.kpis || [];
+  renderKpiView();
+}
+
+function collectKpiFormPayload() {
+  return {
+    employeeName: kpiEmployeeName?.value || "",
+    channels: kpiSelectedChannelIds(),
+    weights: {
+      views: Number(document.querySelector("#kpiWeightViews")?.value || 0),
+      subscribers: Number(document.querySelector("#kpiWeightSubscribers")?.value || 0),
+      ytSearchViews: Number(document.querySelector("#kpiWeightSearch")?.value || 0),
+    },
+    targets: collectKpiFormTargets(),
+  };
+}
+
+function collectKpiFormTargets() {
+  const targets = {};
+  document.querySelectorAll("[data-kpi-target]").forEach((input) => {
+    const channel = input.dataset.channel;
+    const metric = input.dataset.metric;
+    targets[channel] ||= {};
+    targets[channel][metric] = Number(input.value || 0);
+  });
+  return targets;
+}
+
+function kpiSelectedChannelIds() {
+  return Array.from(document.querySelectorAll("#kpiChannelPicker input:checked")).map((input) => input.value);
+}
+
+function kpiAvailableChannels() {
+  return (state.channels || []).filter((channel) => channel.id && channel.id !== "all-in-one");
+}
+
 function mergeChannels(current = [], incoming = []) {
   const byId = new Map(current.map((channel) => [channel.id, channel]));
   incoming.forEach((channel) => byId.set(channel.id, { ...byId.get(channel.id), ...channel }));
   return [...byId.values()];
+}
+
+function kpiStatusLabel(status) {
+  return {
+    excellent: "Excellent",
+    "on-track": "On track",
+    "need-attention": "Need attention",
+  }[status] || "Need attention";
+}
+
+function kpiStatusClass(status) {
+  return {
+    excellent: "excellent",
+    "on-track": "on-track",
+    "need-attention": "need-attention",
+  }[status] || "need-attention";
 }
 
 function renderSeoSuggestion(data, item) {
