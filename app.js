@@ -856,7 +856,7 @@ function renderResearchIdeas() {
       <strong>${escapeHtml(idea.title)}</strong>
       <p>${escapeHtml(idea.reason)}</p>
     </article>
-  `).join("");
+  `).join("")}
 }
 
 async function loadResearch(options = {}) {
@@ -1029,7 +1029,7 @@ async function loadSearchKeywords(date) {
       <div class="keyword-row">
         <b>${index + 1}</b>
         <span>${escapeHtml(row.keyword)}</span>
-        <strong>${Number(row.views || 0).toLocaleString()}</strong>
+        strong>${Number(row.views || 0).toLocaleString()}</strong>
       </div>
     `).join("") : emptyCard("YouTube did not return search keyword detail for this day yet.");
   } catch (error) {
