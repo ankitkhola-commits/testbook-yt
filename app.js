@@ -1260,3 +1260,9 @@ function escapeHtml(value) {
     "'": "&#039;",
   })[char]);
 }
+
+// Ensure the dashboard state is initialized correctly on load
+document.addEventListener("DOMContentLoaded", () => {
+  initDashboard();
+  loadDashboard();
+});

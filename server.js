@@ -1693,7 +1693,7 @@ async function publicVideoDetails(ids) {
   return detailMap;
 }
 
-// FIXED: Cleaned classification logic to detect archived live streams and strict 180-second shorts formats
+// FIXED: Cleaned classification logic to detect archived live streams and strict 60-second shorts formats
 function classifyVideo(video) {
   const snippet = video.snippet || {};
   const contentDetails = video.contentDetails || {};
@@ -1709,8 +1709,8 @@ function classifyVideo(video) {
   const seconds = isoDurationSeconds(contentDetails.duration || "PT0S");
   if (/#shorts?\b|\bshorts?\b/.test(title)) return "Shorts";
   
-  // Native Shorts are capped strictly at 180 seconds
-  return seconds > 0 && seconds <= 180 ? "Shorts" : "Video";
+  // Native Shorts are capped strictly at 60 seconds
+  return seconds > 0 && seconds <= 60 ? "Shorts" : "Video";
 }
 
 // FIXED: Matched public classifications to native streaming rules
@@ -1728,7 +1728,7 @@ function classifyPublicVideo(video) {
 
   const seconds = isoDurationSeconds(contentDetails.duration || "PT0S");
   if (/#shorts?\b|\bshorts?\b/.test(title)) return "Shorts";
-  return seconds > 0 && seconds <= 180 ? "Shorts" : "Video";
+  return seconds > 0 && seconds <= 60 ? "Shorts" : "Video";
 }
 
 function formatCounts(videos) {
@@ -1803,7 +1803,7 @@ async function suggestTopicsFromResearch(keyword, range, items) {
   ].join("\n");
 
   const data = await fetchAnthropicJson({
-    model: "claude-sonnet-4-2060514",
+    model: "claude-sonnet-4-20250514",
     max_tokens: 900,
     messages: [{ role: "user", content: prompt }],
   });
