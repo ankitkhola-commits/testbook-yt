@@ -8,5 +8,11 @@
     { "source": "/styles.css", "destination": "/api" },
     { "source": "/assets/(.*)", "destination": "/api" },
     { "source": "/", "destination": "/api" }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/warm-competitors",
+      "schedule": "30-44 5,11 * * *"
+    }
   ]
 }

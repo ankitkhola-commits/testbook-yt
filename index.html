@@ -105,6 +105,7 @@
           <button class="side-nav-button active" type="button" data-view-tab="dashboard">Dashboard</button>
           <button class="side-nav-button" type="button" data-view-tab="competitors">Competitors</button>
           <button class="side-nav-button" type="button" data-view-tab="research">Research</button>
+          <button class="side-nav-button" type="button" data-view-tab="seo">SEO Audit</button>
         </nav>
 
         <button class="connect-button" id="connectChannelButton" data-sidebar-view="dashboard">
@@ -322,7 +323,6 @@
               <button class="filter-chip" type="button" data-research-filter="Live">Live</button>
             </div>
             <div id="researchSummary" class="research-summary"></div>
-            <div id="researchResults" class="research-results"></div>
             <div class="research-ideas-panel">
               <div class="research-ideas-header">
                 <div>
@@ -333,6 +333,26 @@
               </div>
               <div id="researchIdeas" class="research-ideas"></div>
             </div>
+            <div id="researchResults" class="research-results"></div>
+          </article>
+
+          <article class="panel page-panel seo-panel" data-view="seo">
+            <div class="panel-header research-header">
+              <div>
+                <p class="eyebrow">SEO Audit</p>
+                <h2>Latest 30 videos and live streams per channel</h2>
+              </div>
+              <button class="connect-button research-run" type="button" id="seoRunButton">Run audit</button>
+            </div>
+            <div class="seo-toolbar">
+              <div class="seo-copy">
+                <strong>Checks description keyword lines, playlist link, tag depth, relevant tags and description hashtags.</strong>
+              </div>
+              <button class="ghost-button" type="button" id="seoLowestButton">Score lowest first</button>
+            </div>
+            <div id="seoSummary" class="research-summary"></div>
+            <div id="seoChannelTabs" class="seo-channel-tabs" aria-label="SEO audit channel filters"></div>
+            <div id="seoAuditResults" class="seo-results"></div>
           </article>
 
         </section>
@@ -399,6 +419,19 @@
           <button value="cancel" class="ghost-button">Cancel</button>
           <button class="connect-button" type="submit">Add competitor</button>
         </div>
+      </form>
+    </dialog>
+
+    <dialog id="aiResultDialog" class="modal ai-result-dialog">
+      <form method="dialog">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">AI suggestion</p>
+            <h2 id="aiDialogTitle">Recommendation</h2>
+          </div>
+          <button value="cancel" class="icon-button" aria-label="Close">×</button>
+        </div>
+        <div id="aiDialogBody" class="ai-dialog-body"></div>
       </form>
     </dialog>
 

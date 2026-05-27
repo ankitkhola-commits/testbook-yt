@@ -16,6 +16,7 @@ const tokenPath = path.join(dataDir, "google-tokens.json");
 const profilesPath = path.join(dataDir, "google-profiles.json");
 const competitorPath = path.join(dataDir, "competitors.json");
 const competitorViewHistoryPath = path.join(dataDir, "competitor-view-history.json");
+const categoryCompetitorCachePath = path.join(dataDir, "category-competitor-cache.json");
 const envPath = path.join(__dirname, ".env");
 const assetDir = path.join(__dirname, "assets");
 const maxChannels = Number(process.env.MAX_CONNECTED_CHANNELS || 200);
@@ -24,6 +25,7 @@ const sql = databaseUrl ? postgres(databaseUrl, { prepare: false }) : null;
 let storageReadyPromise;
 const responseCache = new Map();
 const inFlightRequests = new Map();
+let youtubeSearchQueue = Promise.resolve();
 const ttl = {
   dashboard: 10 * 60 * 1000,
   uploads: 30 * 60 * 1000,
@@ -32,7 +34,13 @@ const ttl = {
   publicVideos: 30 * 60 * 1000,
   research: 6 * 60 * 60 * 1000,
   competitors: 30 * 60 * 1000,
+  seoAudit: 20 * 60 * 1000,
+  aiOptimize: 24 * 60 * 60 * 1000,
 };
+const competitorWarmHoursIst = [11, 17];
+const competitorWarmDelayMs = Number(process.env.COMPETITOR_WARM_DELAY_MS || 60 * 1000);
+let competitorWarmRunning = false;
+let competitorLastWarmSlot = "";
 const teamScopes = [
   "openid",
   "email",
@@ -496,14 +504,40 @@ app.get("/api/category-competitors", async (req, res, next) => {
       return;
     }
     const dates = dateWindow(range, month);
-    const force = req.query.force === "1";
-    const data = await cached(
-      makeCacheKey("category-competitors", category, range, month, dates.startDate, dates.endDate),
-      ttl.competitors,
-      () => categoryCompetitorReport(category, mappings, dates, { force }),
-      { force }
-    );
+    const cacheKey = categoryCompetitorCacheKey(category, range, month, dates);
+    const stored = await readCategoryCompetitorCache(cacheKey);
+    if (stored?.value) {
+      res.json({ ...stored.value, cache: { updatedAt: stored.updatedAt, source: "scheduled" } });
+      return;
+    }
+    const data = await loadAndStoreCategoryCompetitors(category, mappings, dates, cacheKey);
     res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/cron/warm-competitors", async (req, res, next) => {
+  try {
+    if (process.env.CRON_SECRET) {
+      const token = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+      if (token !== process.env.CRON_SECRET) {
+        res.status(401).json({ error: "Unauthorized cron request." });
+        return;
+      }
+    }
+    if (!process.env.YOUTUBE_API_KEY) {
+      res.status(400).json({ error: "Add a YouTube API key before warming competitor cache." });
+      return;
+    }
+    const requestedCategory = String(req.query.category || "").trim();
+    if (requestedCategory) {
+      const warmed = await warmCompetitorCategory(requestedCategory);
+      res.json({ warmed: [warmed] });
+      return;
+    }
+    const warmed = await warmScheduledCompetitorCategory();
+    res.json({ warmed: warmed ? [warmed] : [] });
   } catch (error) {
     next(error);
   }
@@ -525,7 +559,7 @@ app.get("/api/research", async (req, res, next) => {
       makeCacheKey("research", keyword.toLowerCase(), range),
       ttl.research,
       () => researchKeywordVideos(keyword, range),
-      { force: req.query.force === "1" }
+      { force: req.query.force === "1", forceCooldownMs: 5 * 60 * 1000 }
     );
     res.json({ keyword, range, items });
   } catch (error) {
@@ -553,6 +587,55 @@ app.post("/api/research/suggest", async (req, res, next) => {
   }
 });
 
+app.get("/api/seo/audit", async (req, res, next) => {
+  try {
+    const entries = await connectedChannelEntries();
+    if (!entries.length) {
+      res.json({ window: "Latest 30 per channel", items: [] });
+      return;
+    }
+    const channelIds = entries.map((entry) => entry.channel.id).sort();
+    const data = await cached(
+      makeCacheKey("seo-audit", channelIds, "latest-30-video-live-public", "claude-edtech-v5"),
+      ttl.seoAudit,
+      () => seoAuditReport(entries),
+      { force: req.query.force === "1" }
+    );
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/seo/suggest", async (req, res, next) => {
+  try {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      res.status(400).json({ error: "Add an Anthropic API key before asking for SEO suggestions." });
+      return;
+    }
+    const videoId = String(req.body.videoId || "").trim();
+    if (!videoId) {
+      res.status(400).json({ error: "Select a video first." });
+      return;
+    }
+    const entries = await connectedChannelEntries();
+    const video = await findOwnedSeoVideo(entries, videoId);
+    if (!video) {
+      res.status(404).json({ error: "Video was not found in connected channels." });
+      return;
+    }
+    const suggestion = await cached(
+      makeCacheKey("seo-suggest", "description-tags-v1", video.id, video.title, (video.tags || []).join(",")),
+      ttl.aiOptimize,
+      () => seoSuggestWithClaude(video),
+      { force: Boolean(req.body.force) }
+    );
+    res.json({ ...suggestion, videoId: video.id, title: video.title });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.delete("/api/competitors/:channelId/:competitorId", async (req, res, next) => {
   try {
     const competitors = await readCompetitors();
@@ -571,9 +654,13 @@ app.use((error, _req, res, _next) => {
 });
 
 await hydrateEnvFromFile();
+await ensureStorage().catch((error) => {
+  console.warn("Storage setup failed before startup; routes will retry.", error.message);
+});
 
 const isDirectRun = process.argv[1] && path.resolve(process.argv[1]) === currentFilePath;
 if (isDirectRun) {
+  startCompetitorCacheWarmer();
   app.listen(port, () => {
     console.log(`YouTube dashboard running at http://localhost:${port}`);
   });
@@ -589,8 +676,11 @@ function makeCacheKey(...parts) {
 }
 
 async function cached(key, maxAgeMs, loader, options = {}) {
+  const existing = responseCache.get(key);
+  if (options.force && options.forceCooldownMs && existing && Date.now() - existing.createdAt < options.forceCooldownMs) {
+    return existing.value;
+  }
   if (!options.force) {
-    const existing = responseCache.get(key);
     if (existing && Date.now() - existing.createdAt < maxAgeMs) {
       return existing.value;
     }
@@ -603,6 +693,12 @@ async function cached(key, maxAgeMs, loader, options = {}) {
     .then((value) => {
       responseCache.set(key, { createdAt: Date.now(), value });
       return value;
+    })
+    .catch((error) => {
+      if (existing && /quota|rateLimit|Search Queries/i.test(error.message || "")) {
+        return existing.value;
+      }
+      throw error;
     })
     .finally(() => {
       inFlightRequests.delete(key);
@@ -1021,6 +1117,47 @@ async function saveCompetitorViewHistory(history) {
   }
   await mkdir(dataDir, { recursive: true });
   await writeFile(competitorViewHistoryPath, JSON.stringify(history, null, 2), "utf8");
+}
+
+async function readCategoryCompetitorCache(cacheKey = "") {
+  const cache = await readCategoryCompetitorCacheStore();
+  return cacheKey ? cache[cacheKey] : cache;
+}
+
+async function saveCategoryCompetitorCache(cacheKey, value) {
+  const cache = await readCategoryCompetitorCacheStore();
+  cache[cacheKey] = {
+    updatedAt: new Date().toISOString(),
+    value,
+  };
+  await saveCategoryCompetitorCacheStore(cache);
+}
+
+async function readCategoryCompetitorCacheStore() {
+  if (sql) {
+    await ensureStorage();
+    const rows = await sql`select payload from app_state where key = 'category_competitor_cache' limit 1`;
+    return rows[0]?.payload || {};
+  }
+  try {
+    return JSON.parse(await readFile(categoryCompetitorCachePath, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+async function saveCategoryCompetitorCacheStore(cache) {
+  if (sql) {
+    await ensureStorage();
+    await sql`
+      insert into app_state (key, payload)
+      values ('category_competitor_cache', ${sql.json(cache)})
+      on conflict (key) do update set payload = excluded.payload, updated_at = now()
+    `;
+    return;
+  }
+  await mkdir(dataDir, { recursive: true });
+  await writeFile(categoryCompetitorCachePath, JSON.stringify(cache, null, 2), "utf8");
 }
 
 async function listOwnedChannels(auth) {
@@ -1482,6 +1619,77 @@ async function recentPublicVideos(channelId, dates) {
   })).filter((item) => item.publishedAt?.slice(0, 10) <= dates.endDate);
 }
 
+function categoryCompetitorCacheKey(category, range, month, dates) {
+  return makeCacheKey("category-competitors", category, range, month, dates.startDate, dates.endDate);
+}
+
+async function loadAndStoreCategoryCompetitors(category, mappings, dates, cacheKey) {
+  const data = await cached(
+    cacheKey,
+    ttl.competitors,
+    () => categoryCompetitorReport(category, mappings, dates, { force: true }),
+    { force: true, forceCooldownMs: 5 * 60 * 1000 }
+  );
+  await saveCategoryCompetitorCache(cacheKey, data);
+  return { ...data, cache: { updatedAt: new Date().toISOString(), source: "fresh" } };
+}
+
+function startCompetitorCacheWarmer() {
+  if (!process.env.YOUTUBE_API_KEY) return;
+  setInterval(() => {
+    const now = new Date();
+    const ist = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+    const hour = ist.getHours();
+    const minute = ist.getMinutes();
+    if (!competitorWarmHoursIst.includes(hour) || minute !== 0) return;
+    const slot = `${ist.getFullYear()}-${ist.getMonth() + 1}-${ist.getDate()}-${hour}`;
+    if (competitorLastWarmSlot === slot) return;
+    competitorLastWarmSlot = slot;
+    warmCompetitorCacheQueue().catch((error) => {
+      console.error("Competitor cache warm failed", error);
+    });
+  }, 30 * 1000);
+}
+
+async function warmCompetitorCacheQueue() {
+  if (competitorWarmRunning || !process.env.YOUTUBE_API_KEY) return;
+  competitorWarmRunning = true;
+  try {
+    const categories = Object.keys(competitorCategoryMap);
+    for (const [index, category] of categories.entries()) {
+      if (index > 0) {
+        await new Promise((resolve) => setTimeout(resolve, competitorWarmDelayMs));
+      }
+      try {
+        await warmCompetitorCategory(category);
+      } catch (error) {
+        console.warn(`Skipped competitor cache warm for ${category}: ${error.message}`);
+      }
+    }
+  } finally {
+    competitorWarmRunning = false;
+  }
+}
+
+async function warmScheduledCompetitorCategory() {
+  const ist = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+  if (!competitorWarmHoursIst.includes(ist.getHours())) return null;
+  const categories = Object.keys(competitorCategoryMap);
+  const category = categories[ist.getMinutes()];
+  if (!category) return null;
+  return warmCompetitorCategory(category);
+}
+
+async function warmCompetitorCategory(category) {
+  const mappings = competitorCategoryMap[category];
+  if (!mappings) throw new Error(`${category} mapping is not configured.`);
+  const dates = dateWindow("7", "");
+  const cacheKey = categoryCompetitorCacheKey(category, "7", "", dates);
+  await loadAndStoreCategoryCompetitors(category, mappings, dates, cacheKey);
+  console.log(`Warmed competitor cache for ${category}`);
+  return category;
+}
+
 async function categoryCompetitorReport(category, mappings, dates, options = {}) {
   const connectedEntries = await connectedChannelEntries().catch(() => []);
   const ownedChannelIds = [...new Set(connectedEntries.map((entry) => entry.channel.id))];
@@ -1555,7 +1763,7 @@ async function publicChannelVideos(channelId, dates, group, channelTitle, option
     makeCacheKey("public-channel-videos", channelId, group, dates.startDate, dates.endDate),
     ttl.publicVideos,
     () => loadPublicChannelVideos(channelId, dates, group, channelTitle),
-    { force: Boolean(options.force) }
+    { force: Boolean(options.force), forceCooldownMs: 5 * 60 * 1000 }
   );
 }
 
@@ -1722,6 +1930,437 @@ function engagementRate(videos) {
   return ((likes + comments) / views) * 100;
 }
 
+async function seoAuditReport(entries) {
+  const items = [];
+  for (const entry of entries) {
+    const uploads = await recentOwnedUploads(entry.auth, entry.channel, "", 90);
+    const details = await ownedSeoVideoDetails(entry.auth, uploads.map((video) => video.id));
+      const detailItems = [];
+      for (const upload of uploads) {
+        const detail = details[upload.id];
+        if (!detail || !["Video", "Live"].includes(detail.format)) continue;
+        if (detail.privacyStatus === "unlisted") continue;
+        detailItems.push({
+          ...detail,
+          channelTitle: entry.channel.name || detail.channelTitle,
+        channelId: entry.channel.id,
+        url: `https://www.youtube.com/watch?v=${detail.id}`,
+      });
+      if (detailItems.length >= 30) break;
+    }
+    const channelAverageViews = average(detailItems.map((detail) => Number(detail.views || 0)));
+    items.push(...await Promise.all(detailItems.map(async (detail) => ({
+      ...detail,
+      ...await auditSeoMetadata(detail, channelAverageViews),
+    }))));
+  }
+  items.sort((a, b) => new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0));
+  return {
+    window: "Latest 30 per channel",
+    items,
+    averageScore: Math.round(items.reduce((sum, item) => sum + item.score, 0) / Math.max(1, items.length)),
+  };
+}
+
+async function recentOwnedUploads(auth, channel, sinceIso, limit = 90) {
+  if (!channel?.uploadsPlaylistId) return [];
+  const youtube = google.youtube({ version: "v3", auth });
+  const videos = [];
+  let pageToken;
+  let reachedOlderVideos = false;
+  do {
+    const response = await youtube.playlistItems.list({
+      part: ["snippet", "contentDetails"],
+      playlistId: channel.uploadsPlaylistId,
+      maxResults: 50,
+      pageToken,
+    });
+    for (const item of response.data.items || []) {
+      const id = item.contentDetails?.videoId;
+      const publishedAt = item.contentDetails?.videoPublishedAt || item.snippet?.publishedAt;
+      if (!id || !publishedAt) continue;
+      if (sinceIso && publishedAt < sinceIso) {
+        reachedOlderVideos = true;
+        break;
+      }
+      videos.push({ id, publishedAt, title: item.snippet?.title || "Untitled" });
+      if (videos.length >= limit) break;
+    }
+    pageToken = reachedOlderVideos || videos.length >= limit ? undefined : response.data.nextPageToken;
+  } while (pageToken);
+  return videos;
+}
+
+async function ownedSeoVideoDetails(auth, ids) {
+  const cleanIds = [...new Set(ids.filter(Boolean))];
+  const detailMap = {};
+  for (let index = 0; index < cleanIds.length; index += 50) {
+    const chunk = cleanIds.slice(index, index + 50).sort();
+    const details = await cached(
+      makeCacheKey("owned-seo-video-details", "with-status-v1", chunk),
+      ttl.videoDetails,
+      async () => {
+        const youtube = google.youtube({ version: "v3", auth });
+        const response = await youtube.videos.list({
+          part: ["snippet", "contentDetails", "liveStreamingDetails", "statistics", "status"],
+          id: chunk,
+          maxResults: 50,
+        });
+        return (response.data.items || []).map((item) => ({
+          id: item.id,
+          title: item.snippet?.title || item.id,
+          description: item.snippet?.description || "",
+          tags: item.snippet?.tags || [],
+          channelTitle: item.snippet?.channelTitle || "",
+          publishedAt: item.snippet?.publishedAt || "",
+          thumbnailUrl: bestThumbnailUrl(item.snippet?.thumbnails),
+          format: classifySeoVideo(item),
+          privacyStatus: item.status?.privacyStatus || "",
+          views: Number(item.statistics?.viewCount || 0),
+          durationSeconds: isoDurationSeconds(item.contentDetails?.duration || "PT0S"),
+        }));
+      }
+    );
+    for (const detail of details) {
+      detailMap[detail.id] = detail;
+    }
+  }
+  return detailMap;
+}
+
+function classifySeoVideo(video) {
+  const text = `${video.snippet?.title || ""} ${(video.snippet?.tags || []).join(" ")}`.toLowerCase();
+  if (video.liveStreamingDetails || ["live", "upcoming"].includes(video.snippet?.liveBroadcastContent)) {
+    return "Live";
+  }
+  const seconds = isoDurationSeconds(video.contentDetails?.duration || "PT0S");
+  if (/#shorts?\b|\bshorts?\b/.test(text)) return "Shorts";
+  return seconds > 0 && seconds <= 180 ? "Shorts" : "Video";
+}
+
+async function auditSeoMetadata(video, channelAverageViews = 0) {
+  const localAudit = localSeoMetadataAudit(video, channelAverageViews);
+  if (!process.env.ANTHROPIC_API_KEY) return localAudit;
+  try {
+    const claudeAudit = await cached(
+      makeCacheKey("seo-video-claude-audit", "edtech-v2", video.id, video.title, video.description.slice(0, 800), (video.tags || []).join("|")),
+      ttl.aiOptimize,
+      () => claudeSeoMetadataAudit(video, localAudit),
+    );
+    return mergeSeoMetadataAudit(localAudit, claudeAudit);
+  } catch (error) {
+    console.warn(`Claude SEO audit fallback for ${video.id}:`, error.message);
+    return localAudit;
+  }
+}
+
+function localSeoMetadataAudit(video, channelAverageViews = 0) {
+  const titleKeywords = seoKeywords(video.title);
+  const tags = Array.isArray(video.tags) ? video.tags : [];
+  const tagLower = tags.map((tag) => normalizeSeoText(tag));
+  const hashtags = extractHashtags(video.description);
+  const titlePhrases = seoKeywordPhrases(video.title);
+  const gaps = [];
+  const wins = [];
+  const tagCharacterCount = tags.join(", ").length;
+  const aboveChannelAverage = channelAverageViews > 0 && Number(video.views || 0) > channelAverageViews;
+  const descriptionOk = isSeoDescriptionOptimised(video.description, titleKeywords, titlePhrases);
+  const hasPlaylistLink = hasYouTubePlaylistLink(video.description);
+  if (descriptionOk) {
+    wins.push("Description has 2-3 useful lines related to the title.");
+  } else {
+    gaps.push("Description not optimised");
+  }
+  if (!hasPlaylistLink) {
+    gaps.push("Playlist link missing");
+  } else {
+    wins.push("Description includes a YouTube playlist link.");
+  }
+
+  const relatedTags = tagLower.filter((tag) => isSeoTitleRelated(tag, titleKeywords, titlePhrases)).length;
+  const defaultTags = tagLower.filter((tag) => isDefaultSeoTag(tag, video.channelTitle)).length;
+  if (!tags.length) {
+    gaps.push("Tags missing");
+  } else {
+    wins.push("Tags are present.");
+    if (tagCharacterCount < 450) {
+      gaps.push("Low tag count");
+    }
+    if (areSeoTagsRelevant(tags.length, relatedTags, defaultTags, titleKeywords.length)) {
+      wins.push("Tags are related to title keywords.");
+    } else {
+      gaps.push("Low relevant tags");
+    }
+  }
+
+  if (hashtags.length < 5) {
+    gaps.push("Hashtags missing");
+  } else {
+    wins.push("Description includes at least 5 hashtags.");
+  }
+  const uniqueGaps = [...new Set(gaps)];
+
+  return {
+    score: seoMetadataScore(uniqueGaps),
+    wins,
+    gaps: uniqueGaps,
+    descriptionOptimised: descriptionOk,
+    hasPlaylistLink,
+    channelAverageViews: Math.round(channelAverageViews || 0),
+    aboveChannelAverage,
+    tagCharacterCount,
+    tagCount: tags.length,
+    hashtagCount: hashtags.length,
+    relatedTagCount: relatedTags,
+  };
+}
+
+async function claudeSeoMetadataAudit(video, localAudit) {
+  const data = await fetchAnthropicJson({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 900,
+    messages: [{
+      role: "user",
+      content: [
+        "Act like a 10 year YouTube SEO expert and channel SEO auditor for Indian edtech and competitive exam channels.",
+        "Audit ONLY the description, tags, and description hashtags. Do not raise title issues and do not suggest changing the title.",
+        "Use the provided deterministic counts as facts. If hashtag_count is 5 or more, never report Hashtags missing.",
+        "Return ONLY strict JSON:",
+        '{"gaps":["Description not optimised|Playlist link missing|Tags missing|Low tag count|Low relevant tags|Hashtags missing"],"wins":["..."],"reason":"..."}',
+        "",
+        `Title: ${video.title}`,
+        `Channel: ${video.channelTitle || "Channel"}`,
+        `Type: ${video.format}`,
+        `Views: ${video.views}`,
+        `Channel average views: ${localAudit.channelAverageViews}`,
+        `Description hashtag count: ${localAudit.hashtagCount}`,
+        `Has YouTube playlist link: ${localAudit.hasPlaylistLink ? "yes" : "no"}`,
+        `Tag count: ${localAudit.tagCount}`,
+        `Tag character count: ${localAudit.tagCharacterCount}`,
+        `Related tag count: ${localAudit.relatedTagCount}`,
+        `Existing tags: ${(video.tags || []).join(", ") || "none"}`,
+        `Description: ${video.description.slice(0, 2500) || "(empty)"}`,
+        "",
+        "Rules:",
+        "- Description is optimised only when first 2-3 useful lines repeat title-related keywords naturally.",
+        "- If no URL like https://www.youtube.com/playlist?list=UNIQUE_CODE exists in the description, include Playlist link missing.",
+        "- Tags should include short-tail and long-tail tags directly related to the title intent.",
+        "- If total tag characters are below 450, include Low tag count.",
+        "- If most tags are generic/default or not related to the title, include Low relevant tags.",
+        "- If fewer than 5 hashtags are present in the description, include Hashtags missing.",
+      ].join("\n"),
+    }],
+  });
+  const parsed = parseAnthropicObject(data, "Claude did not return valid SEO audit JSON.");
+  return {
+    gaps: normalizeSeoGaps(parsed.gaps),
+    wins: normalizeStringList(parsed.wins).slice(0, 4),
+    reason: String(parsed.reason || ""),
+  };
+}
+
+function mergeSeoMetadataAudit(localAudit, aiAudit) {
+  const allowed = new Set(["Description not optimised", "Playlist link missing", "Tags missing", "Low tag count", "Low relevant tags", "Hashtags missing"]);
+  const gapList = [...new Set(localAudit.gaps.filter((gap) => allowed.has(gap)))];
+  return {
+    ...localAudit,
+    gaps: gapList,
+    wins: [...new Set([...(aiAudit.wins || []), ...localAudit.wins])].slice(0, 5),
+    score: seoMetadataScore(gapList),
+    auditReason: aiAudit.reason,
+  };
+}
+
+function normalizeSeoGaps(value) {
+  const map = new Map([
+    ["description not optimised", "Description not optimised"],
+    ["description not optimized", "Description not optimised"],
+    ["tags missing", "Tags missing"],
+    ["low tag count", "Low tag count"],
+    ["tags too short", "Low tag count"],
+    ["low relevant tags", "Low relevant tags"],
+    ["tags not optimised", "Low relevant tags"],
+    ["tags not optimized", "Low relevant tags"],
+    ["hashtags missing", "Hashtags missing"],
+    ["playlist link missing", "Playlist link missing"],
+  ]);
+  return normalizeStringList(value).map((item) => map.get(normalizeSeoText(item))).filter(Boolean);
+}
+
+function seoMetadataScore(gaps) {
+  return Math.max(0, 100 - ([...new Set(gaps || [])].length * 10));
+}
+
+function seoKeywords(text = "") {
+  const stop = new Set(["class", "classes", "live", "video", "today", "session", "testbook", "with", "for", "and", "the", "sir", "mam", "maam", "exam", "exams", "preparation", "complete", "full", "new", "by"]);
+  return [...new Set(normalizeSeoText(text)
+    .split(/\s+/)
+    .map((word) => word.replace(/[^a-z0-9]/g, ""))
+    .filter((word) => word.length >= 3 && !stop.has(word)))]
+    .slice(0, 10);
+}
+
+function normalizeSeoText(text = "") {
+  return String(text).toLowerCase().replace(/[_#|:()[\]{}.,!?'"’`~\-]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function seoKeywordPhrases(title = "") {
+  const words = seoKeywords(title);
+  const phrases = [];
+  for (let index = 0; index < words.length - 1; index += 1) {
+    phrases.push(`${words[index]} ${words[index + 1]}`);
+  }
+  for (let index = 0; index < words.length - 2; index += 1) {
+    phrases.push(`${words[index]} ${words[index + 1]} ${words[index + 2]}`);
+  }
+  return [...new Set(phrases)].slice(0, 12);
+}
+
+function isSeoDescriptionOptimised(description, titleKeywords, titlePhrases) {
+  const usefulLines = seoUsefulDescriptionLines(description);
+  const openingLines = usefulLines.slice(0, 6);
+  const introText = normalizeSeoText(descriptionIntroBlock(description, usefulLines).join(" "));
+  const openingText = normalizeSeoText(openingLines.join(" "));
+  const keywordHits = countSeoKeywordHits(titleKeywords, `${introText} ${openingText}`);
+  const phraseHits = titlePhrases.filter((phrase) => introText.includes(phrase) || openingText.includes(phrase)).length;
+  const linesWithKeywords = openingLines.filter((line) => {
+    const normalized = normalizeSeoText(line);
+    return titleKeywords.some((keyword) => normalized.includes(keyword));
+  }).length;
+  const titleKeywordCoverage = titleKeywords.filter((keyword) => introText.includes(keyword) || openingText.includes(keyword)).length;
+  const requiredHits = Math.min(6, Math.max(3, Math.ceil(titleKeywords.length * 0.35)));
+
+  return openingLines.length >= 1
+    && titleKeywordCoverage >= Math.min(4, Math.max(2, Math.ceil(titleKeywords.length * 0.35)))
+    && (keywordHits >= requiredHits || phraseHits >= 1 || linesWithKeywords >= 2);
+}
+
+function seoUsefulDescriptionLines(description) {
+  return String(description || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line
+      && !/^https?:\/\//i.test(line)
+      && !/^#[\p{L}\p{N}_\s#]+$/u.test(line)
+      && !/^(also watch|playlist|attempt now|topics covered|foundation batch|special|for admission|join free|join .*telegram|qualified\?)/i.test(line));
+}
+
+function descriptionIntroBlock(description, fallbackLines) {
+  const beforeTopics = String(description || "").split(/topics covered\s*:/i)[0];
+  const lines = seoUsefulDescriptionLines(beforeTopics);
+  return lines.length ? lines.slice(0, 8) : fallbackLines.slice(0, 6);
+}
+
+function countSeoKeywordHits(titleKeywords, text) {
+  return titleKeywords.reduce((count, keyword) => {
+    const matches = text.match(new RegExp(`\\b${escapeRegExp(keyword)}\\b`, "g"));
+    return count + (matches ? matches.length : 0);
+  }, 0);
+}
+
+function hasYouTubePlaylistLink(description = "") {
+  return /https?:\/\/(?:www\.)?youtube\.com\/playlist\?list=[\w-]+/i.test(String(description || ""));
+}
+
+function isSeoTitleRelated(value, titleKeywords, titlePhrases) {
+  const normalized = normalizeSeoText(value);
+  if (!normalized) return false;
+  const compact = normalized.replace(/\s+/g, "");
+  const wordMatches = titleKeywords.filter((keyword) => compact.includes(keyword.replace(/\s+/g, "")) || keyword.includes(normalized)).length;
+  return wordMatches >= 1 || titlePhrases.some((phrase) => compact.includes(phrase.replace(/\s+/g, "")));
+}
+
+function isDefaultSeoTag(tag, channelTitle = "") {
+  const normalized = normalizeSeoText(tag);
+  const channel = normalizeSeoText(channelTitle);
+  const defaults = new Set([
+    "testbook", "testbook live", "testbook app", "supercoaching", "youtube", "online class",
+    "live class", "free class", "government exam", "sarkari exam", "exam preparation",
+  ]);
+  return !normalized || defaults.has(normalized) || (channel && (normalized === channel || channel.includes(normalized)));
+}
+
+function areSeoTagsRelevant(totalTags, relatedTags, defaultTags, titleKeywordCount) {
+  const minRelated = Math.min(8, Math.max(4, Math.ceil(totalTags * 0.4), Math.ceil(titleKeywordCount * 0.45)));
+  const nonDefaultTags = totalTags - defaultTags;
+  return relatedTags >= minRelated && nonDefaultTags >= Math.min(5, totalTags);
+}
+
+function extractHashtags(text = "") {
+  return [...new Set((String(text).match(/#[\p{L}\p{N}_]+/gu) || []).map((tag) => normalizeSeoText(tag.replace(/^#/, ""))).filter(Boolean))];
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function average(values) {
+  const clean = values.map(Number).filter((value) => Number.isFinite(value));
+  if (!clean.length) return 0;
+  return clean.reduce((sum, value) => sum + value, 0) / clean.length;
+}
+
+async function findOwnedSeoVideo(entries, videoId) {
+  for (const entry of entries) {
+    const details = await ownedSeoVideoDetails(entry.auth, [videoId]);
+    if (details[videoId]) {
+      return { ...details[videoId], channelTitle: entry.channel.name || details[videoId].channelTitle };
+    }
+  }
+  return null;
+}
+
+async function seoSuggestWithClaude(video) {
+  const data = await fetchAnthropicJson({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 1200,
+    messages: [{
+      role: "user",
+      content: [
+        "Act like a 10 year YouTube SEO expert who is a master in auditing channel SEO for Indian edtech and competitive exam channels.",
+        "Suggest better metadata for this video. Keep the current title unchanged and do not raise title issues.",
+        "Focus only on: description lines matching title keywords, title-related short-tail and long-tail tags, and description hashtags.",
+        "Return ONLY strict JSON with this schema:",
+        '{"description":"2-3 optimized opening lines using title keywords repeatedly","tags":["..."],"hashtags":["..."],"reason":"..."}',
+        "",
+        `Title: ${video.title}`,
+        `Description: ${video.description.slice(0, 2500)}`,
+        `Tags: ${(video.tags || []).join(", ") || "none"}`,
+        "",
+        "Rules:",
+        "- Do not suggest title variants.",
+        "- Description must use title-related keywords naturally in 2-3 opening lines.",
+        "- Tags must include related short-tail and long-tail terms and should be at least 450 characters when joined.",
+        "- Hashtags must include at least 5 relevant hashtags.",
+      ].join("\n"),
+    }],
+  });
+  const parsed = parseAnthropicObject(data, "Claude did not return valid SEO suggestions.");
+  return {
+    description: String(parsed.description || ""),
+    tags: normalizeStringList(parsed.tags).slice(0, 30),
+    hashtags: normalizeStringList(parsed.hashtags).map((tag) => tag.startsWith("#") ? tag : `#${tag.replace(/^#+/, "")}`).slice(0, 8),
+    reason: String(parsed.reason || "Aligned description, tags, and hashtags around title keywords."),
+  };
+}
+
+function bestThumbnailUrl(thumbnails = {}) {
+  return thumbnails.maxres?.url || thumbnails.standard?.url || thumbnails.high?.url || thumbnails.medium?.url || thumbnails.default?.url || "";
+}
+
+function parseAnthropicObject(data, errorMessage) {
+  const text = (data.content || []).map((item) => item.text || "").join("\n").trim();
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error(errorMessage);
+  return JSON.parse(match[0]);
+}
+
+function normalizeStringList(value) {
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+  if (typeof value === "string") return value.split(/\n|,/).map((item) => item.trim()).filter(Boolean);
+  return [];
+}
+
 function averagePublicViews(videos, format) {
   const items = videos.filter((video) => video.format === format);
   return Math.round(items.reduce((sum, video) => sum + video.views, 0) / Math.max(1, items.length));
@@ -1732,10 +2371,23 @@ function topPublicContent(videos, format) {
 }
 
 async function fetchJson(url) {
+  await waitForYoutubeSearchSlot(url);
   const response = await fetch(url);
   const data = await response.json();
   if (!response.ok) throw new Error(data.error?.message || "YouTube public API request failed.");
   return data;
+}
+
+async function waitForYoutubeSearchSlot(url) {
+  if (!String(url).includes("/youtube/v3/search")) return;
+  const previous = youtubeSearchQueue;
+  let release;
+  youtubeSearchQueue = new Promise((resolve) => {
+    release = resolve;
+  });
+  await previous.catch(() => {});
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+  release();
 }
 
 async function fetchAnthropicJson(body) {

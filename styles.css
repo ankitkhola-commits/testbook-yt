@@ -200,10 +200,6 @@ button {
   color: #fff;
 }
 
-.side-nav-button.kpi {
-  background: #e8f7ef;
-}
-
 .auth-card {
   display: grid;
   gap: 8px;
@@ -1604,6 +1600,201 @@ input {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.45;
+}
+
+.seo-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.seo-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+  justify-content: space-between;
+}
+
+.seo-copy {
+  display: grid;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.seo-copy strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.seo-channel-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0 12px;
+  margin-top: -2px;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.seo-channel-tabs .filter-chip {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.seo-table {
+  display: grid;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.seo-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 2.2fr) minmax(130px, 0.9fr) 80px 86px minmax(150px, 1.2fr) 170px;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef1f5;
+}
+
+.seo-row:last-child {
+  border-bottom: 0;
+}
+
+.seo-head {
+  background: #f7f9fb;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.seo-row b {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--ink);
+  color: #fff;
+}
+
+.seo-score {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.seo-score.good {
+  background: #e8f7ed;
+  color: #247548;
+}
+
+.seo-score.warn {
+  background: #fff6dc;
+  color: #8a6200;
+}
+
+.seo-score.bad {
+  background: #fff0f2;
+  color: var(--red);
+}
+
+.seo-gap-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.seo-gap-list span,
+.tag-cloud span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #f4f7fb;
+  color: #596274;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.seo-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.mini-button {
+  min-height: 32px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.ghost-button.active {
+  border-color: #8ec2a3;
+  background: #edf7f1;
+  color: #1d6b42;
+}
+
+.ai-copy-card {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.ai-result-dialog {
+  width: min(860px, calc(100vw - 28px));
+}
+
+.ai-dialog-body,
+.ai-section {
+  display: grid;
+  gap: 10px;
+}
+
+.ai-context {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.ai-context span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ai-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ai-section-header .eyebrow {
+  margin: 0;
+}
+
+.ai-section-header strong {
+  min-width: 0;
+}
+
+.copy-field-button {
+  flex: 0 0 auto;
+}
+
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .idea-topline {
