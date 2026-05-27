@@ -11,9 +11,10 @@ const formats = {
 
 const competitorCategories = ["Testbook", "Teaching", "UGC NET", "CGL", "Odisha", "Bengali", "Marathi", "MPSC", "AE JE", "Bihar", "Banking", "Railways", "UPSC", "Punjab", "Telugu"];
 
-// FIXED: Increased the auto-refresh interval from 5 minutes to 1 hour
+// Auto-refresh fallback check interval set to 1 hour
 const competitorAutoRefreshMs = 60 * 60 * 1000;
 let competitorAutoRefreshTimer = null;
+let isRefreshThrottled = false;
 
 let state = {
   connected: false,
@@ -64,9 +65,32 @@ document.querySelector("#teamLoginButton")?.addEventListener("click", () => {
   window.location.href = "/auth/team-google";
 });
 
-document.querySelector("#refreshButton").addEventListener("click", () => {
+// FIXED: Wired the manual refresh button to append cache-busting parameters with a safe cooldown throttle
+document.querySelector("#refreshButton").addEventListener("click", async () => {
   if (state.activeView === "competitors") {
-    loadCategoryCompetitors({ force: true });
+    if (isRefreshThrottled) return;
+
+    const refreshButton = document.querySelector("#refreshButton");
+    isRefreshThrottled = true;
+    refreshButton.style.opacity = "0.5";
+    refreshButton.style.cursor = "not-allowed";
+    
+    let countdown = 120; // 2 minute countdown wrapper
+    const originalText = refreshButton.textContent;
+    
+    const countdownTimer = setInterval(() => {
+      countdown--;
+      refreshButton.textContent = `⏳ ${countdown}s`;
+      if (countdown <= 0) {
+        clearInterval(countdownTimer);
+        isRefreshThrottled = false;
+        refreshButton.textContent = originalText;
+        refreshButton.style.opacity = "1";
+        refreshButton.style.cursor = "pointer";
+      }
+    }, 1000);
+
+    await loadCategoryCompetitors({ force: true, silent: false });
     return;
   }
   if (state.activeView === "research") {
@@ -497,7 +521,7 @@ function renderCompetitors(competitors) {
         `).join("") || `<li><span>${escapeHtml(item.note || "No public videos found in this range.")}</span></li>`}
       </ol>
     </article>
-  `).join("");
+  `);
   grid.querySelectorAll("[data-remove-competitor]").forEach((button) => {
     button.addEventListener("click", async () => {
       await api(`/api/competitors/${state.selectedChannelId}/${button.dataset.removeCompetitor}`, { method: "DELETE" });
@@ -566,7 +590,7 @@ async function loadCategoryCompetitors(options = {}) {
   }
 }
 
-// FIXED: Focus and tab selection loops are restricted to 1-hour checks (3,600,000ms)
+// Restricted tab-focus automatic background calls to strict 1-hour intervals
 window.addEventListener("focus", () => {
   if (state.activeView !== "competitors") return;
   if (Date.now() - state.competitorLastLoadedAt > 60 * 60 * 1000) {
