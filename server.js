@@ -1055,6 +1055,7 @@ async function listOwnedChannels(auth) {
 async function channelReport(auth, channel, dates) {
   const [daily, contentType, searchTraffic, uploadResult, topContent, uploadedVideoViews, uploadedVideoSubscribers] = await Promise.all([
     analyticsRows(auth, {
+      part: ["views", "subscribersGained", "subscribersLost", "averageViewPercentage", "shares"],
       ids: `channel==${channel.id}`,
       startDate: dates.startDate,
       endDate: dates.endDate,
@@ -1269,20 +1270,6 @@ async function videoDetails(auth, ids) {
   return detailMap;
 }
 
-function classifyVideo(video) {
-  const title = `${video.snippet?.title || ""} ${(video.snippet?.tags || []).join(" ")}`.toLowerCase();
-  if (
-    video.liveStreamingDetails ||
-    ["live", "upcoming"].includes(video.snippet?.liveBroadcastContent) ||
-    /\b(live|livestream|live stream|streamed|premiere)\b/.test(title)
-  ) {
-    return "Live";
-  }
-  const seconds = isoDurationSeconds(video.contentDetails?.duration || "PT0S");
-  if (/#shorts?\b|\bshorts?\b/.test(title)) return "Shorts";
-  return seconds > 0 && seconds <= 180 ? "Shorts" : "Video";
-}
-
 function mergeReports(reports, days) {
   const labels = eachDate(days.startDate, days.endDate);
   const series = labels.map((date) => ({
@@ -1482,14 +1469,36 @@ async function recentPublicVideos(channelId, dates) {
   })).filter((item) => item.publishedAt?.slice(0, 10) <= dates.endDate);
 }
 
+// FIXED: Converted Promise.all into a safely staggered sequential loop to bypass the per-minute burst rate gate
 async function categoryCompetitorReport(category, mappings, dates, options = {}) {
   const connectedEntries = await connectedChannelEntries().catch(() => []);
   const ownedChannelIds = [...new Set(connectedEntries.map((entry) => entry.channel.id))];
-  const groups = await Promise.all(mappings.map(async (mapping) => {
-    const channelDetails = await publicChannelsByIds(mapping.ids);
-    const channelReports = await Promise.all(mapping.ids.map((channelId) => publicChannelVideos(channelId, dates, mapping.group, channelDetails[channelId]?.title || channelId, options)));
-    const videos = channelReports.flat();
-    return {
+  
+  const groups = [];
+  const flatChannelIds = mappings.flatMap(m => m.ids);
+  const channelDetails = await publicChannelsByIds(flatChannelIds);
+
+  for (const mapping of mappings) {
+    const videos = [];
+    for (const channelId of mapping.ids) {
+      try {
+        const channelVideos = await publicChannelVideos(
+          channelId, 
+          dates, 
+          mapping.group, 
+          channelDetails[channelId]?.title || channelId, 
+          options
+        );
+        videos.push(...channelVideos);
+        
+        // Stagger requests by 60ms to smooth out concurrent data spikes
+        await new Promise(resolve => setTimeout(resolve, 60));
+      } catch (err) {
+        console.error(`Skipping rate-limited channel ${channelId} inside ${category}:`, err.message);
+      }
+    }
+
+    groups.push({
       name: mapping.group,
       channels: mapping.ids.map((id) => ({ id, title: channelDetails[id]?.title || id })),
       videos,
@@ -1498,8 +1507,9 @@ async function categoryCompetitorReport(category, mappings, dates, options = {})
       uploads: formatCounts(videos),
       averageViews: formatAverages(videos),
       viewSource: "publishedContentPublic",
-    };
-  }));
+    });
+  }
+
   const allVideos = groups.flatMap((group) => group.videos);
   const last24Cutoff = Date.now() - 24 * 60 * 60 * 1000;
   return {
@@ -1683,18 +1693,42 @@ async function publicVideoDetails(ids) {
   return detailMap;
 }
 
-function classifyPublicVideo(video) {
-  const title = `${video.snippet?.title || ""} ${(video.snippet?.tags || []).join(" ")}`.toLowerCase();
-  if (
-    video.liveStreamingDetails ||
-    ["live", "upcoming"].includes(video.snippet?.liveBroadcastContent) ||
-    /\b(live|livestream|live stream|streamed|premiere)\b/.test(title)
-  ) {
-    return "Live";
-  }
-  const seconds = isoDurationSeconds(video.contentDetails?.duration || "PT0S");
+// FIXED: Cleaned classification logic to detect archived live streams and strict 60-second shorts formats
+function classifyVideo(video) {
+  const snippet = video.snippet || {};
+  const contentDetails = video.contentDetails || {};
+  const title = `${snippet.title || ""} ${(snippet.tags || []).join(" ")}`.toLowerCase();
+  
+  const isLiveStream = 
+    video.liveStreamingDetails !== undefined ||
+    ["live", "upcoming", "completed"].includes(snippet.liveBroadcastContent) ||
+    /\b(live|livestream|live stream|streamed|premiere)\b/.test(title);
+
+  if (isLiveStream) return "Live";
+
+  const seconds = isoDurationSeconds(contentDetails.duration || "PT0S");
   if (/#shorts?\b|\bshorts?\b/.test(title)) return "Shorts";
-  return seconds > 0 && seconds <= 180 ? "Shorts" : "Video";
+  
+  // Native Shorts are capped strictly at 60 seconds
+  return seconds > 0 && seconds <= 60 ? "Shorts" : "Video";
+}
+
+// FIXED: Matched public classifications to native streaming rules
+function classifyPublicVideo(video) {
+  const snippet = video.snippet || {};
+  const contentDetails = video.contentDetails || {};
+  const title = `${snippet.title || ""} ${(snippet.tags || []).join(" ")}`.toLowerCase();
+  
+  const isLiveStream = 
+    video.liveStreamingDetails !== undefined ||
+    ["live", "upcoming", "completed"].includes(snippet.liveBroadcastContent) ||
+    /\b(live|livestream|live stream|streamed|premiere)\b/.test(title);
+
+  if (isLiveStream) return "Live";
+
+  const seconds = isoDurationSeconds(contentDetails.duration || "PT0S");
+  if (/#shorts?\b|\bshorts?\b/.test(title)) return "Shorts";
+  return seconds > 0 && seconds <= 60 ? "Shorts" : "Video";
 }
 
 function formatCounts(videos) {
@@ -1980,3 +2014,5 @@ function formatDate(value) {
 function formatsLabel(key) {
   return ({ shorts: "Shorts", videos: "video", live: "live" })[key] || "video";
 }
+
+export { categoryCompetitorReport, classifyVideo, classifyPublicVideo };
