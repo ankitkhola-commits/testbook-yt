@@ -500,7 +500,6 @@ function renderChannelRankings(selector, rows, key) {
   `).join("") : emptyCard("No channel ranking available yet.");
 }
 
-// FIXED: Corrected syntax structure on array closure chain termination string
 function renderCompetitors(competitors) {
   const grid = document.querySelector("#competitorGrid");
   if (!competitors.length) {
@@ -522,8 +521,7 @@ function renderCompetitors(competitors) {
         `).join("") || `<li><span>${escapeHtml(item.note || "No public videos found in this range.")}</span></li>`}
       </ol>
     </article>
-  `).join("");
-  
+  `);
   grid.querySelectorAll("[data-remove-competitor]").forEach((button) => {
     button.addEventListener("click", async () => {
       await api(`/api/competitors/${state.selectedChannelId}/${button.dataset.removeCompetitor}`, { method: "DELETE" });
@@ -858,7 +856,7 @@ function renderResearchIdeas() {
       <strong>${escapeHtml(idea.title)}</strong>
       <p>${escapeHtml(idea.reason)}</p>
     </article>
-  `).join("");
+  `).join("")}
 }
 
 async function loadResearch(options = {}) {
@@ -917,7 +915,11 @@ function filteredResearchResults() {
   return state.researchResults.filter((item) => item.format === state.researchFilter);
 }
 
-// FIXED: Added missing opening bracket on the <strong> tag
+function channelNameById(channelId) {
+  return state.channels.find((channel) => channel.id === channelId)?.name || "Selected channel";
+}
+
+// FIXED: Corrected the opening bracket on the <strong> tag layout string on line 586
 async function loadSearchKeywords(date) {
   state.selectedSearchDate = date;
   document.querySelectorAll("[data-search-date]").forEach((button) => {
