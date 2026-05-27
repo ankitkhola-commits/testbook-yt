@@ -105,9 +105,6 @@
           <button class="side-nav-button active" type="button" data-view-tab="dashboard">Dashboard</button>
           <button class="side-nav-button" type="button" data-view-tab="competitors">Competitors</button>
           <button class="side-nav-button" type="button" data-view-tab="research">Research</button>
-          <button class="side-nav-button" type="button" data-view-tab="seo">SEO Audit</button>
-          <button class="side-nav-button" type="button" data-view-tab="kpi">KPI Tracker</button>
-          <button class="side-nav-button" type="button" data-view-tab="shorts-cutter">Shorts Cutter</button>
         </nav>
 
         <button class="connect-button" id="connectChannelButton" data-sidebar-view="dashboard">
@@ -325,6 +322,7 @@
               <button class="filter-chip" type="button" data-research-filter="Live">Live</button>
             </div>
             <div id="researchSummary" class="research-summary"></div>
+            <div id="researchResults" class="research-results"></div>
             <div class="research-ideas-panel">
               <div class="research-ideas-header">
                 <div>
@@ -335,98 +333,6 @@
               </div>
               <div id="researchIdeas" class="research-ideas"></div>
             </div>
-            <div id="researchResults" class="research-results"></div>
-          </article>
-
-          <article class="panel page-panel seo-panel" data-view="seo">
-            <div class="panel-header research-header">
-              <div>
-                <p class="eyebrow">SEO Audit</p>
-                <h2>Latest 30 videos and live streams per channel</h2>
-              </div>
-              <button class="connect-button research-run" type="button" id="seoRunButton">Run audit</button>
-            </div>
-            <div class="seo-toolbar">
-              <div class="seo-copy">
-                <strong>Checks description keyword lines, playlist link, tag depth, relevant tags and description hashtags.</strong>
-              </div>
-              <button class="ghost-button" type="button" id="seoLowestButton">Score lowest first</button>
-            </div>
-            <div id="seoSummary" class="research-summary"></div>
-            <div id="seoChannelTabs" class="seo-channel-tabs" aria-label="SEO audit channel filters"></div>
-            <div id="seoAuditResults" class="seo-results"></div>
-          </article>
-
-          <article class="panel page-panel kpi-panel" data-view="kpi">
-            <div class="panel-header research-header">
-              <div>
-                <p class="eyebrow">KPI Tracker</p>
-                <h2>Quarterly employee targets</h2>
-              </div>
-              <button class="connect-button research-run" type="button" data-action="add-kpi">Add employee KPI</button>
-            </div>
-            <div class="seo-copy">
-              <strong>Tracks AMJ quarterly organic views, subscribers and YouTube search views against weighted KPI targets.</strong>
-            </div>
-            <div id="kpiSummary" class="research-summary"></div>
-            <section class="kpi-form-card is-hidden" id="kpiFormCard">
-              <div class="kpi-form-head">
-                <div>
-                  <p class="eyebrow" id="kpiFormMode">New KPI</p>
-                  <h3>Employee mapping and targets</h3>
-                </div>
-                <button class="ghost-button" type="button" data-action="cancel-kpi">Close</button>
-              </div>
-              <input id="kpiEditingId" type="hidden" />
-              <div class="kpi-form-grid">
-                <label class="research-field">
-                  <span>Employee Name</span>
-                  <input id="kpiEmployeeName" type="text" placeholder="e.g. Sumit Sir" autocomplete="off" />
-                </label>
-                <div class="kpi-weight-card">
-                  <span class="kpi-mini-label">Weightage total must be 100</span>
-                  <div class="kpi-weight-grid">
-                    <label>Views
-                      <input id="kpiWeightViews" type="number" min="0" max="100" value="50" />
-                    </label>
-                    <label>Subscribers
-                      <input id="kpiWeightSubscribers" type="number" min="0" max="100" value="30" />
-                    </label>
-                    <label>YT Search Views
-                      <input id="kpiWeightSearch" type="number" min="0" max="100" value="20" />
-                    </label>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <div class="kpi-section-title">
-                  <strong>Channels mapped</strong>
-                  <span>Select maximum 10 connected channels</span>
-                </div>
-                <div id="kpiChannelPicker" class="kpi-channel-picker"></div>
-              </div>
-              <div>
-                <div class="kpi-section-title">
-                  <strong>AMJ quarterly channel targets</strong>
-                  <span>Add April-May-June total targets for every mapped channel</span>
-                </div>
-                <div id="kpiTargetGrid" class="kpi-target-grid"></div>
-              </div>
-              <div class="modal-actions">
-                <button class="ghost-button" type="button" data-action="cancel-kpi">Cancel</button>
-                <button class="connect-button" type="button" data-action="save-kpi">Save KPI</button>
-              </div>
-            </section>
-            <div id="kpiResults" class="kpi-results"></div>
-          </article>
-
-          <article class="panel page-panel shorts-cutter-panel" data-view="shorts-cutter">
-            <iframe
-              class="shorts-cutter-frame"
-              title="Shorts Cutter editor"
-              src="/shorts-cutter/"
-              loading="lazy"
-            ></iframe>
           </article>
 
         </section>
@@ -493,19 +399,6 @@
           <button value="cancel" class="ghost-button">Cancel</button>
           <button class="connect-button" type="submit">Add competitor</button>
         </div>
-      </form>
-    </dialog>
-
-    <dialog id="aiResultDialog" class="modal ai-result-dialog">
-      <form method="dialog">
-        <div class="modal-header">
-          <div>
-            <p class="eyebrow">AI suggestion</p>
-            <h2 id="aiDialogTitle">Recommendation</h2>
-          </div>
-          <button value="cancel" class="icon-button" aria-label="Close">×</button>
-        </div>
-        <div id="aiDialogBody" class="ai-dialog-body"></div>
       </form>
     </dialog>
 

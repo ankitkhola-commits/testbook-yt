@@ -1,5 +1,16 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "headers": [
+    {
+      "source": "/api/category-competitors",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=60"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/auth/google", "destination": "/api" },
@@ -8,22 +19,5 @@
     { "source": "/styles.css", "destination": "/api" },
     { "source": "/assets/(.*)", "destination": "/api" },
     { "source": "/", "destination": "/api" }
-  ],
-  "crons": [
-    { "path": "/api/cron/warm-competitors/testbook", "schedule": "30 5 * * *" },
-    { "path": "/api/cron/warm-competitors/teaching", "schedule": "31 5 * * *" },
-    { "path": "/api/cron/warm-competitors/ugc-net", "schedule": "32 5 * * *" },
-    { "path": "/api/cron/warm-competitors/cgl", "schedule": "33 5 * * *" },
-    { "path": "/api/cron/warm-competitors/odisha", "schedule": "34 5 * * *" },
-    { "path": "/api/cron/warm-competitors/bengali", "schedule": "35 5 * * *" },
-    { "path": "/api/cron/warm-competitors/marathi", "schedule": "36 5 * * *" },
-    { "path": "/api/cron/warm-competitors/mpsc", "schedule": "37 5 * * *" },
-    { "path": "/api/cron/warm-competitors/ae-je", "schedule": "38 5 * * *" },
-    { "path": "/api/cron/warm-competitors/bihar", "schedule": "39 5 * * *" },
-    { "path": "/api/cron/warm-competitors/banking", "schedule": "40 5 * * *" },
-    { "path": "/api/cron/warm-competitors/railways", "schedule": "41 5 * * *" },
-    { "path": "/api/cron/warm-competitors/upsc", "schedule": "42 5 * * *" },
-    { "path": "/api/cron/warm-competitors/punjab", "schedule": "43 5 * * *" },
-    { "path": "/api/cron/warm-competitors/telugu", "schedule": "44 5 * * *" }
   ]
 }
