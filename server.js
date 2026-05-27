@@ -1,9 +1,13 @@
 import "dotenv/config";
+import { ZipArchive } from "archiver";
 import express from "express";
+import ffmpegPath from "ffmpeg-static";
 import { google } from "googleapis";
+import multer from "multer";
 import postgres from "postgres";
+import { spawn } from "node:child_process";
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -17,15 +21,18 @@ const profilesPath = path.join(dataDir, "google-profiles.json");
 const competitorPath = path.join(dataDir, "competitors.json");
 const competitorViewHistoryPath = path.join(dataDir, "competitor-view-history.json");
 const categoryCompetitorCachePath = path.join(dataDir, "category-competitor-cache.json");
+const kpiPath = path.join(dataDir, "kpis.json");
+const shortsTmpDir = path.join(dataDir, "shorts-cutter");
 const envPath = path.join(__dirname, ".env");
 const assetDir = path.join(__dirname, "assets");
+const shortsCutterDir = path.join(__dirname, "shorts-cutter");
 const maxChannels = Number(process.env.MAX_CONNECTED_CHANNELS || 200);
 const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
 const sql = databaseUrl ? postgres(databaseUrl, { prepare: false }) : null;
+const shortsUpload = multer({ dest: path.join(shortsTmpDir, "uploads") });
 let storageReadyPromise;
 const responseCache = new Map();
 const inFlightRequests = new Map();
-let youtubeSearchQueue = Promise.resolve();
 const ttl = {
   dashboard: 10 * 60 * 1000,
   uploads: 30 * 60 * 1000,
@@ -36,11 +43,8 @@ const ttl = {
   competitors: 30 * 60 * 1000,
   seoAudit: 20 * 60 * 1000,
   aiOptimize: 24 * 60 * 60 * 1000,
+  aiThumbnail: 12 * 60 * 60 * 1000,
 };
-const competitorWarmHoursIst = [11, 17];
-const competitorWarmDelayMs = Number(process.env.COMPETITOR_WARM_DELAY_MS || 60 * 1000);
-let competitorWarmRunning = false;
-let competitorLastWarmSlot = "";
 const teamScopes = [
   "openid",
   "email",
@@ -164,6 +168,8 @@ const scopes = [
   "https://www.googleapis.com/auth/youtube.readonly",
   "https://www.googleapis.com/auth/yt-analytics.readonly",
 ];
+
+await mkdir(path.join(shortsTmpDir, "uploads"), { recursive: true });
 
 app.use(express.json());
 
@@ -354,6 +360,88 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use("/shorts-cutter", express.static(shortsCutterDir));
+
+app.post("/api/export-shorts", shortsUpload.single("video"), async (req, res) => {
+  const cleanupTargets = [];
+
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: "Video file is required." });
+      return;
+    }
+
+    cleanupTargets.push(req.file.path);
+    const clips = JSON.parse(req.body.clips || "[]").filter(
+      (clip) => Number.isFinite(clip.start) && Number.isFinite(clip.duration) && clip.duration > 0,
+    );
+    const settings = JSON.parse(req.body.settings || "{}");
+
+    if (!clips.length) {
+      res.status(400).json({ error: "At least one valid clip is required." });
+      return;
+    }
+
+    const workDir = await mkdtemp(path.join(shortsTmpDir, "renders-"));
+    cleanupTargets.push(workDir);
+    const outputFiles = [];
+
+    for (const [index, clip] of clips.entries()) {
+      const outputName = `short-${String(index + 1).padStart(2, "0")}.mp4`;
+      const outputPath = path.join(workDir, outputName);
+      outputFiles.push({ name: sanitizeDownloadName(clip.name || outputName), path: outputPath });
+
+      await runFFmpeg([
+        "-hide_banner",
+        "-y",
+        "-ss",
+        String(clip.start),
+        "-t",
+        String(clip.duration),
+        "-i",
+        req.file.path,
+        "-filter_complex",
+        buildShortsVideoFilter(settings, clip),
+        "-c:v",
+        "libx264",
+        "-preset",
+        "ultrafast",
+        "-crf",
+        "24",
+        "-threads",
+        "0",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "128k",
+        "-movflags",
+        "+faststart",
+        outputPath,
+      ]);
+    }
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", 'attachment; filename="shorts.zip"');
+
+    const archive = new ZipArchive({ zlib: { level: 0 } });
+    archive.on("error", (error) => {
+      throw error;
+    });
+    archive.on("end", () => cleanupShortsFiles(cleanupTargets));
+    archive.pipe(res);
+
+    for (const file of outputFiles) {
+      archive.file(file.path, { name: file.name });
+    }
+    await archive.finalize();
+  } catch (error) {
+    await cleanupShortsFiles(cleanupTargets);
+    if (!res.headersSent) {
+      res.status(500).json({ error: error.message || "Export failed." });
+    }
+  }
+});
+
 app.post("/api/logout", async (_req, res) => {
   await saveTokens(null);
   await saveProfiles([]);
@@ -371,6 +459,68 @@ app.get("/api/channels", async (_req, res, next) => {
   try {
     const entries = await connectedChannelEntries();
     res.json({ channels: publicChannels(entries) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/kpis", async (_req, res, next) => {
+  try {
+    const entries = await connectedChannelEntries();
+    const kpis = await readKpis();
+    res.json({
+      channels: publicChannels(entries),
+      quarter: kpiQuarter(),
+      kpis: await decorateKpis(kpis, entries),
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/kpis", async (req, res, next) => {
+  try {
+    const entries = await connectedChannelEntries();
+    const kpis = await readKpis();
+    const nextKpi = sanitizeKpi(req.body, entries);
+    nextKpi.id = randomUUID();
+    nextKpi.createdAt = new Date().toISOString();
+    nextKpi.updatedAt = nextKpi.createdAt;
+    kpis.push(nextKpi);
+    await saveKpis(kpis);
+    res.json({ kpis: await decorateKpis(kpis, entries) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.put("/api/kpis/:id", async (req, res, next) => {
+  try {
+    const entries = await connectedChannelEntries();
+    const kpis = await readKpis();
+    const index = kpis.findIndex((item) => item.id === req.params.id);
+    if (index === -1) {
+      res.status(404).json({ error: "KPI entry was not found." });
+      return;
+    }
+    const updated = sanitizeKpi(req.body, entries);
+    updated.id = kpis[index].id;
+    updated.createdAt = kpis[index].createdAt || new Date().toISOString();
+    updated.updatedAt = new Date().toISOString();
+    kpis[index] = updated;
+    await saveKpis(kpis);
+    res.json({ kpis: await decorateKpis(kpis, entries) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/kpis/:id", async (req, res, next) => {
+  try {
+    const entries = await connectedChannelEntries();
+    const kpis = (await readKpis()).filter((item) => item.id !== req.params.id);
+    await saveKpis(kpis);
+    res.json({ kpis: await decorateKpis(kpis, entries) });
   } catch (error) {
     next(error);
   }
@@ -504,20 +654,38 @@ app.get("/api/category-competitors", async (req, res, next) => {
       return;
     }
     const dates = dateWindow(range, month);
-    const cacheKey = categoryCompetitorCacheKey(category, range, month, dates);
-    const stored = await readCategoryCompetitorCache(cacheKey);
-    if (stored?.value) {
-      res.json({ ...stored.value, cache: { updatedAt: stored.updatedAt, source: "scheduled" } });
+    const force = req.query.force === "1";
+    const persistentCacheKey = categoryCompetitorCacheKey(category, range, month, dates);
+    const persistentCache = await readCategoryCompetitorCache();
+    const existing = persistentCache[persistentCacheKey];
+    if (!force && existing?.data) {
+      res.json({
+        ...existing.data,
+        cache: {
+          source: "stored",
+          refreshedAt: existing.createdAt,
+          nextRefresh: "11:00 IST",
+        },
+      });
       return;
     }
-    const data = await loadAndStoreCategoryCompetitors(category, mappings, dates, cacheKey);
+    const data = await cached(
+      makeCacheKey("category-competitors", category, range, month, dates.startDate, dates.endDate),
+      ttl.competitors,
+      async () => {
+        const fresh = await categoryCompetitorReport(category, mappings, dates, { force });
+        await writeCategoryCompetitorCacheRecord(persistentCacheKey, fresh);
+        return fresh;
+      },
+      { force }
+    );
     res.json(data);
   } catch (error) {
     next(error);
   }
 });
 
-app.get("/api/cron/warm-competitors", async (req, res, next) => {
+app.get("/api/cron/warm-competitors/:category?", async (req, res, next) => {
   try {
     if (process.env.CRON_SECRET) {
       const token = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
@@ -527,17 +695,24 @@ app.get("/api/cron/warm-competitors", async (req, res, next) => {
       }
     }
     if (!process.env.YOUTUBE_API_KEY) {
-      res.status(400).json({ error: "Add a YouTube API key before warming competitor cache." });
+      res.status(400).json({ error: "Add a YouTube API key before warming competitors." });
       return;
     }
-    const requestedCategory = String(req.query.category || "").trim();
-    if (requestedCategory) {
-      const warmed = await warmCompetitorCategory(requestedCategory);
-      res.json({ warmed: [warmed] });
+
+    const category = resolveCompetitorCategory(req.params.category || req.query.category || "");
+    if (!category) {
+      res.status(400).json({ error: "Unknown competitor category." });
       return;
     }
-    const warmed = await warmScheduledCompetitorCategory();
-    res.json({ warmed: warmed ? [warmed] : [] });
+
+    const data = await warmCompetitorCategory(category);
+    res.json({
+      ok: true,
+      category,
+      refreshedAt: new Date().toISOString(),
+      groups: data.groups?.length || 0,
+      top24: data.top?.last24?.length || 0,
+    });
   } catch (error) {
     next(error);
   }
@@ -559,7 +734,7 @@ app.get("/api/research", async (req, res, next) => {
       makeCacheKey("research", keyword.toLowerCase(), range),
       ttl.research,
       () => researchKeywordVideos(keyword, range),
-      { force: req.query.force === "1", forceCooldownMs: 5 * 60 * 1000 }
+      { force: req.query.force === "1" }
     );
     res.json({ keyword, range, items });
   } catch (error) {
@@ -596,7 +771,7 @@ app.get("/api/seo/audit", async (req, res, next) => {
     }
     const channelIds = entries.map((entry) => entry.channel.id).sort();
     const data = await cached(
-      makeCacheKey("seo-audit", channelIds, "latest-30-video-live-public", "claude-edtech-v5"),
+      makeCacheKey("seo-audit", channelIds, "latest-30-video-live", "claude-edtech-v4"),
       ttl.seoAudit,
       () => seoAuditReport(entries),
       { force: req.query.force === "1" }
@@ -636,6 +811,35 @@ app.post("/api/seo/suggest", async (req, res, next) => {
   }
 });
 
+app.post("/api/thumbnail/master-prompt", async (req, res, next) => {
+  try {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      res.status(400).json({ error: "Add an Anthropic API key before generating thumbnail prompts." });
+      return;
+    }
+    const channelId = String(req.body.channelId || "").trim();
+    if (!channelId) {
+      res.status(400).json({ error: "Select a channel first." });
+      return;
+    }
+    const entries = await connectedChannelEntries();
+    const entry = entries.find((item) => item.channel.id === channelId);
+    if (!entry) {
+      res.status(404).json({ error: "Selected channel was not found in connected channels." });
+      return;
+    }
+    const data = await cached(
+      makeCacheKey("thumbnail-master", channelId, "video-live-only-v2"),
+      ttl.aiThumbnail,
+      () => buildThumbnailMasterPrompt(entry),
+      { force: Boolean(req.body.force) }
+    );
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.delete("/api/competitors/:channelId/:competitorId", async (req, res, next) => {
   try {
     const competitors = await readCompetitors();
@@ -654,13 +858,9 @@ app.use((error, _req, res, _next) => {
 });
 
 await hydrateEnvFromFile();
-await ensureStorage().catch((error) => {
-  console.warn("Storage setup failed before startup; routes will retry.", error.message);
-});
 
 const isDirectRun = process.argv[1] && path.resolve(process.argv[1]) === currentFilePath;
 if (isDirectRun) {
-  startCompetitorCacheWarmer();
   app.listen(port, () => {
     console.log(`YouTube dashboard running at http://localhost:${port}`);
   });
@@ -676,11 +876,8 @@ function makeCacheKey(...parts) {
 }
 
 async function cached(key, maxAgeMs, loader, options = {}) {
-  const existing = responseCache.get(key);
-  if (options.force && options.forceCooldownMs && existing && Date.now() - existing.createdAt < options.forceCooldownMs) {
-    return existing.value;
-  }
   if (!options.force) {
+    const existing = responseCache.get(key);
     if (existing && Date.now() - existing.createdAt < maxAgeMs) {
       return existing.value;
     }
@@ -693,12 +890,6 @@ async function cached(key, maxAgeMs, loader, options = {}) {
     .then((value) => {
       responseCache.set(key, { createdAt: Date.now(), value });
       return value;
-    })
-    .catch((error) => {
-      if (existing && /quota|rateLimit|Search Queries/i.test(error.message || "")) {
-        return existing.value;
-      }
-      throw error;
     })
     .finally(() => {
       inFlightRequests.delete(key);
@@ -835,6 +1026,93 @@ function readViewerSession(req) {
   } catch {
     return null;
   }
+}
+
+const shortsFontMap = new Map([
+  ["/fonts/Impact.ttf", path.join(shortsCutterDir, "fonts", "Impact.ttf")],
+  ["/fonts/DIN-Condensed-Bold.ttf", path.join(shortsCutterDir, "fonts", "DIN-Condensed-Bold.ttf")],
+  ["/fonts/Arial-Black.ttf", path.join(shortsCutterDir, "fonts", "Arial-Black.ttf")],
+  ["/fonts/Arial-Bold.ttf", path.join(shortsCutterDir, "fonts", "Arial-Bold.ttf")],
+  ["/fonts/Courier-New-Bold.ttf", path.join(shortsCutterDir, "fonts", "Courier-New-Bold.ttf")],
+]);
+
+function cleanShortsColor(color, fallback) {
+  return /^#[0-9a-f]{6}$/i.test(color || "") ? color : fallback;
+}
+
+function escapeDrawText(value = "") {
+  return String(value)
+    .replace(/\\/g, "\\\\")
+    .replace(/:/g, "\\:")
+    .replace(/'/g, "\\'")
+    .replace(/%/g, "\\%")
+    .replace(/\n/g, " ");
+}
+
+function buildShortsVideoFilter(settings, clip) {
+  const caption = clip.caption || {};
+  const captionsEnabled = Boolean(settings.captionsEnabled);
+  const frameAdjustEnabled = Boolean(settings.frameAdjustEnabled);
+  const fontFile = shortsFontMap.get(settings.fontFile) || shortsFontMap.get("/fonts/Impact.ttf");
+  const fontSize = Math.min(112, Math.max(52, Math.round(Number(settings.fontSize) || 76)));
+  const zoom = frameAdjustEnabled ? Math.min(2.5, Math.max(1, Number(settings.frameZoom) || 1)) : 1;
+  const frameX = frameAdjustEnabled ? Math.min(100, Math.max(-100, Number(settings.frameX) || 0)) : 0;
+  const frameY = frameAdjustEnabled ? Math.min(100, Math.max(-100, Number(settings.frameY) || 0)) : 0;
+  const textOffset = Math.min(120, Math.max(-80, Number(settings.textOffset) || 0));
+  const background = cleanShortsColor(settings.background, "#130202");
+  const topColor = cleanShortsColor(settings.topColor, "#fff34f");
+  const bottomColor = cleanShortsColor(settings.bottomColor, "#55ff42");
+  const topY = 92 + textOffset * 1.8;
+  const bottomY = 102 + textOffset * 1.8;
+  const filters = [
+    `color=c=${background}:s=1080x1180:r=30[box]`,
+    `[0:v]scale='if(gt(a,1080/1180),1080*${zoom},-2)':'if(gt(a,1080/1180),-2,1180*${zoom})'[video]`,
+    `[box][video]overlay=x='(W-w)/2+${frameX / 100}*abs(W-w)/2':y='(H-h)/2+${frameY / 100}*abs(H-h)/2':shortest=1[framed]`,
+    `[framed]pad=1080:1920:0:370:${background}`,
+    "setsar=1",
+  ];
+
+  if (captionsEnabled && caption.topText?.trim()) {
+    filters.push(
+      `drawtext=text='${escapeDrawText(caption.topText.trim().toUpperCase())}':fontfile='${fontFile}':fontcolor=${topColor}:fontsize=${fontSize}:borderw=5:bordercolor=black:x=(w-text_w)/2:y=${topY}`,
+    );
+  }
+
+  if (captionsEnabled && caption.bottomText?.trim()) {
+    filters.push(
+      `drawtext=text='${escapeDrawText(caption.bottomText.trim().toUpperCase())}':fontfile='${fontFile}':fontcolor=${bottomColor}:fontsize=${fontSize}:borderw=5:bordercolor=black:x=(w-text_w)/2:y=h-text_h-${bottomY}`,
+    );
+  }
+
+  return filters.join(",");
+}
+
+function runFFmpeg(args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(ffmpegPath, args, { stdio: ["ignore", "ignore", "pipe"] });
+    let stderr = "";
+
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(stderr.split("\n").slice(-12).join("\n") || `FFmpeg exited with code ${code}`));
+      }
+    });
+  });
+}
+
+async function cleanupShortsFiles(paths) {
+  await Promise.all(paths.map((target) => rm(target, { recursive: true, force: true })));
+}
+
+function sanitizeDownloadName(name) {
+  const clean = String(name || "short.mp4").replace(/[^\w.\- ]+/g, "-").trim();
+  return clean.endsWith(".mp4") ? clean : `${clean || "short"}.mp4`;
 }
 
 async function ensureStorage() {
@@ -1119,21 +1397,7 @@ async function saveCompetitorViewHistory(history) {
   await writeFile(competitorViewHistoryPath, JSON.stringify(history, null, 2), "utf8");
 }
 
-async function readCategoryCompetitorCache(cacheKey = "") {
-  const cache = await readCategoryCompetitorCacheStore();
-  return cacheKey ? cache[cacheKey] : cache;
-}
-
-async function saveCategoryCompetitorCache(cacheKey, value) {
-  const cache = await readCategoryCompetitorCacheStore();
-  cache[cacheKey] = {
-    updatedAt: new Date().toISOString(),
-    value,
-  };
-  await saveCategoryCompetitorCacheStore(cache);
-}
-
-async function readCategoryCompetitorCacheStore() {
+async function readCategoryCompetitorCache() {
   if (sql) {
     await ensureStorage();
     const rows = await sql`select payload from app_state where key = 'category_competitor_cache' limit 1`;
@@ -1146,7 +1410,7 @@ async function readCategoryCompetitorCacheStore() {
   }
 }
 
-async function saveCategoryCompetitorCacheStore(cache) {
+async function saveCategoryCompetitorCache(cache) {
   if (sql) {
     await ensureStorage();
     await sql`
@@ -1158,6 +1422,255 @@ async function saveCategoryCompetitorCacheStore(cache) {
   }
   await mkdir(dataDir, { recursive: true });
   await writeFile(categoryCompetitorCachePath, JSON.stringify(cache, null, 2), "utf8");
+}
+
+async function writeCategoryCompetitorCacheRecord(key, data) {
+  const cache = await readCategoryCompetitorCache();
+  cache[key] = {
+    createdAt: new Date().toISOString(),
+    data,
+  };
+  await saveCategoryCompetitorCache(cache);
+}
+
+async function readKpis() {
+  if (sql) {
+    await ensureStorage();
+    const rows = await sql`select payload from app_state where key = 'kpis' limit 1`;
+    return Array.isArray(rows[0]?.payload) ? rows[0].payload : [];
+  }
+  try {
+    const data = JSON.parse(await readFile(kpiPath, "utf8"));
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
+async function saveKpis(kpis) {
+  if (sql) {
+    await ensureStorage();
+    await sql`
+      insert into app_state (key, payload)
+      values ('kpis', ${sql.json(kpis)})
+      on conflict (key) do update set payload = excluded.payload, updated_at = now()
+    `;
+    return;
+  }
+  await mkdir(dataDir, { recursive: true });
+  await writeFile(kpiPath, JSON.stringify(kpis, null, 2), "utf8");
+}
+
+function kpiQuarter() {
+  const year = new Date().getFullYear();
+  return {
+    id: `${year}-AMJ`,
+    label: "AMJ",
+    startDate: `${year}-04-01`,
+    endDate: `${year}-06-30`,
+  };
+}
+
+function sanitizeKpi(body, entries) {
+  const knownChannelIds = new Set(entries.map((entry) => entry.channel.id));
+  const employeeName = String(body.employeeName || "").trim();
+  if (!employeeName) {
+    const error = new Error("Employee name is required.");
+    error.code = 400;
+    throw error;
+  }
+
+  const channels = [...new Set((Array.isArray(body.channels) ? body.channels : [])
+    .map((id) => String(id || "").trim())
+    .filter((id) => knownChannelIds.has(id)))].slice(0, 10);
+  if (!channels.length) {
+    const error = new Error("Select at least one mapped channel.");
+    error.code = 400;
+    throw error;
+  }
+
+  const weights = {
+    views: cleanKpiNumber(body.weights?.views),
+    subscribers: cleanKpiNumber(body.weights?.subscribers),
+    ytSearchViews: cleanKpiNumber(body.weights?.ytSearchViews),
+  };
+  const weightTotal = weights.views + weights.subscribers + weights.ytSearchViews;
+  if (weightTotal !== 100) {
+    const error = new Error("KPI weightage total must be 100.");
+    error.code = 400;
+    throw error;
+  }
+
+  const inputTargets = body.targets && typeof body.targets === "object" ? body.targets : {};
+  const targets = {};
+  for (const channelId of channels) {
+    const row = inputTargets?.[channelId] || {};
+    targets[channelId] = {
+      views: cleanKpiNumber(row.views),
+      subscribers: cleanKpiNumber(row.subscribers),
+      ytSearchViews: cleanKpiNumber(row.ytSearchViews),
+    };
+  }
+
+  return { employeeName, channels, weights, targets };
+}
+
+function cleanKpiNumber(value) {
+  return Math.max(0, Math.round(Number(value || 0)));
+}
+
+async function decorateKpis(kpis, entries) {
+  const entryById = new Map(entries.map((entry) => [entry.channel.id, entry]));
+  const actuals = new Map();
+
+  async function actualFor(channelId) {
+    const key = channelId;
+    if (actuals.has(key)) return actuals.get(key);
+    const entry = entryById.get(channelId);
+    if (!entry) {
+      const empty = { views: 0, subscribers: 0, ytSearchViews: 0 };
+      actuals.set(key, empty);
+      return empty;
+    }
+    const dates = kpiQuarterWindow();
+    if (!dates) {
+      const future = { views: 0, subscribers: 0, ytSearchViews: 0 };
+      actuals.set(key, future);
+      return future;
+    }
+    const report = await cachedChannelReport(entry.auth, entry.channel, dates);
+    const totals = mergeReports([report], dates.days).totals;
+    const value = {
+      views: Number(totals.organicViews || 0),
+      subscribers: Number(totals.subscribers || 0),
+      ytSearchViews: Number(totals.youtubeSearchViews || 0),
+    };
+    actuals.set(key, value);
+    return value;
+  }
+
+  return Promise.all(kpis.map(async (item) => {
+    const channelRows = [];
+    const totals = {
+      target: { views: 0, subscribers: 0, ytSearchViews: 0 },
+      actual: { views: 0, subscribers: 0, ytSearchViews: 0 },
+    };
+
+    for (const channelId of item.channels || []) {
+      const channel = entryById.get(channelId)?.channel;
+      const target = normalizeKpiTarget(item.targets?.[channelId]);
+      const actual = await actualFor(channelId);
+      for (const key of Object.keys(totals.target)) {
+        totals.target[key] += Number(target[key] || 0);
+        totals.actual[key] += Number(actual[key] || 0);
+      }
+      channelRows.push({
+        channelId,
+        channelName: channel?.name || channelId,
+        target,
+        actual,
+      });
+    }
+
+    const projection = projectKpiTotals(totals.actual);
+    const progress = kpiProgress(item.weights || {}, totals, projection);
+    return {
+      ...item,
+      channelNames: (item.channels || []).map((id) => entryById.get(id)?.channel.name || id),
+      quarter: kpiQuarter(),
+      channelRows,
+      totals,
+      projection,
+      progress,
+    };
+  }));
+}
+
+function normalizeKpiTarget(target = {}) {
+  return {
+    views: cleanKpiNumber(target.views),
+    subscribers: cleanKpiNumber(target.subscribers),
+    ytSearchViews: cleanKpiNumber(target.ytSearchViews),
+  };
+}
+
+function projectKpiTotals(actual = {}) {
+  const elapsedDays = kpiQuarterElapsedDays();
+  const quarterDays = kpiQuarterTotalDays();
+  const factor = elapsedDays > 0 ? quarterDays / elapsedDays : 0;
+  return {
+    elapsedDays,
+    quarterDays,
+    factor,
+    values: {
+      views: Math.round(Number(actual.views || 0) * factor),
+      subscribers: Math.round(Number(actual.subscribers || 0) * factor),
+      ytSearchViews: Math.round(Number(actual.ytSearchViews || 0) * factor),
+    },
+  };
+}
+
+function kpiProgress(weights, totals, projection = projectKpiTotals(totals.actual)) {
+  const metrics = ["views", "subscribers", "ytSearchViews"];
+  let weightedScore = 0;
+  let projectedWeightedScore = 0;
+  const metricProgress = {};
+  const projectedMetricProgress = {};
+  for (const key of metrics) {
+    const target = Number(totals.target[key] || 0);
+    const actual = Number(totals.actual[key] || 0);
+    const projected = Number(projection.values?.[key] || 0);
+    const percent = target > 0 ? (actual / target) * 100 : 0;
+    const projectedPercent = target > 0 ? (projected / target) * 100 : 0;
+    metricProgress[key] = Math.round(percent);
+    projectedMetricProgress[key] = Math.round(projectedPercent);
+    weightedScore += (percent * Number(weights[key] || 0)) / 100;
+    projectedWeightedScore += (projectedPercent * Number(weights[key] || 0)) / 100;
+  }
+  const score = Math.round(weightedScore);
+  const projectedScore = Math.round(projectedWeightedScore);
+  const expected = kpiQuarterElapsedPercent();
+  const status = projectedScore >= 110 ? "excellent" : projectedScore >= 100 ? "on-track" : "need-attention";
+  return { score, projectedScore, expected, status, metricProgress, projectedMetricProgress };
+}
+
+function kpiQuarterElapsedPercent() {
+  const elapsed = kpiQuarterElapsedDays();
+  const total = kpiQuarterTotalDays();
+  return total ? Math.round((elapsed / total) * 100) : 0;
+}
+
+function kpiQuarterElapsedDays() {
+  const quarter = kpiQuarter();
+  const start = new Date(`${quarter.startDate}T00:00:00Z`);
+  const end = new Date(`${quarter.endDate}T00:00:00Z`);
+  const today = new Date();
+  const yesterday = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - 1));
+  if (yesterday < start) return 0;
+  const cappedEnd = yesterday >= end ? end : yesterday;
+  return Math.max(1, Math.round((cappedEnd - start) / 86400000) + 1);
+}
+
+function kpiQuarterTotalDays() {
+  const quarter = kpiQuarter();
+  const start = new Date(`${quarter.startDate}T00:00:00Z`);
+  const end = new Date(`${quarter.endDate}T00:00:00Z`);
+  return Math.max(1, Math.round((end - start) / 86400000) + 1);
+}
+
+function kpiQuarterWindow() {
+  const quarter = kpiQuarter();
+  const start = new Date(`${quarter.startDate}T00:00:00Z`);
+  const quarterEnd = new Date(`${quarter.endDate}T00:00:00Z`);
+  const today = new Date();
+  const yesterday = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() - 1));
+  if (start > yesterday) return null;
+  const end = new Date(Math.min(quarterEnd.getTime(), yesterday.getTime()));
+  return {
+    startDate: isoDate(start),
+    endDate: isoDate(end),
+    days: { startDate: isoDate(start), endDate: isoDate(end) },
+  };
 }
 
 async function listOwnedChannels(auth) {
@@ -1619,77 +2132,6 @@ async function recentPublicVideos(channelId, dates) {
   })).filter((item) => item.publishedAt?.slice(0, 10) <= dates.endDate);
 }
 
-function categoryCompetitorCacheKey(category, range, month, dates) {
-  return makeCacheKey("category-competitors", category, range, month, dates.startDate, dates.endDate);
-}
-
-async function loadAndStoreCategoryCompetitors(category, mappings, dates, cacheKey) {
-  const data = await cached(
-    cacheKey,
-    ttl.competitors,
-    () => categoryCompetitorReport(category, mappings, dates, { force: true }),
-    { force: true, forceCooldownMs: 5 * 60 * 1000 }
-  );
-  await saveCategoryCompetitorCache(cacheKey, data);
-  return { ...data, cache: { updatedAt: new Date().toISOString(), source: "fresh" } };
-}
-
-function startCompetitorCacheWarmer() {
-  if (!process.env.YOUTUBE_API_KEY) return;
-  setInterval(() => {
-    const now = new Date();
-    const ist = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-    const hour = ist.getHours();
-    const minute = ist.getMinutes();
-    if (!competitorWarmHoursIst.includes(hour) || minute !== 0) return;
-    const slot = `${ist.getFullYear()}-${ist.getMonth() + 1}-${ist.getDate()}-${hour}`;
-    if (competitorLastWarmSlot === slot) return;
-    competitorLastWarmSlot = slot;
-    warmCompetitorCacheQueue().catch((error) => {
-      console.error("Competitor cache warm failed", error);
-    });
-  }, 30 * 1000);
-}
-
-async function warmCompetitorCacheQueue() {
-  if (competitorWarmRunning || !process.env.YOUTUBE_API_KEY) return;
-  competitorWarmRunning = true;
-  try {
-    const categories = Object.keys(competitorCategoryMap);
-    for (const [index, category] of categories.entries()) {
-      if (index > 0) {
-        await new Promise((resolve) => setTimeout(resolve, competitorWarmDelayMs));
-      }
-      try {
-        await warmCompetitorCategory(category);
-      } catch (error) {
-        console.warn(`Skipped competitor cache warm for ${category}: ${error.message}`);
-      }
-    }
-  } finally {
-    competitorWarmRunning = false;
-  }
-}
-
-async function warmScheduledCompetitorCategory() {
-  const ist = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-  if (!competitorWarmHoursIst.includes(ist.getHours())) return null;
-  const categories = Object.keys(competitorCategoryMap);
-  const category = categories[ist.getMinutes()];
-  if (!category) return null;
-  return warmCompetitorCategory(category);
-}
-
-async function warmCompetitorCategory(category) {
-  const mappings = competitorCategoryMap[category];
-  if (!mappings) throw new Error(`${category} mapping is not configured.`);
-  const dates = dateWindow("7", "");
-  const cacheKey = categoryCompetitorCacheKey(category, "7", "", dates);
-  await loadAndStoreCategoryCompetitors(category, mappings, dates, cacheKey);
-  console.log(`Warmed competitor cache for ${category}`);
-  return category;
-}
-
 async function categoryCompetitorReport(category, mappings, dates, options = {}) {
   const connectedEntries = await connectedChannelEntries().catch(() => []);
   const ownedChannelIds = [...new Set(connectedEntries.map((entry) => entry.channel.id))];
@@ -1728,6 +2170,46 @@ async function categoryCompetitorReport(category, mappings, dates, options = {})
   };
 }
 
+function categoryCompetitorCacheKey(category, range, month, dates) {
+  return makeCacheKey("category-competitors", category, range, month, dates.startDate, dates.endDate);
+}
+
+function competitorCategorySlug(category) {
+  return String(category || "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function resolveCompetitorCategory(value) {
+  const raw = decodeURIComponent(String(value || "")).trim();
+  if (!raw) return "";
+  if (competitorCategoryMap[raw]) return raw;
+  const wanted = competitorCategorySlug(raw);
+  return Object.keys(competitorCategoryMap).find((category) => competitorCategorySlug(category) === wanted) || "";
+}
+
+async function warmCompetitorCategory(category) {
+  const mappings = competitorCategoryMap[category];
+  if (!mappings) {
+    const error = new Error(`${category} mapping was not found.`);
+    error.code = 404;
+    throw error;
+  }
+  const range = "7";
+  const month = "";
+  const dates = dateWindow(range, month);
+  const data = await categoryCompetitorReport(category, mappings, dates, { force: true });
+  const persistentCacheKey = categoryCompetitorCacheKey(category, range, month, dates);
+  await writeCategoryCompetitorCacheRecord(persistentCacheKey, data);
+  responseCache.set(
+    makeCacheKey("category-competitors", category, range, month, dates.startDate, dates.endDate),
+    { createdAt: Date.now(), value: data }
+  );
+  return data;
+}
+
 async function publicChannelsByIds(ids) {
   const uniqueIds = [...new Set(ids.filter(Boolean))];
   const details = {};
@@ -1763,7 +2245,7 @@ async function publicChannelVideos(channelId, dates, group, channelTitle, option
     makeCacheKey("public-channel-videos", channelId, group, dates.startDate, dates.endDate),
     ttl.publicVideos,
     () => loadPublicChannelVideos(channelId, dates, group, channelTitle),
-    { force: Boolean(options.force), forceCooldownMs: 5 * 60 * 1000 }
+    { force: Boolean(options.force) }
   );
 }
 
@@ -1935,14 +2417,13 @@ async function seoAuditReport(entries) {
   for (const entry of entries) {
     const uploads = await recentOwnedUploads(entry.auth, entry.channel, "", 90);
     const details = await ownedSeoVideoDetails(entry.auth, uploads.map((video) => video.id));
-      const detailItems = [];
-      for (const upload of uploads) {
-        const detail = details[upload.id];
-        if (!detail || !["Video", "Live"].includes(detail.format)) continue;
-        if (detail.privacyStatus === "unlisted") continue;
-        detailItems.push({
-          ...detail,
-          channelTitle: entry.channel.name || detail.channelTitle,
+    const detailItems = [];
+    for (const upload of uploads) {
+      const detail = details[upload.id];
+      if (!detail || !["Video", "Live"].includes(detail.format)) continue;
+      detailItems.push({
+        ...detail,
+        channelTitle: entry.channel.name || detail.channelTitle,
         channelId: entry.channel.id,
         url: `https://www.youtube.com/watch?v=${detail.id}`,
       });
@@ -1997,12 +2478,12 @@ async function ownedSeoVideoDetails(auth, ids) {
   for (let index = 0; index < cleanIds.length; index += 50) {
     const chunk = cleanIds.slice(index, index + 50).sort();
     const details = await cached(
-      makeCacheKey("owned-seo-video-details", "with-status-v1", chunk),
+      makeCacheKey("owned-seo-video-details", chunk),
       ttl.videoDetails,
       async () => {
         const youtube = google.youtube({ version: "v3", auth });
         const response = await youtube.videos.list({
-          part: ["snippet", "contentDetails", "liveStreamingDetails", "statistics", "status"],
+          part: ["snippet", "contentDetails", "liveStreamingDetails", "statistics"],
           id: chunk,
           maxResults: 50,
         });
@@ -2015,7 +2496,6 @@ async function ownedSeoVideoDetails(auth, ids) {
           publishedAt: item.snippet?.publishedAt || "",
           thumbnailUrl: bestThumbnailUrl(item.snippet?.thumbnails),
           format: classifySeoVideo(item),
-          privacyStatus: item.status?.privacyStatus || "",
           views: Number(item.statistics?.viewCount || 0),
           durationSeconds: isoDurationSeconds(item.contentDetails?.duration || "PT0S"),
         }));
@@ -2161,7 +2641,16 @@ async function claudeSeoMetadataAudit(video, localAudit) {
 
 function mergeSeoMetadataAudit(localAudit, aiAudit) {
   const allowed = new Set(["Description not optimised", "Playlist link missing", "Tags missing", "Low tag count", "Low relevant tags", "Hashtags missing"]);
-  const gapList = [...new Set(localAudit.gaps.filter((gap) => allowed.has(gap)))];
+  const gaps = new Set(localAudit.gaps.filter((gap) => allowed.has(gap)));
+  for (const gap of aiAudit.gaps || []) {
+    if (allowed.has(gap)) gaps.add(gap);
+  }
+  if (localAudit.hashtagCount >= 5) gaps.delete("Hashtags missing");
+  if (localAudit.tagCount > 0) gaps.delete("Tags missing");
+  if (localAudit.tagCharacterCount >= 450) gaps.delete("Low tag count");
+  if (localAudit.descriptionOptimised) gaps.delete("Description not optimised");
+  if (localAudit.hasPlaylistLink) gaps.delete("Playlist link missing");
+  const gapList = [...gaps];
   return {
     ...localAudit,
     gaps: gapList,
@@ -2344,6 +2833,92 @@ async function seoSuggestWithClaude(video) {
   };
 }
 
+async function buildThumbnailMasterPrompt(entry) {
+  const since = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString();
+  const uploads = await recentOwnedUploads(entry.auth, entry.channel, since, 220);
+  const details = Object.values(await ownedSeoVideoDetails(entry.auth, uploads.map((video) => video.id)))
+    .filter((video) => ["Video", "Live"].includes(video.format))
+    .sort((a, b) => Number(b.views || 0) - Number(a.views || 0))
+    .slice(0, 10);
+  if (!details.length) {
+    throw new Error("No videos or live streams found in the last 28 days for this channel.");
+  }
+  const promptData = await thumbnailMasterPromptWithClaude(entry.channel, details);
+  return {
+    channelId: entry.channel.id,
+    channelTitle: entry.channel.name,
+    type: "video-live",
+    typeLabel: "Videos + live streams",
+    sourceVideos: details.map((video) => ({
+      id: video.id,
+      title: video.title,
+      views: video.views,
+      thumbnailUrl: video.thumbnailUrl,
+      url: `https://www.youtube.com/watch?v=${video.id}`,
+    })),
+    ...promptData,
+  };
+}
+
+async function thumbnailMasterPromptWithClaude(channel, videos) {
+  const content = [
+    {
+      type: "text",
+      text: [
+        "Act as a senior YouTube thumbnail strategist for Indian competitive exam channels.",
+        `Channel: ${channel.name}`,
+        "Analyze only the provided top-performing video and live-stream thumbnails from the last 28 days. Shorts are excluded.",
+        "Create one reusable master prompt that the team can save in ChatGPT memory for future thumbnail generation.",
+        "The master prompt must start with: \"Save this thumbnail prompt in memory:\"",
+        "Do not write it as a one-time thumbnail creation request. Write it as durable channel memory/instructions.",
+        "Include these fixed rules inside the master prompt:",
+        "- Do not add S logo, Testbook logo, or any channel logo.",
+        "- Exam conducting body logos may be used only when relevant with exam names. No other logos.",
+        "- Time and faculty name must be smallest priority text, either very subtle or in the bottom line as the smallest subheading.",
+        "- Faculty image should be on the right side, clear, visible, high-quality, and professionally edited.",
+        "- Use vibrant colors like cyan, yellow, red, black, neon green, and white, but justify the final theme from the best-performing thumbnail patterns.",
+        "- If top thumbnails are mostly light theme, recommend a light-theme master style; if they are mostly dark/high contrast, recommend that instead.",
+        "- Use topic-relevant background imagery or supporting visuals in blank space, based on the exam/topic.",
+        "The prompt must explain composition, typography, color theme, faculty image treatment, text hierarchy, background elements, exam cues, and what to avoid.",
+        "Return ONLY strict JSON: {\"masterPrompt\":\"...\",\"rules\":[\"...\"],\"negativePrompt\":\"...\"}",
+        "",
+        ...videos.map((video, index) => `${index + 1}. ${video.title} | ${video.views} views | ${video.thumbnailUrl}`),
+      ].join("\n"),
+    },
+  ];
+  for (const video of videos.slice(0, 6)) {
+    const imageBlock = await thumbnailImageBlock(video.thumbnailUrl).catch(() => null);
+    if (imageBlock) content.push(imageBlock);
+  }
+  const data = await fetchAnthropicJson({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 1600,
+    messages: [{ role: "user", content }],
+  });
+  const parsed = parseAnthropicObject(data, "Claude did not return a valid thumbnail prompt.");
+  return {
+    masterPrompt: String(parsed.masterPrompt || parsed.master_prompt || ""),
+    rules: normalizeStringList(parsed.rules).slice(0, 10),
+    negativePrompt: String(parsed.negativePrompt || parsed.negative_prompt || ""),
+  };
+}
+
+async function thumbnailImageBlock(url) {
+  if (!url) return null;
+  const response = await fetch(url);
+  if (!response.ok) return null;
+  const arrayBuffer = await response.arrayBuffer();
+  const mediaType = response.headers.get("content-type") || "image/jpeg";
+  return {
+    type: "image",
+    source: {
+      type: "base64",
+      media_type: mediaType.includes("png") ? "image/png" : "image/jpeg",
+      data: Buffer.from(arrayBuffer).toString("base64"),
+    },
+  };
+}
+
 function bestThumbnailUrl(thumbnails = {}) {
   return thumbnails.maxres?.url || thumbnails.standard?.url || thumbnails.high?.url || thumbnails.medium?.url || thumbnails.default?.url || "";
 }
@@ -2371,23 +2946,10 @@ function topPublicContent(videos, format) {
 }
 
 async function fetchJson(url) {
-  await waitForYoutubeSearchSlot(url);
   const response = await fetch(url);
   const data = await response.json();
   if (!response.ok) throw new Error(data.error?.message || "YouTube public API request failed.");
   return data;
-}
-
-async function waitForYoutubeSearchSlot(url) {
-  if (!String(url).includes("/youtube/v3/search")) return;
-  const previous = youtubeSearchQueue;
-  let release;
-  youtubeSearchQueue = new Promise((resolve) => {
-    release = resolve;
-  });
-  await previous.catch(() => {});
-  await new Promise((resolve) => setTimeout(resolve, 1500));
-  release();
 }
 
 async function fetchAnthropicJson(body) {
