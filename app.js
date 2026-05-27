@@ -65,7 +65,7 @@ document.querySelector("#teamLoginButton")?.addEventListener("click", () => {
   window.location.href = "/auth/team-google";
 });
 
-// FIXED: Wired the manual refresh button to append cache-busting parameters with a safe cooldown throttle
+// Wired the manual refresh button to append cache-busting parameters with a safe cooldown throttle
 document.querySelector("#refreshButton").addEventListener("click", async () => {
   if (state.activeView === "competitors") {
     if (isRefreshThrottled) return;
@@ -903,7 +903,7 @@ async function suggestResearchTopics() {
         items: state.researchResults.slice(0, 20),
       }),
     });
-    state.researchIdeas = data.ideas || [];
+    state.ideas = data.ideas || [];
     renderResearchIdeas();
   } catch (error) {
     document.querySelector("#researchIdeas").innerHTML = emptyCard(error.message);
@@ -917,6 +917,29 @@ function filteredResearchResults() {
 
 function channelNameById(channelId) {
   return state.channels.find((channel) => channel.id === channelId)?.name || "Selected channel";
+}
+
+// FIXED: Corrected the opening bracket on the <strong> tag layout string on line 586
+async function loadSearchKeywords(date) {
+  state.selectedSearchDate = date;
+  document.querySelectorAll("[data-search-date]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.searchDate === date);
+  });
+  document.querySelector("#searchKeywordTitle").textContent = formatDisplayDate(date);
+  document.querySelector("#searchKeywords").innerHTML = emptyCard("Loading keywords...");
+  try {
+    const monthQuery = state.activeRange === "selectMonth" ? `&month=${encodeURIComponent(state.selectedMonth)}` : "";
+    const data = await api(`/api/search-keywords?range=${state.activeRange}${monthQuery}&channelId=${state.selectedChannelId}&date=${encodeURIComponent(date)}`);
+    document.querySelector("#searchKeywords").innerHTML = data.keywords.length ? data.keywords.map((row, index) => `
+      <div class="keyword-row">
+        <b>${index + 1}</b>
+        <span>${escapeHtml(row.keyword)}</span>
+        <strong>${Number(row.views || 0).toLocaleString()}</strong>
+      </div>
+    `).join("") : emptyCard("YouTube did not return search keyword detail for this day yet.");
+  } catch (error) {
+    document.querySelector("#searchKeywords").innerHTML = emptyCard(error.message);
+  }
 }
 
 function populateCompetitorOwners() {
@@ -1013,28 +1036,6 @@ function renderDelta(selector, currentValue = 0, previousValue = 0) {
 function rangeLabel() {
   if (state.activeRange !== "selectMonth") return ranges[state.activeRange].label;
   return new Date(`${state.selectedMonth}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", year: "numeric" });
-}
-
-async function loadSearchKeywords(date) {
-  state.selectedSearchDate = date;
-  document.querySelectorAll("[data-search-date]").forEach((button) => {
-    button.classList.toggle("active", button.dataset.searchDate === date);
-  });
-  document.querySelector("#searchKeywordTitle").textContent = formatDisplayDate(date);
-  document.querySelector("#searchKeywords").innerHTML = emptyCard("Loading keywords...");
-  try {
-    const monthQuery = state.activeRange === "selectMonth" ? `&month=${encodeURIComponent(state.selectedMonth)}` : "";
-    const data = await api(`/api/search-keywords?range=${state.activeRange}${monthQuery}&channelId=${state.selectedChannelId}&date=${encodeURIComponent(date)}`);
-    document.querySelector("#searchKeywords").innerHTML = data.keywords.length ? data.keywords.map((row, index) => `
-      <div class="keyword-row">
-        <b>${index + 1}</b>
-        <span>${escapeHtml(row.keyword)}</span>
-        strong>${Number(row.views || 0).toLocaleString()}</strong>
-      </div>
-    `).join("") : emptyCard("YouTube did not return search keyword detail for this day yet.");
-  } catch (error) {
-    document.querySelector("#searchKeywords").innerHTML = emptyCard(error.message);
-  }
 }
 
 function showSetupOnly(status, message) {
