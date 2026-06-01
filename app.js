@@ -10,11 +10,8 @@ const formats = {
 };
 
 const competitorCategories = ["Testbook", "Teaching", "UGC NET", "CGL", "Odisha", "Bengali", "Marathi", "MPSC", "AE JE", "Bihar", "Banking", "Railways", "UPSC", "Punjab", "Telugu"];
-
-// Auto-refresh fallback check interval set to 1 hour
-const competitorAutoRefreshMs = 60 * 60 * 1000;
+const competitorAutoRefreshMs = 24 * 60 * 60 * 1000; // once a day
 let competitorAutoRefreshTimer = null;
-let isRefreshThrottled = false;
 
 let state = {
   connected: false,
@@ -65,32 +62,9 @@ document.querySelector("#teamLoginButton")?.addEventListener("click", () => {
   window.location.href = "/auth/team-google";
 });
 
-// Wired the manual refresh button to append cache-busting parameters with a safe cooldown throttle
-document.querySelector("#refreshButton").addEventListener("click", async () => {
+document.querySelector("#refreshButton").addEventListener("click", () => {
   if (state.activeView === "competitors") {
-    if (isRefreshThrottled) return;
-
-    const refreshButton = document.querySelector("#refreshButton");
-    isRefreshThrottled = true;
-    refreshButton.style.opacity = "0.5";
-    refreshButton.style.cursor = "not-allowed";
-    
-    let countdown = 120; // 2 minute countdown wrapper
-    const originalText = refreshButton.textContent;
-    
-    const countdownTimer = setInterval(() => {
-      countdown--;
-      refreshButton.textContent = `⏳ ${countdown}s`;
-      if (countdown <= 0) {
-        clearInterval(countdownTimer);
-        isRefreshThrottled = false;
-        refreshButton.textContent = originalText;
-        refreshButton.style.opacity = "1";
-        refreshButton.style.cursor = "pointer";
-      }
-    }, 1000);
-
-    await loadCategoryCompetitors({ force: true, silent: false });
+    loadCategoryCompetitors({ force: true });
     return;
   }
   if (state.activeView === "research") {
@@ -500,7 +474,6 @@ function renderChannelRankings(selector, rows, key) {
   `).join("") : emptyCard("No channel ranking available yet.");
 }
 
-// FIXED: Corrected syntax structure on array closure chain termination string
 function renderCompetitors(competitors) {
   const grid = document.querySelector("#competitorGrid");
   if (!competitors.length) {
@@ -523,7 +496,6 @@ function renderCompetitors(competitors) {
       </ol>
     </article>
   `).join("");
-  
   grid.querySelectorAll("[data-remove-competitor]").forEach((button) => {
     button.addEventListener("click", async () => {
       await api(`/api/competitors/${state.selectedChannelId}/${button.dataset.removeCompetitor}`, { method: "DELETE" });
@@ -542,13 +514,13 @@ function renderCompetitorCategoryTabs() {
       state.activeCompetitorCategory = button.dataset.category;
       renderCompetitorCategoryTabs();
       document.querySelector("#competitorCategoryHeading").textContent = state.activeCompetitorCategory;
-      await loadCategoryCompetitors({ force: true });
+      await loadCategoryCompetitors(); // use cache
     });
   });
 }
 
 function enterCompetitorView() {
-  loadCategoryCompetitors({ force: true });
+  loadCategoryCompetitors(); // use cache
   startCompetitorAutoRefresh();
 }
 
@@ -556,7 +528,7 @@ function startCompetitorAutoRefresh() {
   stopCompetitorAutoRefresh();
   competitorAutoRefreshTimer = setInterval(() => {
     if (state.activeView === "competitors") {
-      loadCategoryCompetitors({ force: true, silent: true });
+      loadCategoryCompetitors({ silent: true }); // use cache
     }
   }, competitorAutoRefreshMs);
 }
@@ -592,18 +564,17 @@ async function loadCategoryCompetitors(options = {}) {
   }
 }
 
-// Restricted tab-focus automatic background calls to strict 1-hour intervals
 window.addEventListener("focus", () => {
   if (state.activeView !== "competitors") return;
-  if (Date.now() - state.competitorLastLoadedAt > 60 * 60 * 1000) {
-    loadCategoryCompetitors({ force: true, silent: true });
+  if (Date.now() - state.competitorLastLoadedAt > 12 * 60 * 60 * 1000) {
+    loadCategoryCompetitors({ silent: true }); // use cache
   }
 });
 
 document.addEventListener("visibilitychange", () => {
   if (document.hidden || state.activeView !== "competitors") return;
-  if (Date.now() - state.competitorLastLoadedAt > 60 * 60 * 1000) {
-    loadCategoryCompetitors({ force: true, silent: true });
+  if (Date.now() - state.competitorLastLoadedAt > 12 * 60 * 60 * 1000) {
+    loadCategoryCompetitors({ silent: true }); // use cache
   }
 });
 
@@ -905,7 +876,7 @@ async function suggestResearchTopics() {
         items: state.researchResults.slice(0, 20),
       }),
     });
-    state.ideas = data.ideas || [];
+    state.researchIdeas = data.ideas || [];
     renderResearchIdeas();
   } catch (error) {
     document.querySelector("#researchIdeas").innerHTML = emptyCard(error.message);
@@ -917,27 +888,8 @@ function filteredResearchResults() {
   return state.researchResults.filter((item) => item.format === state.researchFilter);
 }
 
-// FIXED: Added missing opening bracket on the <strong> tag
-async function loadSearchKeywords(date) {
-  state.selectedSearchDate = date;
-  document.querySelectorAll("[data-search-date]").forEach((button) => {
-    button.classList.toggle("active", button.dataset.searchDate === date);
-  });
-  document.querySelector("#searchKeywordTitle").textContent = formatDisplayDate(date);
-  document.querySelector("#searchKeywords").innerHTML = emptyCard("Loading keywords...");
-  try {
-    const monthQuery = state.activeRange === "selectMonth" ? `&month=${encodeURIComponent(state.selectedMonth)}` : "";
-    const data = await api(`/api/search-keywords?range=${state.activeRange}${monthQuery}&channelId=${state.selectedChannelId}&date=${encodeURIComponent(date)}`);
-    document.querySelector("#searchKeywords").innerHTML = data.keywords.length ? data.keywords.map((row, index) => `
-      <div class="keyword-row">
-        <b>${index + 1}</b>
-        <span>${escapeHtml(row.keyword)}</span>
-        <strong>${Number(row.views || 0).toLocaleString()}</strong>
-      </div>
-    `).join("") : emptyCard("YouTube did not return search keyword detail for this day yet.");
-  } catch (error) {
-    document.querySelector("#searchKeywords").innerHTML = emptyCard(error.message);
-  }
+function channelNameById(channelId) {
+  return state.channels.find((channel) => channel.id === channelId)?.name || "Selected channel";
 }
 
 function populateCompetitorOwners() {
@@ -1034,6 +986,28 @@ function renderDelta(selector, currentValue = 0, previousValue = 0) {
 function rangeLabel() {
   if (state.activeRange !== "selectMonth") return ranges[state.activeRange].label;
   return new Date(`${state.selectedMonth}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+}
+
+async function loadSearchKeywords(date) {
+  state.selectedSearchDate = date;
+  document.querySelectorAll("[data-search-date]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.searchDate === date);
+  });
+  document.querySelector("#searchKeywordTitle").textContent = formatDisplayDate(date);
+  document.querySelector("#searchKeywords").innerHTML = emptyCard("Loading keywords...");
+  try {
+    const monthQuery = state.activeRange === "selectMonth" ? `&month=${encodeURIComponent(state.selectedMonth)}` : "";
+    const data = await api(`/api/search-keywords?range=${state.activeRange}${monthQuery}&channelId=${state.selectedChannelId}&date=${encodeURIComponent(date)}`);
+    document.querySelector("#searchKeywords").innerHTML = data.keywords.length ? data.keywords.map((row, index) => `
+      <div class="keyword-row">
+        <b>${index + 1}</b>
+        <span>${escapeHtml(row.keyword)}</span>
+        <strong>${Number(row.views || 0).toLocaleString()}</strong>
+      </div>
+    `).join("") : emptyCard("YouTube did not return search keyword detail for this day yet.");
+  } catch (error) {
+    document.querySelector("#searchKeywords").innerHTML = emptyCard(error.message);
+  }
 }
 
 function showSetupOnly(status, message) {

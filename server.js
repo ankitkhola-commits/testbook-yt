@@ -29,9 +29,9 @@ const ttl = {
   uploads: 30 * 60 * 1000,
   videoDetails: 60 * 60 * 1000,
   publicChannels: 24 * 60 * 60 * 1000,
-  publicVideos: 30 * 60 * 1000,
+  publicVideos: 12 * 60 * 60 * 1000, // 12 hours
   research: 6 * 60 * 60 * 1000,
-  competitors: 30 * 60 * 1000,
+  competitors: 12 * 60 * 60 * 1000, // 12 hours
 };
 const teamScopes = [
   "openid",
@@ -1055,7 +1055,6 @@ async function listOwnedChannels(auth) {
 async function channelReport(auth, channel, dates) {
   const [daily, contentType, searchTraffic, uploadResult, topContent, uploadedVideoViews, uploadedVideoSubscribers] = await Promise.all([
     analyticsRows(auth, {
-      part: ["views", "subscribersGained", "subscribersLost", "averageViewPercentage", "shares"],
       ids: `channel==${channel.id}`,
       startDate: dates.startDate,
       endDate: dates.endDate,
@@ -1270,6 +1269,20 @@ async function videoDetails(auth, ids) {
   return detailMap;
 }
 
+function classifyVideo(video) {
+  const title = `${video.snippet?.title || ""} ${(video.snippet?.tags || []).join(" ")}`.toLowerCase();
+  if (
+    video.liveStreamingDetails ||
+    ["live", "upcoming"].includes(video.snippet?.liveBroadcastContent) ||
+    /\b(live|livestream|live stream|streamed|premiere)\b/.test(title)
+  ) {
+    return "Live";
+  }
+  const seconds = isoDurationSeconds(video.contentDetails?.duration || "PT0S");
+  if (/#shorts?\b|\bshorts?\b/.test(title)) return "Shorts";
+  return seconds > 0 && seconds <= 180 ? "Shorts" : "Video";
+}
+
 function mergeReports(reports, days) {
   const labels = eachDate(days.startDate, days.endDate);
   const series = labels.map((date) => ({
@@ -1455,9 +1468,20 @@ function publicChannelResult(item) {
 }
 
 async function recentPublicVideos(channelId, dates) {
-  const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&order=date&publishedAfter=${dates.startDate}T00:00:00Z&maxResults=25&key=${process.env.YOUTUBE_API_KEY}`;
-  const searchData = await fetchJson(searchUrl);
-  const ids = (searchData.items || []).map((item) => item.id.videoId).filter(Boolean);
+  const after = `${dates.startDate}T00:00:00Z`;
+  const uploadsPlaylistId = channelId.startsWith("UC") ? "UU" + channelId.slice(2) : channelId;
+  const playlistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=50&key=${process.env.YOUTUBE_API_KEY}`;
+  const playlistData = await fetchJson(playlistUrl);
+  const ids = [];
+  for (const item of playlistData.items || []) {
+    const pubAt = item.snippet?.publishedAt;
+    // Early termination: playlist items are sorted newest-to-oldest, so break if older than 'after'
+    if (pubAt && pubAt < after) {
+      break;
+    }
+    const videoId = item.snippet?.resourceId?.videoId;
+    if (videoId) ids.push(videoId);
+  }
   if (!ids.length) return [];
   const videoUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${ids.join(",")}&key=${process.env.YOUTUBE_API_KEY}`;
   const videoData = await fetchJson(videoUrl);
@@ -1469,35 +1493,23 @@ async function recentPublicVideos(channelId, dates) {
   })).filter((item) => item.publishedAt?.slice(0, 10) <= dates.endDate);
 }
 
-// FIXED: Converted Promise.all into a safely staggered sequential loop to bypass the per-minute burst rate gate
 async function categoryCompetitorReport(category, mappings, dates, options = {}) {
   const connectedEntries = await connectedChannelEntries().catch(() => []);
   const ownedChannelIds = [...new Set(connectedEntries.map((entry) => entry.channel.id))];
   
   const groups = [];
-  const flatChannelIds = mappings.flatMap(m => m.ids);
-  const channelDetails = await publicChannelsByIds(flatChannelIds);
-
   for (const mapping of mappings) {
-    const videos = [];
+    const channelDetails = await publicChannelsByIds(mapping.ids);
+    const channelReports = [];
     for (const channelId of mapping.ids) {
-      try {
-        const channelVideos = await publicChannelVideos(
-          channelId, 
-          dates, 
-          mapping.group, 
-          channelDetails[channelId]?.title || channelId, 
-          options
-        );
-        videos.push(...channelVideos);
-        
-        // Stagger requests by 250ms to smooth out concurrent data spikes
-        await new Promise(resolve => setTimeout(resolve, 250));
-      } catch (err) {
-        console.error(`Skipping rate-limited channel ${channelId} inside ${category}:`, err.message);
+      const report = await publicChannelVideos(channelId, dates, mapping.group, channelDetails[channelId]?.title || channelId, options);
+      channelReports.push(report);
+      // Wait 150ms between requests if bypassing cache to prevent rate-limiting
+      if (options.force) {
+        await new Promise((resolve) => setTimeout(resolve, 150));
       }
     }
-
+    const videos = channelReports.flat();
     groups.push({
       name: mapping.group,
       channels: mapping.ids.map((id) => ({ id, title: channelDetails[id]?.title || id })),
@@ -1574,14 +1586,45 @@ async function loadPublicChannelVideos(channelId, dates, group, channelTitle) {
   const beforeDate = new Date(`${dates.endDate}T00:00:00Z`);
   beforeDate.setUTCDate(beforeDate.getUTCDate() + 1);
   const before = beforeDate.toISOString();
-  const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&order=date&publishedAfter=${after}&publishedBefore=${before}&maxResults=50&key=${process.env.YOUTUBE_API_KEY}`;
-  const searchData = await fetchJson(searchUrl);
-  const ids = (searchData.items || []).map((item) => item.id.videoId).filter(Boolean);
+  
+  const uploadsPlaylistId = channelId.startsWith("UC") ? "UU" + channelId.slice(2) : channelId;
+  const livePlaylistId = channelId.startsWith("UC") ? "UULV" + channelId.slice(2) : channelId;
+  
+  const playlistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=50&key=${process.env.YOUTUBE_API_KEY}`;
+  const playlistData = await fetchJson(playlistUrl);
+  
+  const ids = [];
+  for (const item of playlistData.items || []) {
+    const pubAt = item.snippet?.publishedAt;
+    // Early termination: playlist items are sorted newest-to-oldest, so break if older than 'after'
+    if (pubAt && pubAt < after) {
+      break;
+    }
+    if (pubAt && pubAt <= before) {
+      const videoId = item.snippet?.resourceId?.videoId;
+      if (videoId) ids.push(videoId);
+    }
+  }
+
   if (!ids.length) return [];
+
+  // Fetch recent live streams to build a set of true live video IDs
+  const liveVideoIds = new Set();
+  try {
+    const livePlaylistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${livePlaylistId}&maxResults=50&key=${process.env.YOUTUBE_API_KEY}`;
+    const liveData = await fetchJson(livePlaylistUrl);
+    for (const item of liveData.items || []) {
+      const videoId = item.snippet?.resourceId?.videoId;
+      if (videoId) liveVideoIds.add(videoId);
+    }
+  } catch (err) {
+    // Ignore error if live stream playlist is empty or missing
+  }
+
   const detailUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails,liveStreamingDetails&id=${ids.join(",")}&key=${process.env.YOUTUBE_API_KEY}`;
   const detailData = await fetchJson(detailUrl);
   return (detailData.items || []).map((item) => {
-    const format = classifyPublicVideo(item);
+    const format = classifyPublicVideo(item, liveVideoIds);
     return {
       id: item.id,
       title: item.snippet?.title || item.id,
@@ -1693,42 +1736,31 @@ async function publicVideoDetails(ids) {
   return detailMap;
 }
 
-// FIXED: Cleaned classification logic to detect archived live streams and strict 60-second shorts formats
-function classifyVideo(video) {
-  const snippet = video.snippet || {};
-  const contentDetails = video.contentDetails || {};
-  const title = `${snippet.title || ""} ${(snippet.tags || []).join(" ")}`.toLowerCase();
+function classifyPublicVideo(video, liveVideoIds = new Set()) {
+  const title = `${video.snippet?.title || ""} ${(video.snippet?.tags || []).join(" ")}`.toLowerCase();
+  const seconds = isoDurationSeconds(video.contentDetails?.duration || "PT0S");
   
-  const isLiveStream = 
-    video.liveStreamingDetails !== undefined ||
-    ["live", "upcoming", "completed"].includes(snippet.liveBroadcastContent) ||
-    /\b(live|livestream|live stream|streamed|premiere)\b/.test(title);
-
-  if (isLiveStream) return "Live";
-
-  const seconds = isoDurationSeconds(contentDetails.duration || "PT0S");
+  const isCurrentlyLiveOrUpcoming = ["live", "upcoming"].includes(video.snippet?.liveBroadcastContent);
+  
+  // 1. If currently live or upcoming
+  if (isCurrentlyLiveOrUpcoming) return "Live";
+  
+  // 2. If we have a live streams list for this channel
+  if (liveVideoIds.size > 0) {
+    if (liveVideoIds.has(video.id)) {
+      return "Live";
+    }
+  } else {
+    // 3. Fallback when liveVideoIds is not provided (e.g., in keyword research across multiple channels):
+    // Use the liveStreamingDetails with duration & title keywords heuristic
+    const hasLiveKeywords = /\b(live|livestream|live stream|streamed)\b/.test(title);
+    if (video.liveStreamingDetails && (seconds === 0 || seconds > 1800 || hasLiveKeywords)) {
+      return "Live";
+    }
+  }
+  
   if (/#shorts?\b|\bshorts?\b/.test(title)) return "Shorts";
-  
-  // Native Shorts are capped strictly at 60 seconds
-  return seconds > 0 && seconds <= 60 ? "Shorts" : "Video";
-}
-
-// FIXED: Matched public classifications to native streaming rules
-function classifyPublicVideo(video) {
-  const snippet = video.snippet || {};
-  const contentDetails = video.contentDetails || {};
-  const title = `${snippet.title || ""} ${(snippet.tags || []).join(" ")}`.toLowerCase();
-  
-  const isLiveStream = 
-    video.liveStreamingDetails !== undefined ||
-    ["live", "upcoming", "completed"].includes(snippet.liveBroadcastContent) ||
-    /\b(live|livestream|live stream|streamed|premiere)\b/.test(title);
-
-  if (isLiveStream) return "Live";
-
-  const seconds = isoDurationSeconds(contentDetails.duration || "PT0S");
-  if (/#shorts?\b|\bshorts?\b/.test(title)) return "Shorts";
-  return seconds > 0 && seconds <= 60 ? "Shorts" : "Video";
+  return seconds > 0 && seconds <= 180 ? "Shorts" : "Video";
 }
 
 function formatCounts(videos) {
@@ -2014,5 +2046,3 @@ function formatDate(value) {
 function formatsLabel(key) {
   return ({ shorts: "Shorts", videos: "video", live: "live" })[key] || "video";
 }
-
-export { categoryCompetitorReport, classifyVideo, classifyPublicVideo };
