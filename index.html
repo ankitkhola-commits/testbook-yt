@@ -105,6 +105,8 @@
           <button class="side-nav-button active" type="button" data-view-tab="dashboard">Dashboard</button>
           <button class="side-nav-button" type="button" data-view-tab="competitors">Competitors</button>
           <button class="side-nav-button" type="button" data-view-tab="research">Research</button>
+          <button class="side-nav-button" type="button" data-view-tab="seo">SEO Audit</button>
+          <button class="side-nav-button" type="button" data-view-tab="ytm">YTM Audit</button>
         </nav>
 
         <button class="connect-button" id="connectChannelButton" data-sidebar-view="dashboard">
@@ -148,6 +150,13 @@
             </div>
           </div>
         </header>
+
+        <div id="dashboardProgressBarContainer" class="progress-bar-container is-hidden">
+          <div class="progress-bar-label" id="dashboardProgressBarLabel">Loading dashboard... (0%)</div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="dashboardProgressBarFill" style="width: 0%"></div>
+          </div>
+        </div>
 
         <section class="growth-strip" aria-label="Growth summary" data-view="dashboard">
           <article>
@@ -289,6 +298,12 @@
               <strong id="competitorRangeLabel" class="panel-total">Last 7 days</strong>
             </div>
             <div id="competitorCategoryTabs" class="category-tabs"></div>
+            <div id="competitorProgressBarContainer" class="progress-bar-container is-hidden" style="margin-top: 10px; margin-bottom: 10px;">
+              <div class="progress-bar-label" id="competitorProgressBarLabel">Loading channel stats... (0%)</div>
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="competitorProgressBarFill" style="width: 0%"></div>
+              </div>
+            </div>
             <div id="competitorBenchmark" class="benchmark-page"></div>
           </article>
 
@@ -321,8 +336,13 @@
               <button class="filter-chip" type="button" data-research-filter="Video">Videos</button>
               <button class="filter-chip" type="button" data-research-filter="Live">Live</button>
             </div>
+            <div id="researchProgressBarContainer" class="progress-bar-container is-hidden" style="margin-top: 10px; margin-bottom: 10px;">
+              <div class="progress-bar-label" id="researchProgressBarLabel">Running keyword research... (0%)</div>
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="researchProgressBarFill" style="width: 0%"></div>
+              </div>
+            </div>
             <div id="researchSummary" class="research-summary"></div>
-            <div id="researchResults" class="research-results"></div>
             <div class="research-ideas-panel">
               <div class="research-ideas-header">
                 <div>
@@ -333,6 +353,88 @@
               </div>
               <div id="researchIdeas" class="research-ideas"></div>
             </div>
+            <div id="researchResults" class="research-results"></div>
+          </article>
+
+          <article class="panel page-panel seo-panel" data-view="seo">
+            <div class="panel-header seo-header">
+              <div>
+                <p class="eyebrow">SEO Audit</p>
+                <h2>Latest 30 videos and live streams per channel</h2>
+              </div>
+            </div>
+            <div class="seo-toolbar">
+              <div class="select-wrap">
+                <label for="seoAuditTarget">Target</label>
+                <select id="seoAuditTarget">
+                  <option value="Vinayak">Vinayak</option>
+                  <option value="Mohit">Mohit</option>
+                  <option value="Raubinsh">Raubinsh</option>
+                  <option value="Saijal">Saijal</option>
+                  <option value="Aditya">Aditya</option>
+                  <option value="Vivek">Vivek</option>
+                </select>
+              </div>
+              <button class="connect-button seo-run" type="button" id="seoRunButton">Run audit</button>
+              <label class="seo-toggle-label">
+                <input type="checkbox" id="seoSortLowestToggle" checked />
+                <span>Score lowest first</span>
+              </label>
+              <button class="ghost-button seo-export-btn" type="button" id="seoExportCsvButton" disabled>Export CSV</button>
+              <button class="ghost-button seo-export-btn" type="button" id="seoCopySheetsButton" disabled>Copy for Sheets</button>
+            </div>
+            <div id="seoProgressBarContainer" class="progress-bar-container is-hidden">
+              <div class="progress-bar-label" id="seoProgressBarLabel">Auditing channels... (0%)</div>
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="seoProgressBarFill" style="width: 0%"></div>
+              </div>
+            </div>
+            <div id="seoSummary" class="seo-summary"></div>
+            <div id="seoChannelFilters" class="seo-channel-filters"></div>
+            <div id="seoResults" class="seo-results"></div>
+          </article>
+
+          <article class="panel page-panel ytm-panel" data-view="ytm">
+            <div class="panel-header ytm-header">
+              <div>
+                <p class="eyebrow">YTM Audit</p>
+                <h2>YouTube Manager Audit Dashboard</h2>
+              </div>
+            </div>
+            <div class="ytm-toolbar">
+              <div class="select-wrap">
+                <label for="ytmAuditTarget">Target YTM</label>
+                <select id="ytmAuditTarget">
+                  <option value="Himanshu">Himanshu</option>
+                  <option value="Ayush">Ayush</option>
+                  <option value="Atul Sharma">Atul Sharma</option>
+                  <option value="Shubham">Shubham</option>
+                  <option value="Raubnish">Raubnish</option>
+                  <option value="Amit">Amit</option>
+                  <option value="Abhinav">Abhinav</option>
+                  <option value="Shukendu">Shukendu</option>
+                  <option value="Ashish Tyagi">Ashish Tyagi</option>
+                  <option value="Lubna">Lubna</option>
+                  <option value="Vivek">Vivek</option>
+                </select>
+              </div>
+              <button class="connect-button ytm-run" type="button" id="ytmRunButton">Run YTM audit</button>
+              <label class="ytm-toggle-label">
+                <input type="checkbox" id="ytmSortLowestToggle" checked />
+                <span>Score lowest first</span>
+              </label>
+              <button class="ghost-button ytm-export-btn" type="button" id="ytmExportCsvButton" disabled>Export CSV</button>
+              <button class="ghost-button ytm-export-btn" type="button" id="ytmCopySheetsButton" disabled>Copy for Sheets</button>
+            </div>
+            <div id="ytmProgressBarContainer" class="progress-bar-container is-hidden">
+              <div class="progress-bar-label" id="ytmProgressBarLabel">Auditing manager channels... (0%)</div>
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="ytmProgressBarFill" style="width: 0%"></div>
+              </div>
+            </div>
+            <div id="ytmSummary" class="ytm-summary"></div>
+            <div id="ytmChannelFilters" class="ytm-channel-filters"></div>
+            <div id="ytmResults" class="ytm-results"></div>
           </article>
 
         </section>
@@ -398,6 +500,50 @@
         <div class="modal-actions">
           <button value="cancel" class="ghost-button">Cancel</button>
           <button class="connect-button" type="submit">Add competitor</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="seoSuggestDialog" class="modal">
+      <form method="dialog" id="seoSuggestForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">AI Recommendation</p>
+            <h2 id="seoSuggestTitle">Optimized Metadata</h2>
+          </div>
+          <button value="cancel" class="icon-button" aria-label="Close">×</button>
+        </div>
+        <div class="seo-suggest-content">
+          <div class="suggest-section">
+            <div class="suggest-header">
+              <span>Optimized Description (Opening Lines)</span>
+              <button type="button" class="copy-btn" data-copy-target="seoSuggestDescription">Copy</button>
+            </div>
+            <textarea id="seoSuggestDescription" readonly rows="4"></textarea>
+          </div>
+          <div class="suggest-section">
+            <div class="suggest-header">
+              <span>Recommended Tags</span>
+              <button type="button" class="copy-btn" data-copy-target="seoSuggestTags">Copy</button>
+            </div>
+            <textarea id="seoSuggestTags" readonly rows="3"></textarea>
+          </div>
+          <div class="suggest-section">
+            <div class="suggest-header">
+              <span>Recommended Hashtags</span>
+              <button type="button" class="copy-btn" data-copy-target="seoSuggestHashtags">Copy</button>
+            </div>
+            <input id="seoSuggestHashtags" readonly />
+          </div>
+          <div class="suggest-section">
+            <div class="suggest-header">
+              <span>AI Reasoning</span>
+            </div>
+            <p id="seoSuggestReason" class="suggest-reason"></p>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button value="cancel" class="connect-button">Close</button>
         </div>
       </form>
     </dialog>

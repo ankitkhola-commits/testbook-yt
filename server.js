@@ -25,7 +25,7 @@ let storageReadyPromise;
 const responseCache = new Map();
 const inFlightRequests = new Map();
 const ttl = {
-  dashboard: 10 * 60 * 1000,
+  dashboard: 4 * 60 * 60 * 1000,
   uploads: 30 * 60 * 1000,
   videoDetails: 60 * 60 * 1000,
   publicChannels: 24 * 60 * 60 * 1000,
@@ -70,7 +70,7 @@ const competitorCategoryMap = {
     { group: "Science Magnet", ids: ["UC-hnHgZpTEd0sqrX68juuKA"] },
   ],
   CGL: [
-    { group: "Testbook", ids: ["UCynL1ZibAI7kC5yZPv6a_Sw"] },
+    { group: "Testbook", ids: ["UCGZmxSKg2tKMvn9TO-IYpqw"] },
     { group: "SSC Wallah", ids: ["UCcaEVV7A47J4k9GFcqOOYkg"] },
     { group: "SSC CGL Adda247", ids: ["UCV6HCLPearneK6wLQ-WitUA"] },
     { group: "CareerWill SSC", ids: ["UCx-7YPrGnNC81ahyqvqu27g"] },
@@ -179,12 +179,14 @@ app.get("/assets/:file", (req, res) => {
 });
 
 app.get("/api/config", async (req, res) => {
+  const viewer = readViewerSession(req);
   res.json({
     ...configStatus(),
-    viewer: readViewerSession(req),
+    viewer,
     teamAuthEnabled: teamAuthEnabled(),
     allowedEmailDomain: allowedEmailDomain(),
     viewerAllowlistEnabled: allowedViewerEmails().length > 0,
+    isAuditAdmin: isAuditAdmin(viewer),
   });
 });
 
@@ -214,14 +216,16 @@ app.post("/api/config", async (req, res, next) => {
 });
 
 app.get("/api/status", async (req, res) => {
+  const viewer = readViewerSession(req);
   res.json({
     ...configStatus(),
     connected: await hasConnectedGoogle(),
     maxChannels,
-    viewer: readViewerSession(req),
+    viewer,
     teamAuthEnabled: teamAuthEnabled(),
     allowedEmailDomain: allowedEmailDomain(),
     viewerAllowlistEnabled: allowedViewerEmails().length > 0,
+    isAuditAdmin: isAuditAdmin(viewer),
   });
 });
 
@@ -232,6 +236,7 @@ app.get("/api/session", async (req, res) => {
     teamAuthEnabled: teamAuthEnabled(),
     allowedEmailDomain: allowedEmailDomain(),
     viewerAllowlistEnabled: allowedViewerEmails().length > 0,
+    isAuditAdmin: isAuditAdmin(viewer),
   });
 });
 
@@ -564,9 +569,820 @@ app.delete("/api/competitors/:channelId/:competitorId", async (req, res, next) =
   }
 });
 
+const candidateMappings = {
+  "Vinayak": [
+    "SuperCoaching MPSC by Testbook",
+    "Banking Testbook",
+    "Railway Testbook"
+  ],
+  "Mohit": [
+    "UPSC PrepLab",
+    "Bihar Testbook",
+    "Testbook"
+  ],
+  "Raubinsh": [
+    "Odisha Testbook",
+    "Odisha Teaching by Testbook"
+  ],
+  "Saijal": [
+    "UGC NET Testbook",
+    "Testbook NET JRF",
+    "TET PRT Testbook",
+    "TGT PGT Testbook",
+    "CTET Testbook",
+    "Bihar Teaching Exams by Testbook",
+    "Assistant Professor & PhD by Testbook"
+  ],
+  "Aditya": [
+    "Testbook Bengali",
+    "WBPSC Testbook",
+    "Punjab Testbook",
+    "SuperCoaching Marathi by Testbook",
+    "TET Factory by Testbook",
+    "Testbook Telugu"
+  ],
+  "Vivek": [
+    "AE JE Testbook",
+    "SSC Testbook",
+    "Testbook Tamil"
+  ]
+};
+
+const ytmMappings = {
+  "Himanshu": [
+    "SuperCoaching MPSC by Testbook",
+    "SuperCoaching Marathi by Testbook"
+  ],
+  "Ayush": [
+    "Supercoaching Regulatory Bodies by Testbook",
+    "Testbook - JAIIB CAIIB"
+  ],
+  "Atul Sharma": [
+    "UPSC PrepLab"
+  ],
+  "Shubham": [
+    "Bihar Testbook",
+    "Testbook",
+    "Banking Testbook"
+  ],
+  "Raubnish": [
+    "Odisha Testbook",
+    "Odisha Teaching by Testbook"
+  ],
+  "Amit": [
+    "UGC NET Testbook",
+    "Testbook NET JRF"
+  ],
+  "Abhinav": [
+    "TET PRT Testbook",
+    "TGT PGT Testbook",
+    "CTET Testbook",
+    "Bihar Teaching Exams by Testbook"
+  ],
+  "Shukendu": [
+    "Testbook Bengali",
+    "WBPSC Testbook"
+  ],
+  "Ashish Tyagi": [
+    "Punjab Testbook"
+  ],
+  "Lubna": [
+    "Railway Testbook"
+  ],
+  "Vivek": [
+    "AE JE Testbook",
+    "SSC Testbook"
+  ]
+};
+
+app.get("/api/seo/audit", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (!isAuditAdmin(viewer)) {
+      return res.status(403).json({ error: "Access denied. Only authorized admins can run SEO and YTM audits." });
+    }
+
+    const entries = await connectedChannelEntries();
+    if (!entries.length) {
+      return res.json({ videos: [] });
+    }
+    
+    const candidate = req.query.candidate;
+    let selectedEntries = entries;
+    if (candidate && candidate !== "All") {
+      const allowedTitles = candidateMappings[candidate] || [];
+      const allowedTitlesLower = new Set(allowedTitles.map(t => t.toLowerCase().trim()));
+      selectedEntries = entries.filter(entry => {
+        const title = (entry.channel.name || "").toLowerCase().trim();
+        return allowedTitlesLower.has(title);
+      });
+    }
+    
+    if (!selectedEntries.length) {
+      return res.json({ videos: [] });
+    }
+    
+    const channelIds = selectedEntries.map(e => e.channel.id).sort();
+    const cacheKey = makeCacheKey("seo-audit", channelIds);
+    
+    const payload = await cached(
+      cacheKey,
+      30 * 60 * 1000, // 30 minutes
+      async () => {
+        const allVideos = [];
+        let claudeDisabled = !process.env.ANTHROPIC_API_KEY;
+        
+        for (const entry of selectedEntries) {
+          const auth = entry.auth;
+          const channel = entry.channel;
+          const channelId = channel.id;
+          const channelTitle = channel.name;
+          
+          const playlistId = channel.uploadsPlaylistId || (channelId.startsWith("UC") ? "UU" + channelId.slice(2) : channelId);
+          const youtube = google.youtube({ version: "v3", auth });
+          
+          let playlistItems = [];
+          let pageToken = undefined;
+          try {
+            const res1 = await youtube.playlistItems.list({
+              part: ["snippet", "contentDetails"],
+              playlistId: playlistId,
+              maxResults: 50,
+              pageToken,
+            });
+            playlistItems.push(...(res1.data.items || []));
+            pageToken = res1.data.nextPageToken;
+            
+            if (pageToken && playlistItems.length < 90) {
+              const res2 = await youtube.playlistItems.list({
+                part: ["snippet", "contentDetails"],
+                playlistId: playlistId,
+                maxResults: 40,
+                pageToken,
+              });
+              playlistItems.push(...(res2.data.items || []));
+            }
+          } catch (err) {
+            console.error(`Failed to fetch uploads playlist for channel ${channelId}:`, err);
+            throw err;
+          }
+          
+          const videoIds = playlistItems.map(item => item.contentDetails?.videoId).filter(Boolean);
+          if (!videoIds.length) continue;
+          
+          const liveVideoIds = new Set();
+          const livePlaylistId = channelId.startsWith("UC") ? "UULV" + channelId.slice(2) : channelId;
+          try {
+            const liveRes = await youtube.playlistItems.list({
+              part: ["snippet", "contentDetails"],
+              playlistId: livePlaylistId,
+              maxResults: 50,
+            });
+            for (const item of liveRes.data.items || []) {
+              const vId = item.contentDetails?.videoId || item.snippet?.resourceId?.videoId;
+              if (vId) liveVideoIds.add(vId);
+            }
+          } catch (err) {
+            // Ignore error if live stream playlist is empty/missing
+          }
+          
+          const videoDetailsMap = {};
+          for (let index = 0; index < videoIds.length; index += 50) {
+            const chunk = videoIds.slice(index, index + 50);
+            const response = await youtube.videos.list({
+              part: ["snippet", "contentDetails", "liveStreamingDetails", "statistics", "status"],
+              id: chunk,
+              maxResults: 50,
+            });
+            for (const item of response.data.items || []) {
+              videoDetailsMap[item.id] = item;
+            }
+          }
+          
+          const validVideos = [];
+          for (const item of playlistItems) {
+            const vId = item.contentDetails?.videoId;
+            if (!vId) continue;
+            const videoDetails = videoDetailsMap[vId];
+            if (!videoDetails) continue;
+            
+            const privacy = videoDetails.status?.privacyStatus;
+            if (privacy === "unlisted" || privacy === "private") continue;
+            
+            const format = classifySeoVideo(videoDetails, liveVideoIds);
+            if (format === "Shorts") continue;
+            
+            validVideos.push({
+              id: vId,
+              title: videoDetails.snippet?.title || "Untitled",
+              description: videoDetails.snippet?.description || "",
+              tags: videoDetails.snippet?.tags || [],
+              publishedAt: videoDetails.snippet?.publishedAt || "",
+              views: Number(videoDetails.statistics?.viewCount || 0),
+              format,
+              channelId,
+              channelTitle,
+              privacy,
+            });
+          }
+          
+          const truncatedVideos = validVideos.slice(0, 30);
+          const channelAvgViews = truncatedVideos.reduce((sum, v) => sum + v.views, 0) / Math.max(1, truncatedVideos.length);
+          
+          for (const video of truncatedVideos) {
+            const localGaps = localSeoMetadataAudit(video);
+            let gaps = [...localGaps];
+            
+            if (!claudeDisabled) {
+              try {
+                const claudeGaps = await claudeSeoMetadataAudit(video);
+                const merged = new Set([...localGaps, ...claudeGaps]);
+                gaps = [...merged];
+              } catch (claudeErr) {
+                console.error("Claude SEO audit failed, disabling Claude for remainder of audit:", claudeErr.message);
+                claudeDisabled = true;
+              }
+            }
+            
+            const score = Math.max(0, 100 - gaps.length * 10);
+            
+            allVideos.push({
+              id: video.id,
+              title: video.title,
+              publishedAt: video.publishedAt,
+              views: video.views,
+              format: video.format,
+              channelId: video.channelId,
+              channelTitle: video.channelTitle,
+              score,
+              gaps,
+              channelAverageViews: channelAvgViews,
+            });
+          }
+        }
+        
+        return { videos: allVideos };
+      },
+      { force: req.query.force === "1" }
+    );
+    
+    res.json(payload);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/ytm/audit", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (!isAuditAdmin(viewer)) {
+      return res.status(403).json({ error: "Access denied. Only authorized admins can run SEO and YTM audits." });
+    }
+
+    const entries = await connectedChannelEntries();
+    if (!entries.length) {
+      return res.json({ videos: [] });
+    }
+    
+    const manager = req.query.manager;
+    let selectedEntries = entries;
+    if (manager && manager !== "All") {
+      const allowedTitles = ytmMappings[manager] || [];
+      const allowedTitlesLower = new Set(allowedTitles.map(t => t.toLowerCase().trim()));
+      selectedEntries = entries.filter(entry => {
+        const title = (entry.channel.name || "").toLowerCase().trim();
+        return allowedTitlesLower.has(title);
+      });
+    }
+    
+    if (!selectedEntries.length) {
+      return res.json({ videos: [] });
+    }
+    
+    const channelIds = selectedEntries.map(e => e.channel.id).sort().join(",");
+    const cacheKey = makeCacheKey("ytm-audit", channelIds);
+    
+    const payload = await cached(
+      cacheKey,
+      30 * 60 * 1000, // 30 minutes
+      async () => {
+        const allVideos = [];
+        
+        for (const entry of selectedEntries) {
+          const auth = entry.auth;
+          const channel = entry.channel;
+          const channelId = channel.id;
+          const channelTitle = channel.name;
+          
+          const playlistId = channel.uploadsPlaylistId || (channelId.startsWith("UC") ? "UU" + channelId.slice(2) : channelId);
+          const youtube = google.youtube({ version: "v3", auth });
+          
+          let playlistItems = [];
+          let pageToken = undefined;
+          try {
+            const res1 = await youtube.playlistItems.list({
+              part: ["snippet", "contentDetails"],
+              playlistId: playlistId,
+              maxResults: 50,
+              pageToken,
+            });
+            playlistItems.push(...(res1.data.items || []));
+            pageToken = res1.data.nextPageToken;
+            
+            if (pageToken && playlistItems.length < 90) {
+              const res2 = await youtube.playlistItems.list({
+                part: ["snippet", "contentDetails"],
+                playlistId: playlistId,
+                maxResults: 40,
+                pageToken,
+              });
+              playlistItems.push(...(res2.data.items || []));
+            }
+          } catch (err) {
+            console.error(`Failed to fetch uploads playlist for channel ${channelId}:`, err);
+            throw err;
+          }
+          
+          const videoIds = playlistItems.map(item => item.contentDetails?.videoId).filter(Boolean);
+          if (!videoIds.length) continue;
+          
+          const liveVideoIds = new Set();
+          const livePlaylistId = channelId.startsWith("UC") ? "UULV" + channelId.slice(2) : channelId;
+          try {
+            const liveRes = await youtube.playlistItems.list({
+              part: ["snippet", "contentDetails"],
+              playlistId: livePlaylistId,
+              maxResults: 50,
+            });
+            for (const item of liveRes.data.items || []) {
+              const vId = item.contentDetails?.videoId || item.snippet?.resourceId?.videoId;
+              if (vId) liveVideoIds.add(vId);
+            }
+          } catch (err) {
+            // Ignore error if live stream playlist is empty/missing
+          }
+          
+          const videoDetailsMap = {};
+          for (let index = 0; index < videoIds.length; index += 50) {
+            const chunk = videoIds.slice(index, index + 50);
+            const response = await youtube.videos.list({
+              part: ["snippet", "contentDetails", "liveStreamingDetails", "statistics", "status"],
+              id: chunk,
+              maxResults: 50,
+            });
+            for (const item of response.data.items || []) {
+              videoDetailsMap[item.id] = item;
+            }
+          }
+          
+          const validVideos = [];
+          for (const item of playlistItems) {
+            const vId = item.contentDetails?.videoId;
+            if (!vId) continue;
+            const videoDetails = videoDetailsMap[vId];
+            if (!videoDetails) continue;
+            
+            const privacy = videoDetails.status?.privacyStatus;
+            if (privacy === "unlisted" || privacy === "private") continue;
+            
+            const format = classifySeoVideo(videoDetails, liveVideoIds);
+            if (format === "Shorts") continue;
+            
+            validVideos.push({
+              id: vId,
+              title: videoDetails.snippet?.title || "Untitled",
+              description: videoDetails.snippet?.description || "",
+              thumbnails: videoDetails.snippet?.thumbnails || {},
+              publishedAt: videoDetails.snippet?.publishedAt || "",
+              views: Number(videoDetails.statistics?.viewCount || 0),
+              format,
+              channelId,
+              channelTitle,
+              privacy,
+            });
+          }
+          
+          const truncatedVideos = validVideos.slice(0, 30);
+          
+          // Parallel fetch of comments for all truncated videos
+          const commentThreadsPromises = truncatedVideos.map(async (video) => {
+            let commentThreads = [];
+            let commentsDisabled = false;
+            try {
+              const commentsRes = await youtube.commentThreads.list({
+                part: ["snippet", "replies"],
+                videoId: video.id,
+                maxResults: 5,
+                order: "relevance",
+                auth: process.env.YOUTUBE_API_KEY
+              });
+              commentThreads = commentsRes.data.items || [];
+            } catch (err) {
+              if (err.errors && err.errors.some(e => e.reason === "commentsDisabled")) {
+                commentsDisabled = true;
+              } else {
+                console.error(`Error fetching comments for video ${video.id}:`, err.message);
+              }
+            }
+            return { video, commentThreads, commentsDisabled };
+          });
+          
+          const videosWithComments = await Promise.all(commentThreadsPromises);
+          
+          for (const { video, commentThreads, commentsDisabled } of videosWithComments) {
+            const gaps = [];
+            
+            // 1. Pinned comment checks
+            if (commentsDisabled) {
+              gaps.push("Link Missing in Pinned Comment");
+            } else if (commentThreads.length === 0) {
+              gaps.push("Link Missing in Pinned Comment");
+            } else {
+              const topThread = commentThreads[0];
+              const topComment = topThread.snippet?.topLevelComment;
+              const authorChannelId = topComment?.snippet?.authorChannelId?.value;
+              const isOwner = authorChannelId === channelId;
+              
+              if (!isOwner) {
+                gaps.push("Link Missing in Pinned Comment");
+              } else {
+                const textOriginal = topComment.snippet?.textOriginal || "";
+                const textDisplay = topComment.snippet?.textDisplay || "";
+                const hasTargetLink = textOriginal.includes("link.testbook.com") || textDisplay.includes("link.testbook.com");
+                if (!hasTargetLink) {
+                  gaps.push("Link Missing in Pinned Comment");
+                }
+              }
+            }
+            
+            // 2. Link in Description Check
+            const descText = video.description || "";
+            if (!descText.includes("link.testbook.com")) {
+              gaps.push("Link Missing in Description");
+            }
+            
+            // 3. Playlist Link Check
+            if (!hasPlaylistLink(descText)) {
+              gaps.push("Playlist Link Missing");
+            }
+            
+            // 4. Comment Engagement Check (Not Replied/Not Hearted)
+            let hasEngagement = false;
+            let hasEligibleComments = false;
+            
+            if (!commentsDisabled && commentThreads.length > 0) {
+              for (const thread of commentThreads) {
+                const topComment = thread.snippet?.topLevelComment;
+                const authorChannelId = topComment?.snippet?.authorChannelId?.value;
+                if (authorChannelId === channelId) continue; // Skip comments posted by the owner
+                
+                hasEligibleComments = true;
+                const totalReplyCount = thread.snippet?.totalReplyCount || 0;
+                if (totalReplyCount > 0) {
+                  const replies = thread.replies?.comments || [];
+                  const hasOwnerReply = replies.some(reply => reply.snippet?.authorChannelId?.value === channelId);
+                  if (hasOwnerReply) {
+                    hasEngagement = true;
+                    break;
+                  }
+                }
+              }
+            }
+            
+            if (hasEligibleComments && !hasEngagement) {
+              gaps.push("Not Replied/Not Hearted");
+            }
+            
+            const score = Math.max(0, 100 - gaps.length * 25);
+            
+            allVideos.push({
+              id: video.id,
+              title: video.title,
+              publishedAt: video.publishedAt,
+              views: video.views,
+              format: video.format,
+              channelId: video.channelId,
+              channelTitle: video.channelTitle,
+              score,
+              gaps,
+            });
+          }
+        }
+        
+        return { videos: allVideos };
+      },
+      { force: req.query.force === "1" }
+    );
+    
+    res.json(payload);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/seo/suggest", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (!isAuditAdmin(viewer)) {
+      return res.status(403).json({ error: "Access denied. Only authorized admins can run SEO and YTM audits." });
+    }
+
+    const videoId = String(req.body.videoId || "");
+    const channelId = String(req.body.channelId || "");
+    if (!videoId) {
+      return res.status(400).json({ error: "Missing videoId" });
+    }
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(400).json({ error: "Add an Anthropic API key before requesting suggestions." });
+    }
+    
+    const entries = await connectedChannelEntries();
+    const entry = entries.find(e => e.channel.id === channelId);
+    if (!entry) {
+      return res.status(404).json({ error: "Channel not found or unauthorized" });
+    }
+    
+    const cacheKey = makeCacheKey("seo-suggest", videoId);
+    const payload = await cached(
+      cacheKey,
+      6 * 60 * 60 * 1000, // 6 hours
+      async () => {
+        const youtube = google.youtube({ version: "v3", auth: entry.auth });
+        const response = await youtube.videos.list({
+          part: ["snippet", "contentDetails", "statistics"],
+          id: [videoId],
+        });
+        const video = response.data.items?.[0];
+        if (!video) throw new Error("Video not found on YouTube");
+        
+        const title = video.snippet?.title || "";
+        const description = video.snippet?.description || "";
+        const tags = (video.snippet?.tags || []).join(", ");
+        
+        const prompt = [
+          `Generate optimized SEO metadata recommendations for the following YouTube video:`,
+          `Title: ${title}`,
+          `Current Description: ${description}`,
+          `Current Tags: ${tags}`,
+          ``,
+          `Follow these instructions strictly:`,
+          `1. Do NOT suggest any changes to the video title. Do not output title ideas.`,
+          `2. Generate the optimized opening lines for the description. This description opening MUST contain relevant target keywords from the title in its first 2-3 lines (approximately 150-200 characters) to hook the viewer and help with search indexation.`,
+          `3. Generate a list of recommended tags that are highly relevant, specific, and sum up to at least 450 characters (joined by commas) to maximize the tag metadata space.`,
+          `4. Generate at least 5 highly relevant hashtags.`,
+          `5. Provide a short reasoning explaining your optimization choices.`,
+          ``,
+          `Return your response as a strict JSON object with the following fields:`,
+          `{`,
+          `  "description": "the optimized opening lines of the description (first 2-3 lines)",`,
+          `  "tags": "a comma-separated list of recommended tags that sums to at least 450 characters",`,
+          `  "hashtags": "#tag1 #tag2 #tag3 #tag4 #tag5",`,
+          `  "reasoning": "brief explanation of optimization choices"`,
+          `}`,
+          `Do not include any text other than the JSON object.`
+        ].join("\n");
+        
+        const data = await fetchAnthropicJson({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1200,
+          messages: [{ role: "user", content: prompt }],
+        });
+        
+        const text = (data.content || []).map((item) => item.text || "").join("\n").trim();
+        const match = text.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error("Claude did not return valid JSON for suggestions.");
+        const parsed = JSON.parse(match[0]);
+        return {
+          description: String(parsed.description || ""),
+          tags: String(parsed.tags || ""),
+          hashtags: String(parsed.hashtags || ""),
+          reasoning: String(parsed.reasoning || ""),
+        };
+      }
+    );
+    
+    res.json(payload);
+  } catch (error) {
+    next(error);
+  }
+});
+
+function classifySeoVideo(video, liveVideoIds = new Set()) {
+  const title = `${video.snippet?.title || ""} ${(video.snippet?.tags || []).join(" ")}`.toLowerCase();
+  const seconds = isoDurationSeconds(video.contentDetails?.duration || "PT0S");
+  
+  if (/#shorts?\b|\bshorts?\b/.test(title)) return "Shorts";
+  if (seconds > 0 && seconds <= 180) return "Shorts";
+  
+  const isCurrentlyLiveOrUpcoming = ["live", "upcoming"].includes(video.snippet?.liveBroadcastContent);
+  if (isCurrentlyLiveOrUpcoming) return "Live";
+  
+  if (liveVideoIds.has(video.id)) {
+    return "Live";
+  }
+  
+  return "Video";
+}
+
+const stopWords = new Set([
+  "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "with", "is", "was", "were", "of", "by", "from",
+  "this", "that", "these", "those", "it", "its", "they", "them", "their", "our", "your", "my", "me", "us", "he", "she", "him", "her",
+  "how", "what", "why", "who", "where", "when", "which", "about", "into", "over", "under", "again", "further", "then", "once",
+  "here", "there", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "can", "will", "just", "should", "shouldn't", "don't", "doesn't", "didn't", "has", "have", "had", "does", "do", "did"
+]);
+
+function extractSeoKeywords(title) {
+  const cleanTitle = (title || "").toLowerCase().replace(/[^a-z0-9\s]/g, " ");
+  const words = cleanTitle.split(/\s+/);
+  return [...new Set(words.filter(w => w.length >= 3 && !stopWords.has(w)))];
+}
+
+function isSeoDescriptionOptimised(description, title, titleKeywords) {
+  if (titleKeywords.length === 0) return true;
+  
+  let cleanDesc = (description || "").trim();
+  const cleanTitle = (title || "").trim().toLowerCase();
+  
+  // If the description starts with the video title, strip it out to evaluate the actual description body
+  if (cleanTitle && cleanDesc.toLowerCase().startsWith(cleanTitle)) {
+    cleanDesc = cleanDesc.substring(cleanTitle.length).trim();
+  }
+  
+  const lines = cleanDesc.split(/\r?\n/).slice(0, 3).join(" ").toLowerCase();
+  return titleKeywords.some(keyword => lines.includes(keyword));
+}
+
+function hasPlaylistLink(description) {
+  return /youtube\.com\/playlist\?list=|youtube\.com\/watch\?.*list=/.test(description || "");
+}
+
+function isDefaultSeoTag(tag) {
+  const genericTags = new Set(["video", "youtube", "tutorial", "shorts", "live", "stream", "channel", "vlog", "update", "new"]);
+  return genericTags.has(tag.toLowerCase().trim());
+}
+
+function isSeoTitleRelated(tag, titleKeywords) {
+  const cleanTag = tag.toLowerCase().trim();
+  return titleKeywords.some(keyword => cleanTag.includes(keyword) || keyword.includes(cleanTag));
+}
+
+function areSeoTagsRelevant(tags, titleKeywords) {
+  if (!tags || tags.length === 0) return false;
+  if (titleKeywords.length === 0) return true;
+  return tags.some(tag => !isDefaultSeoTag(tag) && isSeoTitleRelated(tag, titleKeywords));
+}
+
+function areHashtagsRelevant(hashtags, titleKeywords) {
+  if (titleKeywords.length === 0) return true;
+  if (hashtags.length === 0) return false;
+  const genericHashtags = new Set(["shorts", "video", "live", "youtube", "stream", "channel", "vlog", "update", "new"]);
+  return hashtags.some(h => {
+    const cleanH = h.replace("#", "").toLowerCase().trim();
+    if (genericHashtags.has(cleanH)) return false;
+    return titleKeywords.some(keyword => cleanH.includes(keyword) || keyword.includes(cleanH));
+  });
+}
+
+function getYouTubeTagCharacterCount(tags) {
+  if (!tags || tags.length === 0) return 0;
+  let totalLength = 0;
+  for (let i = 0; i < tags.length; i++) {
+    const tag = tags[i];
+    let tagLength = tag.length;
+    if (tag.includes(' ')) {
+      tagLength += 2; // YouTube wraps tags containing spaces in double quotes
+    }
+    totalLength += tagLength;
+  }
+  // Add separating commas (number of tags - 1)
+  totalLength += (tags.length - 1);
+  return totalLength;
+}
+
+function localSeoMetadataAudit(video) {
+  const gaps = [];
+  const titleKeywords = extractSeoKeywords(video.title);
+  
+  if (!isSeoDescriptionOptimised(video.description, video.title, titleKeywords)) {
+    gaps.push("Description First 3 Lines Optimisation Missing");
+  }
+  
+  const tagCount = getYouTubeTagCharacterCount(video.tags);
+  if (tagCount < 450) {
+    if (!video.tags || video.tags.length === 0) {
+      gaps.push("No Tags");
+    } else {
+      gaps.push(`Tags Less than 450 (${tagCount} characters)`);
+    }
+  }
+  
+  if (video.tags && video.tags.length > 0 && !areSeoTagsRelevant(video.tags, titleKeywords)) {
+    gaps.push("Tags not Relevant");
+  }
+  
+  const hashtags = (video.description || "").match(/#\w+/g) || [];
+  if (hashtags.length < 5) {
+    gaps.push(`Less than 5 Hashtags (${hashtags.length} Hashtags)`);
+  } else if (!areHashtagsRelevant(hashtags, titleKeywords)) {
+    gaps.push("Hashtags not Relevant");
+  }
+  
+  return gaps;
+}
+
+async function claudeSeoMetadataAudit(video) {
+  const prompt = [
+    `Analyze the SEO metadata for this YouTube video:`,
+    `Title: ${video.title}`,
+    `Description: ${video.description}`,
+    `Tags: ${(video.tags || []).join(", ")}`,
+    ``,
+    `Evaluate it against these specific 4 YouTube SEO rules:`,
+    `1. Keyword inclusion: Are relevant keywords from the title present in the first 2-3 lines of the description?`,
+    `2. Tag character utilization: Do the tags total at least 450 characters in length?`,
+    `3. Tag relevance: Are the tags highly specific and related to the video title (not just generic default tags)?`,
+    `4. Hashtags: Are there at least 5 hashtags in the description?`,
+    ``,
+    `Identify which rules are violated. Return a JSON object with a single field "gaps" containing an array of string descriptions of each gap found.`,
+    `Example output format:`,
+    `{ "gaps": ["Description First 3 Lines Optimisation Missing"] }`,
+    `If all rules are met, return:`,
+    `{ "gaps": [] }`,
+    `Do not include any text other than the JSON object.`
+  ].join("\n");
+  
+  const data = await fetchAnthropicJson({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 400,
+    messages: [{ role: "user", content: prompt }],
+  });
+  
+  const text = (data.content || []).map((item) => item.text || "").join("\n").trim();
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error("Claude did not return valid JSON for SEO audit.");
+  const parsed = JSON.parse(match[0]);
+  if (!parsed || !Array.isArray(parsed.gaps)) throw new Error("Claude response invalid gaps format.");
+  
+  const rawGaps = parsed.gaps.map(String);
+  const titleKeywords = extractSeoKeywords(video.title);
+  const joinedTags = (video.tags || []).join(", ");
+  const hashtags = (video.description || "").match(/#\w+/g) || [];
+  
+  const cleanedGaps = [];
+  for (const gap of rawGaps) {
+    const lower = gap.toLowerCase();
+    
+    // 1. Hashtag count checks - Discard quantitative hashtag gaps from Claude completely
+    if (lower.includes("hashtag") && (lower.includes("fewer") || lower.includes("insufficient") || lower.includes("at least 5") || lower.includes("count") || lower.includes("only") || lower.includes("less than 5"))) {
+      continue;
+    }
+    
+    // 2. Tag character count checks - Discard quantitative tag length gaps from Claude completely
+    if (lower.includes("tag") && (lower.includes("character") || lower.includes("limit") || lower.includes("450") || lower.includes("underutilize") || lower.includes("under 450") || lower.includes("less than 450"))) {
+      continue;
+    }
+    
+    // 3. Playlist link checks - Discard playlist gaps from Claude SEO completely (moved to YTM Audit)
+    if (lower.includes("playlist")) {
+      continue;
+    }
+    
+    // 4. Description keyword checks - Normalize to "Description First 3 Lines Optimisation Missing"
+    if (lower.includes("description") && (lower.includes("keyword") || lower.includes("optimisation") || lower.includes("optimization") || lower.includes("missing") || lower.includes("first 3 lines"))) {
+      if (!isSeoDescriptionOptimised(video.description, video.title, titleKeywords)) {
+        cleanedGaps.push("Description First 3 Lines Optimisation Missing");
+      }
+      continue;
+    }
+    
+    // 5. Hashtag relevance checks - Normalize to "Hashtags not Relevant"
+    if (lower.includes("hashtag") && (lower.includes("relevant") || lower.includes("relevance") || lower.includes("relate"))) {
+      if (hashtags.length >= 5 && !areHashtagsRelevant(hashtags, titleKeywords)) {
+        cleanedGaps.push("Hashtags not Relevant");
+      }
+      continue;
+    }
+    
+    // 6. Tag relevance checks - Normalize to "Tags not Relevant"
+    if (lower.includes("tag") && (lower.includes("relevant") || lower.includes("relevance") || lower.includes("relate"))) {
+      if (video.tags && video.tags.length > 0 && !areSeoTagsRelevant(video.tags, titleKeywords)) {
+        cleanedGaps.push("Tags not Relevant");
+      }
+      continue;
+    }
+    
+    cleanedGaps.push(gap.trim());
+  }
+  
+  return cleanedGaps;
+}
+
 app.use((error, _req, res, _next) => {
   console.error(error);
-  const message = error?.response?.data?.error?.message || error?.message || "Unknown server error";
+  let message = error?.response?.data?.error?.message || error?.message || "Unknown server error";
+  if (message.includes("invalid_grant")) {
+    message = "Google connection expired or was revoked. Click Add channel and sign in with Google again to reconnect your YouTube channels.";
+  }
   res.status(error?.code || error?.response?.status || 500).json({ error: message });
 });
 
@@ -686,6 +1502,17 @@ function isAllowedViewerEmail(email = "") {
   const domain = allowedEmailDomain();
   if (!domain) return false;
   return normalized.endsWith(`@${domain}`);
+}
+
+function isAuditAdmin(viewer) {
+  if (!teamAuthEnabled()) return true;
+  if (!viewer || !viewer.email) return false;
+  const adminEmailsStr = process.env.AUDIT_ADMIN_EMAILS || "";
+  if (!adminEmailsStr) {
+    return viewer.email.toLowerCase().trim() === "ankit.khola@testbook.com";
+  }
+  const admins = adminEmailsStr.split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
+  return admins.includes(viewer.email.toLowerCase().trim()) || viewer.email.toLowerCase().trim() === "ankit.khola@testbook.com";
 }
 
 function parseCookies(req) {
@@ -1590,40 +2417,63 @@ async function loadPublicChannelVideos(channelId, dates, group, channelTitle) {
   const uploadsPlaylistId = channelId.startsWith("UC") ? "UU" + channelId.slice(2) : channelId;
   const livePlaylistId = channelId.startsWith("UC") ? "UULV" + channelId.slice(2) : channelId;
   
-  const playlistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=50&key=${process.env.YOUTUBE_API_KEY}`;
-  const playlistData = await fetchJson(playlistUrl);
+  const fetchPlaylistVideoIds = async (playlistId) => {
+    const ids = [];
+    let pageToken = "";
+    let keepFetching = true;
+    
+    while (keepFetching) {
+      try {
+        const params = new URLSearchParams({
+          part: "snippet",
+          playlistId: playlistId,
+          maxResults: "50",
+          key: process.env.YOUTUBE_API_KEY
+        });
+        if (pageToken) params.set("pageToken", pageToken);
+        const url = `https://www.googleapis.com/youtube/v3/playlistItems?${params.toString()}`;
+        const data = await fetchJson(url);
+        const items = data.items || [];
+        if (items.length === 0) break;
+        
+        for (const item of items) {
+          const pubAt = item.snippet?.publishedAt;
+          if (pubAt && pubAt < after) {
+            keepFetching = false;
+            break;
+          }
+          if (pubAt && pubAt <= before) {
+            const videoId = item.snippet?.resourceId?.videoId;
+            if (videoId) ids.push(videoId);
+          }
+        }
+        
+        pageToken = data.nextPageToken;
+        if (!pageToken) break;
+      } catch (err) {
+        break;
+      }
+    }
+    return ids;
+  };
+
+  const uploadIds = await fetchPlaylistVideoIds(uploadsPlaylistId);
+  const liveIds = await fetchPlaylistVideoIds(livePlaylistId);
   
-  const ids = [];
-  for (const item of playlistData.items || []) {
-    const pubAt = item.snippet?.publishedAt;
-    // Early termination: playlist items are sorted newest-to-oldest, so break if older than 'after'
-    if (pubAt && pubAt < after) {
-      break;
-    }
-    if (pubAt && pubAt <= before) {
-      const videoId = item.snippet?.resourceId?.videoId;
-      if (videoId) ids.push(videoId);
-    }
+  const uniqueIds = [...new Set([...uploadIds, ...liveIds])];
+  if (!uniqueIds.length) return [];
+  
+  const liveVideoIds = new Set(liveIds);
+  
+  const details = [];
+  for (let index = 0; index < uniqueIds.length; index += 50) {
+    const chunk = uniqueIds.slice(index, index + 50);
+    const detailUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails,liveStreamingDetails&id=${chunk.join(",")}&key=${process.env.YOUTUBE_API_KEY}`;
+    const detailData = await fetchJson(detailUrl);
+    details.push(...(detailData.items || []));
   }
-
-  if (!ids.length) return [];
-
-  // Fetch recent live streams to build a set of true live video IDs
-  const liveVideoIds = new Set();
-  try {
-    const livePlaylistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${livePlaylistId}&maxResults=50&key=${process.env.YOUTUBE_API_KEY}`;
-    const liveData = await fetchJson(livePlaylistUrl);
-    for (const item of liveData.items || []) {
-      const videoId = item.snippet?.resourceId?.videoId;
-      if (videoId) liveVideoIds.add(videoId);
-    }
-  } catch (err) {
-    // Ignore error if live stream playlist is empty or missing
-  }
-
-  const detailUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails,liveStreamingDetails&id=${ids.join(",")}&key=${process.env.YOUTUBE_API_KEY}`;
-  const detailData = await fetchJson(detailUrl);
-  return (detailData.items || []).map((item) => {
+  
+  return details.map((item) => {
     const format = classifyPublicVideo(item, liveVideoIds);
     return {
       id: item.id,

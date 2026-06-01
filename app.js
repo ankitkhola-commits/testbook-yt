@@ -13,6 +13,112 @@ const competitorCategories = ["Testbook", "Teaching", "UGC NET", "CGL", "Odisha"
 const competitorAutoRefreshMs = 24 * 60 * 60 * 1000; // once a day
 let competitorAutoRefreshTimer = null;
 
+const candidateMappings = {
+  "Vinayak": [
+    "SuperCoaching MPSC by Testbook",
+    "Banking Testbook",
+    "Railway Testbook"
+  ],
+  "Mohit": [
+    "UPSC PrepLab",
+    "Bihar Testbook",
+    "Testbook"
+  ],
+  "Raubinsh": [
+    "Odisha Testbook",
+    "Odisha Teaching by Testbook"
+  ],
+  "Saijal": [
+    "UGC NET Testbook",
+    "Testbook NET JRF",
+    "TET PRT Testbook",
+    "TGT PGT Testbook",
+    "CTET Testbook",
+    "Bihar Teaching Exams by Testbook",
+    "Assistant Professor & PhD by Testbook"
+  ],
+  "Aditya": [
+    "Testbook Bengali",
+    "WBPSC Testbook",
+    "Punjab Testbook",
+    "SuperCoaching Marathi by Testbook",
+    "TET Factory by Testbook",
+    "Testbook Telugu"
+  ],
+  "Vivek": [
+    "AE JE Testbook",
+    "SSC Testbook",
+    "Testbook Tamil"
+  ]
+};
+
+function getCandidateName(channelTitle) {
+  const cleanTitle = String(channelTitle || "").trim().toLowerCase();
+  for (const [candidate, channels] of Object.entries(candidateMappings)) {
+    if (channels.some(ch => ch.trim().toLowerCase() === cleanTitle)) {
+      return candidate;
+    }
+  }
+  return "Other";
+}
+
+const ytmMappings = {
+  "Himanshu": [
+    "SuperCoaching MPSC by Testbook",
+    "SuperCoaching Marathi by Testbook"
+  ],
+  "Ayush": [
+    "Supercoaching Regulatory Bodies by Testbook",
+    "Testbook - JAIIB CAIIB"
+  ],
+  "Atul Sharma": [
+    "UPSC PrepLab"
+  ],
+  "Shubham": [
+    "Bihar Testbook",
+    "Testbook",
+    "Banking Testbook"
+  ],
+  "Raubnish": [
+    "Odisha Testbook",
+    "Odisha Teaching by Testbook"
+  ],
+  "Amit": [
+    "UGC NET Testbook",
+    "Testbook NET JRF"
+  ],
+  "Abhinav": [
+    "TET PRT Testbook",
+    "TGT PGT Testbook",
+    "CTET Testbook",
+    "Bihar Teaching Exams by Testbook"
+  ],
+  "Shukendu": [
+    "Testbook Bengali",
+    "WBPSC Testbook"
+  ],
+  "Ashish Tyagi": [
+    "Punjab Testbook"
+  ],
+  "Lubna": [
+    "Railway Testbook"
+  ],
+  "Vivek": [
+    "AE JE Testbook",
+    "SSC Testbook"
+  ]
+};
+
+function getYtmName(channelTitle) {
+  const cleanTitle = String(channelTitle || "").trim().toLowerCase();
+  for (const [manager, channels] of Object.entries(ytmMappings)) {
+    if (channels.some(ch => ch.trim().toLowerCase() === cleanTitle)) {
+      return manager;
+    }
+  }
+  return "Other";
+}
+
 let state = {
   connected: false,
   viewer: null,
@@ -29,7 +135,7 @@ let state = {
   activeRange: "month",
   selectedMonth: currentMonthValue(),
   activeView: "dashboard",
-  activeCompetitorCategory: "UGC NET",
+  activeCompetitorCategory: null,
   competitorRequestId: 0,
   competitorLastLoadedAt: 0,
   researchRequestId: 0,
@@ -39,6 +145,12 @@ let state = {
   researchResults: [],
   researchIdeas: [],
   report: null,
+  seoResults: [],
+  seoFilter: "All",
+  seoSortLowestFirst: true,
+  ytmResults: [],
+  ytmFilter: "All",
+  ytmSortLowestFirst: true,
 };
 
 const setupScreen = document.querySelector("#setupScreen");
@@ -71,6 +183,14 @@ document.querySelector("#refreshButton").addEventListener("click", () => {
     loadResearch({ force: true });
     return;
   }
+  if (state.activeView === "seo") {
+    loadSeoAudit({ force: true });
+    return;
+  }
+  if (state.activeView === "ytm") {
+    loadYtmAudit({ force: true });
+    return;
+  }
   loadDashboard({ force: true });
 });
 
@@ -84,6 +204,8 @@ document.querySelectorAll("[data-view-tab]").forEach((button) => {
     }
     stopCompetitorAutoRefresh();
     if (state.activeView === "research") renderResearchView();
+    if (state.activeView === "seo") renderSeoAuditView();
+    if (state.activeView === "ytm") renderYtmAuditView();
   });
 });
 
@@ -144,6 +266,36 @@ competitorForm.addEventListener("submit", async (event) => {
 });
 
 document.addEventListener("click", async (event) => {
+  const copyBtn = event.target.closest(".copy-btn");
+  if (copyBtn) {
+    const targetId = copyBtn.dataset.copyTarget;
+    const targetInput = document.getElementById(targetId);
+    if (targetInput) {
+      try {
+        await navigator.clipboard.writeText(targetInput.value);
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = "Copied!";
+        copyBtn.classList.add("copied");
+        setTimeout(() => {
+          copyBtn.textContent = originalText;
+          copyBtn.classList.remove("copied");
+        }, 1500);
+      } catch (err) {
+        alert("Failed to copy to clipboard.");
+      }
+    }
+    return;
+  }
+
+  const suggestBtn = event.target.closest('[data-seo-action="suggest"]');
+  if (suggestBtn) {
+    const videoId = suggestBtn.dataset.videoId;
+    const channelId = suggestBtn.dataset.channelId;
+    const title = suggestBtn.dataset.videoTitle;
+    showSeoSuggestions(videoId, channelId, title);
+    return;
+  }
+
   const channelToggle = event.target.closest(".channel-map-toggle");
   if (channelToggle) {
     const tags = channelToggle.closest(".benchmark-channel-cell")?.querySelector(".linked-channel-tags");
@@ -192,6 +344,58 @@ document.querySelector("#researchFilterRow")?.addEventListener("click", (event) 
   renderResearchResults();
 });
 
+document.querySelector("#seoRunButton")?.addEventListener("click", () => {
+  loadSeoAudit({ force: true });
+});
+
+document.querySelector("#seoSortLowestToggle")?.addEventListener("change", (event) => {
+  state.seoSortLowestFirst = event.target.checked;
+  renderSeoAuditResults();
+});
+
+document.querySelector("#seoChannelFilters")?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-seo-filter]");
+  if (!button) return;
+  state.seoFilter = button.dataset.seoFilter;
+  renderSeoChannelFilters();
+  renderSeoSummary();
+  renderSeoAuditResults();
+});
+
+document.querySelector("#seoExportCsvButton")?.addEventListener("click", () => {
+  exportSeoToCsv();
+});
+
+document.querySelector("#seoCopySheetsButton")?.addEventListener("click", (event) => {
+  copySeoForSheets(event.target);
+});
+
+document.querySelector("#ytmRunButton")?.addEventListener("click", () => {
+  loadYtmAudit({ force: true });
+});
+
+document.querySelector("#ytmSortLowestToggle")?.addEventListener("change", (event) => {
+  state.ytmSortLowestFirst = event.target.checked;
+  renderYtmAuditResults();
+});
+
+document.querySelector("#ytmChannelFilters")?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-ytm-filter]");
+  if (!button) return;
+  state.ytmFilter = button.dataset.ytmFilter;
+  renderYtmChannelFilters();
+  renderYtmSummary();
+  renderYtmAuditResults();
+});
+
+document.querySelector("#ytmExportCsvButton")?.addEventListener("click", () => {
+  exportYtmToCsv();
+});
+
+document.querySelector("#ytmCopySheetsButton")?.addEventListener("click", (event) => {
+  copyYtmForSheets(event.target);
+});
+
 boot();
 
 async function boot() {
@@ -233,6 +437,13 @@ async function boot() {
 }
 
 async function loadDashboard(options = {}) {
+  const dashboardSteps = [
+    { time: 0, text: "Connecting to YouTube API..." },
+    { time: 3, text: "Retrieving channel analytics data..." },
+    { time: 7, text: "Generating publishing charts and growth metrics..." }
+  ];
+  const progressBar = startProgressBar("dashboardProgressBarContainer", "dashboardProgressBarFill", "dashboardProgressBarLabel", dashboardSteps);
+
   try {
     showDashboard();
     setLoading();
@@ -240,11 +451,13 @@ async function loadDashboard(options = {}) {
     const monthQuery = state.activeRange === "selectMonth" ? `&month=${encodeURIComponent(state.selectedMonth)}` : "";
     const forceQuery = options.force ? "&force=1" : "";
     const report = await api(`/api/dashboard?range=${state.activeRange}${monthQuery}${channelQuery}${forceQuery}`);
+    if (progressBar) progressBar.stop(true, "Dashboard Loaded! (100%)", "Dashboard Load Failed!");
     state.report = report;
     state.channels = report.channels;
     state.selectedChannelId = report.selectedChannelId;
     renderReport(report);
   } catch (error) {
+    if (progressBar) progressBar.stop(false, "Dashboard Loaded! (100%)", "Dashboard Load Failed!");
     showConnectDashboard(state, error.message);
   }
 }
@@ -547,20 +760,38 @@ async function loadCategoryCompetitors(options = {}) {
     renderCompetitorCategoryTabs();
   }
   document.querySelector("#competitorPageTitle").textContent = "Channel benchmark";
-  document.querySelector("#competitorCategoryHeading").textContent = category;
+  document.querySelector("#competitorCategoryHeading").textContent = category || "";
   document.querySelector("#competitorRangeLabel").textContent = "Last 7 days";
+  
+  if (!category) {
+    target.innerHTML = emptyCard("Select your channel to run analysis");
+    return;
+  }
+  
+  let progressBar = null;
   if (!options.silent) {
     target.innerHTML = emptyCard("Loading competitor benchmark...");
+    const competitorSteps = [
+      { time: 0, text: "Fetching competitor lists..." },
+      { time: 2, text: "Querying YouTube API for recent video statistics..." },
+      { time: 5, text: "Calculating engagement metrics and video benchmark scores..." }
+    ];
+    progressBar = startProgressBar("competitorProgressBarContainer", "competitorProgressBarFill", "competitorProgressBarLabel", competitorSteps);
   }
   try {
     const forceQuery = options.force ? "&force=1" : "";
     const data = await api(`/api/category-competitors?category=${encodeURIComponent(category)}&range=7${forceQuery}`);
-    if (requestId !== state.competitorRequestId) return;
+    if (requestId !== state.competitorRequestId) {
+      if (progressBar) progressBar.stop(false, "Benchmark Load Failed!");
+      return;
+    }
     state.competitorLastLoadedAt = Date.now();
     renderCategoryBenchmark(data);
+    if (progressBar) progressBar.stop(true, "Benchmark Loaded! (100%)", "Benchmark Load Failed!");
   } catch (error) {
     if (requestId !== state.competitorRequestId) return;
     target.innerHTML = emptyCard(error.message);
+    if (progressBar) progressBar.stop(false, "Benchmark Load Failed!");
   }
 }
 
@@ -726,7 +957,11 @@ function applyView() {
     ? (state.report?.title || "Channel Analytics")
     : state.activeView === "competitors"
       ? "Competitors"
-      : "Research";
+      : state.activeView === "seo"
+        ? "SEO Audit"
+        : state.activeView === "ytm"
+          ? "YTM Audit"
+          : "Research";
 }
 
 function renderResearchView() {
@@ -847,16 +1082,29 @@ async function loadResearch(options = {}) {
   state.researchIdeas = [];
   document.querySelector("#researchResults").innerHTML = emptyCard("Loading top videos...");
   document.querySelector("#researchIdeas").innerHTML = emptyCard("Topic ideas will appear here after analysis.");
+  
+  const researchSteps = [
+    { time: 0, text: "Searching YouTube for videos matching keyword..." },
+    { time: 3, text: "Retrieving statistics and identifying formats..." },
+    { time: 7, text: "Calculating view/subscriber ratios and ranking outliers..." }
+  ];
+  const progressBar = startProgressBar("researchProgressBarContainer", "researchProgressBarFill", "researchProgressBarLabel", researchSteps);
+
   try {
     const forceQuery = options.force ? "&force=1" : "";
     const data = await api(`/api/research?keyword=${encodeURIComponent(keyword)}&range=${encodeURIComponent(state.researchRange)}${forceQuery}`);
-    if (requestId !== state.researchRequestId) return;
+    if (requestId !== state.researchRequestId) {
+      if (progressBar) progressBar.stop(false, "Research Failed!");
+      return;
+    }
     state.researchResults = data.items || [];
     state.researchFilter = "All";
     renderResearchView();
+    if (progressBar) progressBar.stop(true, "Research Loaded! (100%)", "Research Failed!");
   } catch (error) {
     if (requestId !== state.researchRequestId) return;
     document.querySelector("#researchResults").innerHTML = emptyCard(error.message);
+    if (progressBar) progressBar.stop(false, "Research Failed!");
   }
 }
 
@@ -866,6 +1114,14 @@ async function suggestResearchTopics() {
     return;
   }
   document.querySelector("#researchIdeas").innerHTML = emptyCard("Asking Claude for topic ideas...");
+  
+  const suggestSteps = [
+    { time: 0, text: "Sending top video details to AI..." },
+    { time: 3, text: "Analyzing search outliers..." },
+    { time: 7, text: "Generating topic ideas and formatting recommendations..." }
+  ];
+  const progressBar = startProgressBar("researchProgressBarContainer", "researchProgressBarFill", "researchProgressBarLabel", suggestSteps);
+
   try {
     const data = await api("/api/research/suggest", {
       method: "POST",
@@ -878,8 +1134,10 @@ async function suggestResearchTopics() {
     });
     state.researchIdeas = data.ideas || [];
     renderResearchIdeas();
+    if (progressBar) progressBar.stop(true, "Suggestions Complete! (100%)", "Suggestions Failed!");
   } catch (error) {
     document.querySelector("#researchIdeas").innerHTML = emptyCard(error.message);
+    if (progressBar) progressBar.stop(false, "Suggestions Failed!");
   }
 }
 
@@ -1034,6 +1292,11 @@ function showDashboard() {
   accessScreen.hidden = true;
   setupScreen.hidden = true;
   appShell.hidden = false;
+  
+  const isAd = (state.isAuditAdmin === undefined || state.isAuditAdmin === true);
+  document.querySelectorAll('[data-view-tab="seo"], [data-view-tab="ytm"]').forEach(btn => {
+    btn.style.display = isAd ? "" : "none";
+  });
 }
 
 function showConnectDashboard(status, message) {
@@ -1231,4 +1494,727 @@ function escapeHtml(value) {
     '"': "&quot;",
     "'": "&#039;",
   })[char]);
+}
+
+function startProgressBar(containerId, fillId, labelId, steps) {
+  const container = document.getElementById(containerId);
+  const fill = document.getElementById(fillId);
+  const label = document.getElementById(labelId);
+  if (!container || !fill || !label) return null;
+
+  container.classList.remove("is-hidden");
+  fill.style.width = "0%";
+  
+  let currentProgress = 0;
+  let startTime = Date.now();
+  
+  const interval = setInterval(() => {
+    const elapsed = (Date.now() - startTime) / 1000;
+    
+    let stepText = steps[0].text;
+    for (const step of steps) {
+      if (elapsed >= step.time) {
+        stepText = step.text;
+      }
+    }
+    
+    let targetProgress = 100 * (1 - Math.exp(-elapsed / 35));
+    if (targetProgress > 98) targetProgress = 98;
+    
+    currentProgress = targetProgress;
+    fill.style.width = `${Math.round(currentProgress)}%`;
+    label.textContent = `${stepText} (${Math.round(currentProgress)}%)`;
+  }, 100);
+  
+  return {
+    stop: (success = true, customSuccessText = "Audit Complete! (100%)", customFailText = "Audit Failed!") => {
+      clearInterval(interval);
+      fill.style.width = "100%";
+      label.textContent = success ? customSuccessText : customFailText;
+      setTimeout(() => {
+        container.classList.add("is-hidden");
+        fill.style.width = "0%";
+      }, 800);
+    }
+  };
+}
+
+async function loadSeoAudit(options = {}) {
+  const resultsContainer = document.querySelector("#seoResults");
+  if (!resultsContainer) return;
+  
+  const targetSelect = document.querySelector("#seoAuditTarget");
+  const candidate = targetSelect ? targetSelect.value : "All";
+  
+  if (!options.force && state.seoResults.length) {
+    renderSeoAuditView();
+    return;
+  }
+  
+  resultsContainer.innerHTML = emptyCard("Audit in progress... Please see the progress bar above.");
+  
+  const seoSummary = document.querySelector("#seoSummary");
+  if (seoSummary) seoSummary.innerHTML = "";
+  const seoChannelFilters = document.querySelector("#seoChannelFilters");
+  if (seoChannelFilters) seoChannelFilters.innerHTML = "";
+  
+  const seoSteps = [
+    { time: 0, text: "Fetching uploads and video metadata..." },
+    { time: 4, text: "Analyzing title keywords and tags..." },
+    { time: 10, text: "Evaluating description structure and hashtags..." },
+    { time: 20, text: "Consulting AI model for suggestions..." },
+    { time: 35, text: "Finalizing optimization reports..." }
+  ];
+  const progressBar = startProgressBar("seoProgressBarContainer", "seoProgressBarFill", "seoProgressBarLabel", seoSteps);
+  
+  try {
+    const candidateQuery = `candidate=${encodeURIComponent(candidate)}`;
+    const forceQuery = options.force ? "&force=1" : "";
+    const data = await api(`/api/seo/audit?${candidateQuery}${forceQuery}`);
+    if (progressBar) progressBar.stop(true);
+    state.seoResults = data.videos || [];
+    state.seoFilter = candidate;
+    renderSeoAuditView();
+  } catch (error) {
+    if (progressBar) progressBar.stop(false);
+    resultsContainer.innerHTML = emptyCard(error.message);
+  }
+}
+
+function renderSeoAuditView() {
+  if (state.activeView !== "seo") return;
+  renderSeoChannelFilters();
+  renderSeoSummary();
+  renderSeoAuditResults();
+
+  const hasResults = state.seoResults && state.seoResults.length > 0;
+  const csvBtn = document.querySelector("#seoExportCsvButton");
+  const sheetsBtn = document.querySelector("#seoCopySheetsButton");
+  if (csvBtn) csvBtn.disabled = !hasResults;
+  if (sheetsBtn) sheetsBtn.disabled = !hasResults;
+}
+
+function renderSeoChannelFilters() {
+  const container = document.querySelector("#seoChannelFilters");
+  if (!container) return;
+  if (!state.seoResults.length) {
+    container.innerHTML = "";
+    return;
+  }
+  
+  const candidatesWithResults = new Set();
+  state.seoResults.forEach(video => {
+    const candidate = getCandidateName(video.channelTitle);
+    candidatesWithResults.add(candidate);
+  });
+  
+  const candidateList = ["Vinayak", "Mohit", "Raubinsh", "Saijal", "Aditya", "Vivek", "Other"].filter(c => candidatesWithResults.has(c));
+  
+  if (!candidateList.includes(state.seoFilter)) {
+    state.seoFilter = candidateList[0] || "Other";
+  }
+  
+  container.innerHTML = candidateList.map(candidate => {
+    const isActive = state.seoFilter === candidate;
+    return `<button class="filter-chip ${isActive ? "active" : ""}" type="button" data-seo-filter="${escapeHtml(candidate)}">${escapeHtml(candidate)}</button>`;
+  }).join("");
+}
+
+function renderSeoSummary() {
+  const container = document.querySelector("#seoSummary");
+  if (!container) return;
+  if (!state.seoResults.length) {
+    container.innerHTML = "";
+    return;
+  }
+  
+  const filtered = filteredSeoResults(true);
+  const count = filtered.length;
+  if (!count) {
+    container.innerHTML = emptyCard("No videos match the selected filter.");
+    return;
+  }
+  
+  let totalScore = 0;
+  let optimizedCount = 0;
+  let descIssues = 0;
+  let tagsIssues = 0;
+  let hashtagIssues = 0;
+  
+  filtered.forEach(video => {
+    totalScore += video.score;
+    if (video.score === 100) optimizedCount++;
+    
+    video.gaps.forEach(gap => {
+      const lower = gap.toLowerCase();
+      if (lower.includes("description")) {
+        descIssues++;
+      } else if (lower.includes("hashtag")) {
+        hashtagIssues++;
+      } else if (lower.includes("tag")) {
+        tagsIssues++;
+      }
+    });
+  });
+  
+  const avgScore = Math.round(totalScore / count);
+  
+  container.innerHTML = `
+    <div class="research-stat">
+      <span>Average Score</span>
+      <strong>${avgScore}/100</strong>
+    </div>
+    <div class="research-stat">
+      <span>Fully Optimized</span>
+      <strong>${optimizedCount} <small>/ ${count}</small></strong>
+    </div>
+    <div class="research-stat">
+      <span>Desc. Gaps</span>
+      <strong>${descIssues}</strong>
+    </div>
+    <div class="research-stat">
+      <span>Tags Gaps</span>
+      <strong>${tagsIssues}</strong>
+    </div>
+    <div class="research-stat">
+      <span>Hashtag Gaps</span>
+      <strong>${hashtagIssues}</strong>
+    </div>
+  `;
+}
+
+function filteredSeoResults(includeOptimized = false) {
+  let list = [...state.seoResults];
+  
+  if (state.seoFilter) {
+    list = list.filter(video => {
+      const candidate = getCandidateName(video.channelTitle);
+      return candidate === state.seoFilter;
+    });
+  }
+  
+  if (!includeOptimized) {
+    list = list.filter(video => video.gaps && video.gaps.length > 0);
+  }
+  
+  return list;
+}
+
+function renderSeoAuditResults() {
+  const container = document.querySelector("#seoResults");
+  if (!container) return;
+  if (!state.seoResults.length) {
+    container.innerHTML = emptyCard("No audit results. Select an audit target and click Run audit to analyze content.");
+    return;
+  }
+  
+  const filtered = filteredSeoResults();
+  if (state.seoSortLowestFirst) {
+    filtered.sort((a, b) => a.score - b.score);
+  } else {
+    filtered.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+  }
+  
+  if (!filtered.length) {
+    container.innerHTML = emptyCard("No videos with gaps found for this Candidate. Good job!");
+    return;
+  }
+  
+  container.innerHTML = `
+    <div class="research-table seo-table">
+      <div class="research-row research-head seo-row-head">
+        <span>Content</span>
+        <span>Views</span>
+        <span>Format</span>
+        <span>Score</span>
+        <span>Identified Gaps</span>
+        <span>Actions</span>
+      </div>
+      ${filtered.map(video => {
+        const scoreClass = video.score === 100 ? "score-green" : video.score >= 70 ? "score-yellow" : "score-red";
+        
+        let gapsHtml = "";
+        if (video.gaps.length === 0) {
+          gapsHtml = `<span class="gap-optimized">No gaps found</span>`;
+        } else {
+          gapsHtml = `<ul class="gap-list">${video.gaps.map(gap => `<li>${escapeHtml(gap)}</li>`).join("")}</ul>`;
+        }
+        
+        const isHighPerformer = video.views > video.channelAverageViews * 1.5;
+        const outlierTag = isHighPerformer ? `<mark class="channel-tag own-tag outlier-badge">High Performer</mark>` : "";
+        
+        return `
+          <div class="research-row seo-row">
+            <div class="seo-title-cell-with-thumb">
+              <img src="https://i.ytimg.com/vi/${video.id}/default.jpg" class="seo-video-thumb" alt="" />
+              <div class="research-title-cell">
+                <strong>${escapeHtml(video.title)}</strong>
+                <small>${escapeHtml(video.channelTitle)} · ${escapeHtml(formatPublishedAt(video.publishedAt))}</small>
+                ${outlierTag}
+              </div>
+            </div>
+            <div class="seo-views-cell">
+              <strong>${video.views.toLocaleString()}</strong>
+              <small class="avg-subtext">avg: ${Math.round(video.channelAverageViews).toLocaleString()}</small>
+            </div>
+            <span class="research-format">${escapeHtml(video.format)}</span>
+            <div class="score-cell">
+              <span class="score-badge ${scoreClass}">${video.score}</span>
+            </div>
+            <div class="gaps-cell">
+              ${gapsHtml}
+            </div>
+            <div class="actions-cell">
+              <button class="connect-button suggest-btn-sm" type="button" data-seo-action="suggest" data-video-id="${video.id}" data-channel-id="${video.channelId}" data-video-title="${escapeHtml(video.title)}">AI Suggest</button>
+              <a class="link-chip watch-link" href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noreferrer">Open</a>
+            </div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+async function showSeoSuggestions(videoId, channelId, title) {
+  const dialog = document.querySelector("#seoSuggestDialog");
+  const descArea = document.querySelector("#seoSuggestDescription");
+  const tagsArea = document.querySelector("#seoSuggestTags");
+  const hashInput = document.querySelector("#seoSuggestHashtags");
+  const reasonText = document.querySelector("#seoSuggestReason");
+  const dialogTitle = document.querySelector("#seoSuggestTitle");
+  
+  if (!dialog || !descArea || !tagsArea || !hashInput || !reasonText || !dialogTitle) return;
+  
+  dialogTitle.textContent = `Optimized Metadata - ${truncateTitle(title, 35)}`;
+  descArea.value = "Loading suggestions...";
+  tagsArea.value = "Loading suggestions...";
+  hashInput.value = "Loading suggestions...";
+  reasonText.textContent = "Asking Claude to generate optimized metadata...";
+  
+  dialog.showModal();
+  
+  try {
+    const data = await api("/api/seo/suggest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ videoId, channelId }),
+    });
+    
+    descArea.value = data.description || "";
+    tagsArea.value = data.tags || "";
+    hashInput.value = data.hashtags || "";
+    reasonText.textContent = data.reasoning || "";
+  } catch (error) {
+    descArea.value = "Failed to load suggestions.";
+    tagsArea.value = "Failed to load suggestions.";
+    hashInput.value = "Failed to load suggestions.";
+    reasonText.textContent = error.message;
+  }
+}
+
+function exportSeoToCsv() {
+  const filtered = filteredSeoResults();
+  if (!filtered.length) return;
+  
+  const headers = ["Channel Name", "Video Title", "YouTube Link", "Score", "Format", "Views", "Average Channel Views", "Gaps/Issues"];
+  
+  const rows = filtered.map(video => {
+    const gapsText = video.gaps.length > 0 ? video.gaps.join("; ") : "No gaps found";
+    const link = `https://www.youtube.com/watch?v=${video.id}`;
+    return [
+      video.channelTitle,
+      video.title,
+      link,
+      video.score,
+      video.format,
+      video.views,
+      Math.round(video.channelAverageViews),
+      gapsText
+    ];
+  });
+  
+  const csvContent = [
+    headers.map(h => `"${h.replace(/"/g, '""')}"`).join(","),
+    ...rows.map(row => row.map(cell => {
+      const val = cell === null || cell === undefined ? "" : String(cell);
+      return `"${val.replace(/"/g, '""')}"`;
+    }).join(","))
+  ].join("\n");
+  
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `youtube_seo_audit_${state.seoFilter}_${new Date().toISOString().slice(0, 10)}.csv`);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+async function copySeoForSheets(btn) {
+  const filtered = filteredSeoResults();
+  if (!filtered.length) return;
+  
+  const headers = ["Channel Name", "Video Title", "YouTube Link", "Score", "Format", "Views", "Average Channel Views", "Gaps/Issues"];
+  
+  const rows = filtered.map(video => {
+    const gapsText = video.gaps.length > 0 ? video.gaps.join("; ") : "No gaps found";
+    const link = `https://www.youtube.com/watch?v=${video.id}`;
+    const hyperlinkFormula = `=HYPERLINK("${link}", "Watch Video")`;
+    return [
+      video.channelTitle,
+      video.title,
+      hyperlinkFormula,
+      video.score,
+      video.format,
+      video.views,
+      Math.round(video.channelAverageViews),
+      gapsText
+    ];
+  });
+  
+  const tsvContent = [
+    headers.join("\t"),
+    ...rows.map(row => row.map(cell => {
+      const val = cell === null || cell === undefined ? "" : String(cell);
+      return val.replace(/\t/g, " ").replace(/\r?\n/g, " ");
+    }).join("\t"))
+  ].join("\n");
+  
+  try {
+    await navigator.clipboard.writeText(tsvContent);
+    const originalText = btn.textContent;
+    btn.textContent = "Copied TSV!";
+    btn.classList.add("copied");
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.classList.remove("copied");
+    }, 1500);
+  } catch (err) {
+    alert("Failed to copy data. Please try again.");
+  }
+}
+
+async function loadYtmAudit(options = {}) {
+  const resultsContainer = document.querySelector("#ytmResults");
+  if (!resultsContainer) return;
+  
+  const targetSelect = document.querySelector("#ytmAuditTarget");
+  const manager = targetSelect ? targetSelect.value : "All";
+  
+  if (!options.force && state.ytmResults.length) {
+    renderYtmAuditView();
+    return;
+  }
+  
+  resultsContainer.innerHTML = emptyCard("Audit in progress... Please see the progress bar above.");
+  
+  const ytmSummary = document.querySelector("#ytmSummary");
+  if (ytmSummary) ytmSummary.innerHTML = "";
+  const ytmChannelFilters = document.querySelector("#ytmChannelFilters");
+  if (ytmChannelFilters) ytmChannelFilters.innerHTML = "";
+  
+  const ytmSteps = [
+    { time: 0, text: "Fetching uploads and channel stats..." },
+    { time: 4, text: "Auditing pinned comments & description links..." },
+    { time: 10, text: "Testing redirect links..." },
+    { time: 20, text: "Calculating owner comment reply rates..." },
+    { time: 35, text: "Finalizing manager compliance reports..." }
+  ];
+  const progressBar = startProgressBar("ytmProgressBarContainer", "ytmProgressBarFill", "ytmProgressBarLabel", ytmSteps);
+  
+  try {
+    const managerQuery = `manager=${encodeURIComponent(manager)}`;
+    const forceQuery = options.force ? "&force=1" : "";
+    const data = await api(`/api/ytm/audit?${managerQuery}${forceQuery}`);
+    if (progressBar) progressBar.stop(true);
+    state.ytmResults = data.videos || [];
+    state.ytmFilter = manager;
+    renderYtmAuditView();
+  } catch (error) {
+    if (progressBar) progressBar.stop(false);
+    resultsContainer.innerHTML = emptyCard(error.message);
+  }
+}
+
+function renderYtmAuditView() {
+  if (state.activeView !== "ytm") return;
+  renderYtmChannelFilters();
+  renderYtmSummary();
+  renderYtmAuditResults();
+  
+  const hasResults = state.ytmResults && state.ytmResults.length > 0;
+  const csvBtn = document.querySelector("#ytmExportCsvButton");
+  const sheetsBtn = document.querySelector("#ytmCopySheetsButton");
+  if (csvBtn) csvBtn.disabled = !hasResults;
+  if (sheetsBtn) sheetsBtn.disabled = !hasResults;
+}
+
+function renderYtmChannelFilters() {
+  const container = document.querySelector("#ytmChannelFilters");
+  if (!container) return;
+  if (!state.ytmResults.length) {
+    container.innerHTML = "";
+    return;
+  }
+  
+  const managersWithResults = new Set();
+  state.ytmResults.forEach(video => {
+    const manager = getYtmName(video.channelTitle);
+    managersWithResults.add(manager);
+  });
+  
+  const managerList = ["Himanshu", "Ayush", "Atul Sharma", "Shubham", "Raubnish", "Amit", "Abhinav", "Shukendu", "Ashish Tyagi", "Lubna", "Vivek", "Other"].filter(m => managersWithResults.has(m));
+  
+  if (!managerList.includes(state.ytmFilter)) {
+    state.ytmFilter = managerList[0] || "Other";
+  }
+  
+  container.innerHTML = managerList.map(manager => {
+    const isActive = state.ytmFilter === manager;
+    return `<button class="filter-chip ${isActive ? "active" : ""}" type="button" data-ytm-filter="${escapeHtml(manager)}">${escapeHtml(manager)}</button>`;
+  }).join("");
+}
+
+function renderYtmSummary() {
+  const container = document.querySelector("#ytmSummary");
+  if (!container) return;
+  if (!state.ytmResults.length) {
+    container.innerHTML = "";
+    return;
+  }
+  
+  const filtered = filteredYtmResults(true);
+  const count = filtered.length;
+  if (!count) {
+    container.innerHTML = emptyCard("No videos match the selected filter.");
+    return;
+  }
+  
+  let totalScore = 0;
+  let optimizedCount = 0;
+  let linkPinnedMissing = 0;
+  let linkDescMissing = 0;
+  let playlistIssues = 0;
+  let notRepliedHearted = 0;
+  
+  filtered.forEach(video => {
+    totalScore += video.score;
+    if (video.score === 100) optimizedCount++;
+    
+    video.gaps.forEach(gap => {
+      const lower = gap.toLowerCase();
+      if (lower.includes("link missing in pinned comment")) {
+        linkPinnedMissing++;
+      } else if (lower.includes("link missing in description")) {
+        linkDescMissing++;
+      } else if (lower.includes("playlist")) {
+        playlistIssues++;
+      } else if (lower.includes("not replied/not hearted")) {
+        notRepliedHearted++;
+      }
+    });
+  });
+  
+  const avgScore = Math.round(totalScore / count);
+  
+  container.innerHTML = `
+    <div class="research-stat">
+      <span>Average Score</span>
+      <strong>${avgScore}/100</strong>
+    </div>
+    <div class="research-stat">
+      <span>Fully Audited</span>
+      <strong>${optimizedCount} <small>/ ${count}</small></strong>
+    </div>
+    <div class="research-stat">
+      <span>Link in Pinned Missing</span>
+      <strong>${linkPinnedMissing}</strong>
+    </div>
+    <div class="research-stat">
+      <span>Link in Desc Missing</span>
+      <strong>${linkDescMissing}</strong>
+    </div>
+    <div class="research-stat">
+      <span>Playlist Missing</span>
+      <strong>${playlistIssues}</strong>
+    </div>
+    <div class="research-stat">
+      <span>Not Replied/Hearted</span>
+      <strong>${notRepliedHearted}</strong>
+    </div>
+  `;
+}
+
+function filteredYtmResults(includeOptimized = false) {
+  let list = [...state.ytmResults];
+  
+  if (state.ytmFilter) {
+    list = list.filter(video => {
+      const manager = getYtmName(video.channelTitle);
+      return manager === state.ytmFilter;
+    });
+  }
+  
+  if (!includeOptimized) {
+    list = list.filter(video => video.gaps && video.gaps.length > 0);
+  }
+  
+  return list;
+}
+
+function renderYtmAuditResults() {
+  const container = document.querySelector("#ytmResults");
+  if (!container) return;
+  if (!state.ytmResults.length) {
+    container.innerHTML = emptyCard("No audit results. Select a target YTM and click Run YTM audit to analyze content.");
+    return;
+  }
+  
+  const filtered = filteredYtmResults();
+  if (state.ytmSortLowestFirst) {
+    filtered.sort((a, b) => a.score - b.score);
+  } else {
+    filtered.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+  }
+  
+  if (!filtered.length) {
+    container.innerHTML = emptyCard("No videos with gaps found for this YTM. All checked tasks OK!");
+    return;
+  }
+  
+  container.innerHTML = `
+    <div class="research-table ytm-table">
+      <div class="research-row research-head ytm-row-head">
+        <span>Content</span>
+        <span>Views</span>
+        <span>Format</span>
+        <span>Score</span>
+        <span>Identified Gaps / Operational Issues</span>
+        <span>Actions</span>
+      </div>
+      ${filtered.map(video => {
+        const scoreClass = video.score === 100 ? "score-green" : video.score >= 70 ? "score-yellow" : "score-red";
+        
+        let gapsHtml = "";
+        if (video.gaps.length === 0) {
+          gapsHtml = `<span class="gap-optimized">All checked tasks OK</span>`;
+        } else {
+          gapsHtml = `<ul class="gap-list">${video.gaps.map(gap => {
+            let escaped = escapeHtml(gap);
+            escaped = escaped.replace(/(https?:\/\/link\.testbook\.com\/[^\s,()]+)/g, '<a href="$1" target="_blank" rel="noreferrer" class="gap-link">$1</a>');
+            return `<li>${escaped}</li>`;
+          }).join("")}</ul>`;
+        }
+        
+        return `
+          <div class="research-row ytm-row">
+            <div class="seo-title-cell-with-thumb">
+              <img src="https://i.ytimg.com/vi/${video.id}/default.jpg" class="seo-video-thumb" alt="" />
+              <div class="research-title-cell">
+                <strong>${escapeHtml(video.title)}</strong>
+                <small>${escapeHtml(video.channelTitle)} · ${escapeHtml(formatPublishedAt(video.publishedAt))}</small>
+              </div>
+            </div>
+            <div class="seo-views-cell">
+              <strong>${video.views.toLocaleString()}</strong>
+            </div>
+            <span class="research-format">${escapeHtml(video.format)}</span>
+            <div class="score-cell">
+              <span class="score-badge ${scoreClass}">${video.score}</span>
+            </div>
+            <div class="gaps-cell">
+              ${gapsHtml}
+            </div>
+            <div class="actions-cell">
+              <a class="link-chip watch-link" href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noreferrer">Open</a>
+            </div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function exportYtmToCsv() {
+  const filtered = filteredYtmResults();
+  if (!filtered.length) return;
+  
+  const headers = ["Channel Name", "Video Title", "YouTube Link", "Score", "Format", "Views", "Gaps/Issues"];
+  
+  const rows = filtered.map(video => {
+    const gapsText = video.gaps.length > 0 ? video.gaps.join("; ") : "No gaps found";
+    const link = `https://www.youtube.com/watch?v=${video.id}`;
+    return [
+      video.channelTitle,
+      video.title,
+      link,
+      video.score,
+      video.format,
+      video.views,
+      gapsText
+    ];
+  });
+  
+  const csvContent = [
+    headers.map(h => `"${h.replace(/"/g, '""')}"`).join(","),
+    ...rows.map(row => row.map(cell => {
+      const val = cell === null || cell === undefined ? "" : String(cell);
+      return `"${val.replace(/"/g, '""')}"`;
+    }).join(","))
+  ].join("\n");
+  
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `youtube_ytm_audit_${state.ytmFilter}_${new Date().toISOString().slice(0, 10)}.csv`);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+async function copyYtmForSheets(btn) {
+  const filtered = filteredYtmResults();
+  if (!filtered.length) return;
+  
+  const headers = ["Channel Name", "Video Title", "YouTube Link", "Score", "Format", "Views", "Gaps/Issues"];
+  
+  const rows = filtered.map(video => {
+    const gapsText = video.gaps.length > 0 ? video.gaps.join("; ") : "No gaps found";
+    const link = `https://www.youtube.com/watch?v=${video.id}`;
+    const hyperlinkFormula = `=HYPERLINK("${link}", "Watch Video")`;
+    return [
+      video.channelTitle,
+      video.title,
+      hyperlinkFormula,
+      video.score,
+      video.format,
+      video.views,
+      gapsText
+    ];
+  });
+  
+  const tsvContent = [
+    headers.join("\t"),
+    ...rows.map(row => row.map(cell => {
+      const val = cell === null || cell === undefined ? "" : String(cell);
+      return val.replace(/\t/g, " ").replace(/\r?\n/g, " ");
+    }).join("\t"))
+  ].join("\n");
+  
+  try {
+    await navigator.clipboard.writeText(tsvContent);
+    const originalText = btn.textContent;
+    btn.textContent = "Copied TSV!";
+    btn.classList.add("copied");
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.classList.remove("copied");
+    }, 1500);
+  } catch (err) {
+    alert("Failed to copy data. Please try again.");
+  }
 }
