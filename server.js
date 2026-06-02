@@ -5,6 +5,7 @@ import postgres from "postgres";
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -153,6 +154,7 @@ const competitorCategoryMap = {
 
 const scopes = [
   "https://www.googleapis.com/auth/youtube.readonly",
+  "https://www.googleapis.com/auth/youtube.force-ssl",
   "https://www.googleapis.com/auth/yt-analytics.readonly",
 ];
 
@@ -1028,6 +1030,7 @@ app.get("/api/ytm/audit", async (req, res, next) => {
             // 4. Comment Engagement Check (Not Replied/Not Hearted)
             let hasEngagement = false;
             let hasEligibleComments = false;
+            const unansweredComments = [];
             
             if (!commentsDisabled && commentThreads.length > 0) {
               for (const thread of commentThreads) {
@@ -1037,13 +1040,22 @@ app.get("/api/ytm/audit", async (req, res, next) => {
                 
                 hasEligibleComments = true;
                 const totalReplyCount = thread.snippet?.totalReplyCount || 0;
+                let hasOwnerReply = false;
                 if (totalReplyCount > 0) {
                   const replies = thread.replies?.comments || [];
-                  const hasOwnerReply = replies.some(reply => reply.snippet?.authorChannelId?.value === channelId);
+                  hasOwnerReply = replies.some(reply => reply.snippet?.authorChannelId?.value === channelId);
                   if (hasOwnerReply) {
                     hasEngagement = true;
-                    break;
                   }
+                }
+                if (!hasOwnerReply) {
+                  unansweredComments.push({
+                    id: topComment.id,
+                    authorName: topComment.snippet?.authorDisplayName || "User",
+                    authorProfileImage: topComment.snippet?.authorProfileImageUrl || "",
+                    text: topComment.snippet?.textOriginal || topComment.snippet?.textDisplay || "",
+                    publishedAt: topComment.snippet?.publishedAt || "",
+                  });
                 }
               }
             }
@@ -1064,6 +1076,7 @@ app.get("/api/ytm/audit", async (req, res, next) => {
               channelTitle: video.channelTitle,
               score,
               gaps,
+              unansweredComments,
             });
           }
         }
@@ -1161,6 +1174,387 @@ app.post("/api/seo/suggest", async (req, res, next) => {
     );
     
     res.json(payload);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// YTM Comment Reply Assistant & Competitor Outlier Alerts
+
+const competitorOutliersPath = path.join(dataDir, "competitor_outliers.json");
+
+async function readCompetitorOutliers() {
+  if (sql) {
+    await ensureStorage();
+    const rows = await sql`select payload from app_state where key = 'competitor_outliers' limit 1`;
+    return rows[0]?.payload || [];
+  }
+  try {
+    return JSON.parse(await readFile(competitorOutliersPath, "utf8"));
+  } catch {
+    return [];
+  }
+}
+
+async function saveCompetitorOutliers(outliers) {
+  if (sql) {
+    await ensureStorage();
+    await sql`
+      insert into app_state (key, payload)
+      values ('competitor_outliers', ${sql.json(outliers)})
+      on conflict (key) do update set payload = excluded.payload, updated_at = now()
+    `;
+    return;
+  }
+  await mkdir(dataDir, { recursive: true });
+  await writeFile(competitorOutliersPath, JSON.stringify(outliers, null, 2), "utf8");
+}
+
+function uniqueCompetitorsList() {
+  const channelMap = new Map();
+  for (const [category, groups] of Object.entries(competitorCategoryMap)) {
+    for (const group of groups) {
+      if (group.group.toLowerCase().includes("testbook")) continue;
+      for (const id of group.ids) {
+        if (!channelMap.has(id)) {
+          channelMap.set(id, {
+            id,
+            name: group.group,
+            group: group.group,
+            category
+          });
+        }
+      }
+    }
+  }
+  return Array.from(channelMap.values());
+}
+
+async function runOutliersScanInternal() {
+  if (!process.env.YOUTUBE_API_KEY) {
+    console.log("Skipping outliers scan: YOUTUBE_API_KEY not configured.");
+    return [];
+  }
+  
+  console.log("Starting competitor outliers scan...");
+  const youtube = google.youtube({ version: "v3", auth: process.env.YOUTUBE_API_KEY });
+  const competitors = uniqueCompetitorsList();
+  
+  const activeOutliersMap = new Map();
+  const existing = await readCompetitorOutliers();
+  const now = Date.now();
+  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+  
+  for (const item of existing) {
+    const age = now - new Date(item.publishedAt).getTime();
+    if (age <= sevenDaysMs) {
+      activeOutliersMap.set(item.id, item);
+    }
+  }
+
+  for (const comp of competitors) {
+    try {
+      const channelId = comp.id;
+      const uploadsPlaylistId = "UU" + channelId.slice(2);
+      const livePlaylistId = "UULV" + channelId.slice(2);
+      
+      const cacheKey = makeCacheKey("competitor-baseline", channelId);
+      const baseline = await cached(cacheKey, 24 * 60 * 60 * 1000, async () => {
+        const res = await youtube.playlistItems.list({
+          part: ["snippet", "contentDetails"],
+          playlistId: uploadsPlaylistId,
+          maxResults: 30,
+        }).catch(() => ({ data: { items: [] } }));
+        
+        const items = res.data.items || [];
+        const videoIds = items.map(item => item.contentDetails?.videoId).filter(Boolean);
+        if (!videoIds.length) {
+          return { averages: { Video: 0, Shorts: 0, Live: 0 }, overall: 0 };
+        }
+        
+        const liveRes = await youtube.playlistItems.list({
+          part: ["contentDetails"],
+          playlistId: livePlaylistId,
+          maxResults: 30,
+        }).catch(() => ({ data: { items: [] } }));
+        const liveVideoIds = new Set((liveRes.data.items || []).map(item => item.contentDetails?.videoId).filter(Boolean));
+        
+        const details = [];
+        for (let i = 0; i < videoIds.length; i += 50) {
+          const chunk = videoIds.slice(i, i + 50);
+          const chunkRes = await youtube.videos.list({
+            part: ["snippet", "contentDetails", "statistics", "liveStreamingDetails"],
+            id: chunk,
+          });
+          details.push(...(chunkRes.data.items || []));
+        }
+        
+        const videos = details.map(item => {
+          const format = classifyPublicVideo(item, liveVideoIds);
+          return {
+            views: Number(item.statistics?.viewCount || 0),
+            format,
+          };
+        });
+        
+        const formatSum = { Video: 0, Shorts: 0, Live: 0 };
+        const formatCount = { Video: 0, Shorts: 0, Live: 0 };
+        let totalViews = 0;
+        
+        for (const v of videos) {
+          formatSum[v.format] += v.views;
+          formatCount[v.format]++;
+          totalViews += v.views;
+        }
+        
+        const overall = Math.round(totalViews / Math.max(1, videos.length));
+        const averages = {
+          Video: formatCount.Video > 0 ? Math.round(formatSum.Video / formatCount.Video) : overall,
+          Shorts: formatCount.Shorts > 0 ? Math.round(formatSum.Shorts / formatCount.Shorts) : overall,
+          Live: formatCount.Live > 0 ? Math.round(formatSum.Live / formatCount.Live) : overall,
+        };
+        
+        return { averages, overall };
+      });
+      
+      const latestRes = await youtube.playlistItems.list({
+        part: ["snippet", "contentDetails"],
+        playlistId: uploadsPlaylistId,
+        maxResults: 5,
+      }).catch(() => ({ data: { items: [] } }));
+      
+      const latestItems = latestRes.data.items || [];
+      const latestVideoIds = latestItems.map(item => item.contentDetails?.videoId).filter(Boolean);
+      if (!latestVideoIds.length) continue;
+      
+      const liveResLatest = await youtube.playlistItems.list({
+        part: ["contentDetails"],
+        playlistId: livePlaylistId,
+        maxResults: 10,
+      }).catch(() => ({ data: { items: [] } }));
+      const liveVideoIdsLatest = new Set((liveResLatest.data.items || []).map(item => item.contentDetails?.videoId).filter(Boolean));
+      
+      const latestDetailsRes = await youtube.videos.list({
+        part: ["snippet", "contentDetails", "statistics", "liveStreamingDetails"],
+        id: latestVideoIds,
+      });
+      
+      const latestDetails = latestDetailsRes.data.items || [];
+      
+      for (const item of latestDetails) {
+        const publishedAt = item.snippet?.publishedAt;
+        const pubTime = new Date(publishedAt).getTime();
+        if (now - pubTime > sevenDaysMs) continue;
+        
+        const format = classifyPublicVideo(item, liveVideoIdsLatest);
+        const views = Number(item.statistics?.viewCount || 0);
+        const baselineAvg = baseline.averages[format] || baseline.overall || 1;
+        
+        if (views > baselineAvg) {
+          const outlierScore = Number((views / baselineAvg).toFixed(2));
+          activeOutliersMap.set(item.id, {
+            id: item.id,
+            title: item.snippet?.title || "Untitled",
+            channelId,
+            channelTitle: item.snippet?.channelTitle || comp.name,
+            category: comp.category,
+            group: comp.group,
+            views,
+            baselineAverage: baselineAvg,
+            outlierScore,
+            publishedAt,
+            format,
+            url: `https://www.youtube.com/watch?v=${item.id}`,
+            scannedAt: new Date().toISOString(),
+          });
+        }
+      }
+    } catch (err) {
+      console.error(`Failed scanning competitor ${comp.name} (${comp.id}):`, err.message);
+    }
+  }
+  
+  const sortedOutliers = Array.from(activeOutliersMap.values())
+    .sort((a, b) => b.outlierScore - a.outlierScore);
+    
+  await saveCompetitorOutliers(sortedOutliers);
+  console.log(`Scan complete. Found ${sortedOutliers.length} active outliers.`);
+  return sortedOutliers;
+}
+
+let isScanningOutliers = false;
+
+function startOutliersScheduler() {
+  setInterval(async () => {
+    try {
+      const options = { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false };
+      const formatter = new Intl.DateTimeFormat('en-US', options);
+      const hourInIST = parseInt(formatter.format(new Date()), 10);
+      
+      if (hourInIST >= 11 && hourInIST <= 21) {
+        if (isScanningOutliers) {
+          console.log("Background outlier scan already in progress. Skipping.");
+          return;
+        }
+        isScanningOutliers = true;
+        await runOutliersScanInternal();
+        isScanningOutliers = false;
+      }
+    } catch (err) {
+      isScanningOutliers = false;
+      console.error("Error in background outlier scan scheduler:", err);
+    }
+  }, 60 * 60 * 1000); // every hour
+}
+
+// Endpoints for Comment replies and Outlier alerts
+
+app.post("/api/ytm/comment/draft", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (!isAuditAdmin(viewer)) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+
+    const { commentText, videoTitle, authorName } = req.body;
+    if (!commentText) {
+      return res.status(400).json({ error: "Missing commentText" });
+    }
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(400).json({ error: "Add an Anthropic API key before drafting replies." });
+    }
+
+    const prompt = `You are a professional YouTube community manager.
+Draft a friendly, helpful, and concise response to the following user comment on our video "${videoTitle || "our video"}".
+
+Comment from "${authorName || "User"}": "${commentText}"
+
+Requirements:
+1. Be extremely concise (1-2 sentences max).
+2. Match the language and script of the comment. If the comment is in Hindi (written in Devanagari script like "बहुत बढ़िया"), reply in Hindi using Devanagari script. If the comment is in Hinglish (Hindi written in Latin/English alphabet like "bahut badhiya video"), reply in Hinglish. If the comment is in English, reply in English.
+3. Be friendly, helpful, and professional.
+4. Do not include any placeholder text (like "[Channel Name]") - sign off as the team or do not sign off at all if unnecessary.
+5. Return only the reply text itself. No introductory or concluding remarks, no quotes.`;
+
+    const data = await fetchAnthropicJson({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 300,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    let draft = (data.content || []).map((item) => item.text || "").join("\n").trim();
+    if (draft.startsWith('"') && draft.endsWith('"')) {
+      draft = draft.slice(1, -1);
+    }
+    res.json({ draft });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/ytm/comment/reply", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (!isAuditAdmin(viewer)) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+
+    const { channelId, parentId, replyText } = req.body;
+    if (!channelId || !parentId || !replyText) {
+      return res.status(400).json({ error: "Missing channelId, parentId, or replyText" });
+    }
+
+    const entries = await connectedChannelEntries();
+    const entry = entries.find(e => e.channel.id === channelId);
+    if (!entry) {
+      return res.status(404).json({ error: "Connected channel not found or unauthorized" });
+    }
+
+    const auth = entry.auth;
+    const youtube = google.youtube({ version: "v3", auth });
+
+    const response = await youtube.comments.insert({
+      part: ["snippet"],
+      requestBody: {
+        snippet: {
+          parentId: parentId,
+          textOriginal: replyText,
+        }
+      }
+    });
+
+    res.json({ success: true, comment: response.data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/competitors/outliers", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (!isAuditAdmin(viewer)) {
+      return res.status(403).json({ error: "Access denied. Only authorized admins can view trending alerts." });
+    }
+    const outliers = await readCompetitorOutliers();
+    res.json({ outliers });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/competitors/outliers/scan", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (!isAuditAdmin(viewer)) {
+      return res.status(403).json({ error: "Access denied. Only authorized admins can trigger a trending scan." });
+    }
+    const results = await runOutliersScanInternal();
+    res.json({ success: true, count: results.length, outliers: results });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/competitors/outliers/suggest", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (!isAuditAdmin(viewer)) {
+      return res.status(403).json({ error: "Access denied. Only authorized admins can request trending suggestions." });
+    }
+    const { title, format, category, group, views, outlierScore } = req.body;
+    if (!title) {
+      return res.status(400).json({ error: "Missing title" });
+    }
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(400).json({ error: "Add an Anthropic API key before requesting suggestions." });
+    }
+
+    const prompt = `Outlier video topic details:
+Title: "${title}"
+Format: ${format || "Video"}
+Category: ${category || "General"}
+Competitor Group: ${group || "Competitor"}
+Current Views: ${views || 0}
+Outlier Score: ${outlierScore || 1.0}x views compared to channel average.
+
+Based on this highly successful outlier topic, generate 5 optimized title ideas and formats that our own channel can use to capitalize on this interest.
+
+Return a strict JSON array only.
+Each item must be: {"title":"...","format":"Shorts|Video|Live","strategy":"one concise sentence explaining hook/strategy"}
+
+Provide highly engaging, clickable (but not clickbait) titles tailored to educational content/exams.`;
+
+    const data = await fetchAnthropicJson({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 900,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const text = (data.content || []).map((item) => item.text || "").join("\n").trim();
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error("Claude did not return valid JSON suggestions.");
+    const parsed = JSON.parse(match[0]);
+    res.json({ suggestions: parsed });
   } catch (error) {
     next(error);
   }
@@ -1391,6 +1785,7 @@ const isDirectRun = process.argv[1] && path.resolve(process.argv[1]) === current
 if (isDirectRun) {
   app.listen(port, () => {
     console.log(`YouTube dashboard running at http://localhost:${port}`);
+    startOutliersScheduler();
   });
 }
 
@@ -2093,6 +2488,46 @@ async function loadPublishedContent(auth, channel, dates) {
   }));
 }
 
+async function getPlaylistVideoIds(auth, playlistId) {
+  return cached(
+    makeCacheKey("playlist-video-ids", playlistId),
+    30 * 60 * 1000, // 30 minutes
+    async () => {
+      const youtube = google.youtube({ version: "v3", auth });
+      const ids = new Set();
+      let pageToken = undefined;
+      try {
+        const res1 = await youtube.playlistItems.list({
+          part: ["contentDetails"],
+          playlistId: playlistId,
+          maxResults: 50,
+          pageToken,
+        });
+        for (const item of res1.data.items || []) {
+          const vId = item.contentDetails?.videoId;
+          if (vId) ids.add(vId);
+        }
+        pageToken = res1.data.nextPageToken;
+        if (pageToken) {
+          const res2 = await youtube.playlistItems.list({
+            part: ["contentDetails"],
+            playlistId: playlistId,
+            maxResults: 50,
+            pageToken,
+          });
+          for (const item of res2.data.items || []) {
+            const vId = item.contentDetails?.videoId;
+            if (vId) ids.add(vId);
+          }
+        }
+      } catch (err) {
+        // Ignore error
+      }
+      return Array.from(ids);
+    }
+  );
+}
+
 async function videoDetails(auth, ids) {
   const cleanIds = [...new Set(ids.filter(Boolean))];
   const detailMap = {};
@@ -2102,19 +2537,51 @@ async function videoDetails(auth, ids) {
       makeCacheKey("owned-video-details", chunk),
       ttl.videoDetails,
       async () => {
-      const youtube = google.youtube({ version: "v3", auth });
-      const response = await youtube.videos.list({
-        part: ["snippet", "contentDetails", "liveStreamingDetails", "statistics"],
+        const youtube = google.youtube({ version: "v3", auth });
+        const response = await youtube.videos.list({
+          part: ["snippet", "contentDetails", "liveStreamingDetails", "statistics"],
           id: chunk,
           maxResults: 50,
-      });
-        return (response.data.items || []).map((item) => ({
-        id: item.id,
-        title: item.snippet?.title || item.id,
-        channelTitle: item.snippet?.channelTitle || "",
-        format: classifyVideo(item),
-        views: Number(item.statistics?.viewCount || 0),
-        }));
+        });
+        
+        const items = response.data.items || [];
+        const results = [];
+        
+        for (const item of items) {
+          const channelId = item.snippet?.channelId;
+          let format = null;
+          
+          if (channelId && channelId.startsWith("UC")) {
+            const suffix = channelId.slice(2);
+            const [shortsIds, liveIds, videoIds] = await Promise.all([
+              getPlaylistVideoIds(auth, "UUSH" + suffix),
+              getPlaylistVideoIds(auth, "UULV" + suffix),
+              getPlaylistVideoIds(auth, "UULF" + suffix),
+            ]);
+            
+            if (shortsIds.includes(item.id)) {
+              format = "Shorts";
+            } else if (liveIds.includes(item.id)) {
+              format = "Live";
+            } else if (videoIds.includes(item.id)) {
+              format = "Video";
+            }
+          }
+          
+          if (!format) {
+            format = classifyVideo(item);
+          }
+          
+          results.push({
+            id: item.id,
+            title: item.snippet?.title || item.id,
+            channelTitle: item.snippet?.channelTitle || "",
+            format,
+            views: Number(item.statistics?.viewCount || 0),
+          });
+        }
+        
+        return results;
       }
     );
     for (const detail of chunkDetails) {
@@ -2135,7 +2602,7 @@ function classifyVideo(video) {
   }
   const seconds = isoDurationSeconds(video.contentDetails?.duration || "PT0S");
   if (/#shorts?\b|\bshorts?\b/.test(title)) return "Shorts";
-  return seconds > 0 && seconds <= 180 ? "Shorts" : "Video";
+  return seconds > 0 && seconds <= 60 ? "Shorts" : "Video";
 }
 
 function mergeReports(reports, days) {

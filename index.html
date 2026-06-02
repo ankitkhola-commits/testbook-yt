@@ -104,6 +104,7 @@
         <nav class="sidebar-nav" aria-label="Workspace sections">
           <button class="side-nav-button active" type="button" data-view-tab="dashboard">Dashboard</button>
           <button class="side-nav-button" type="button" data-view-tab="competitors">Competitors</button>
+          <button class="side-nav-button" type="button" data-view-tab="outliers">Trending</button>
           <button class="side-nav-button" type="button" data-view-tab="research">Research</button>
           <button class="side-nav-button" type="button" data-view-tab="seo">SEO Audit</button>
           <button class="side-nav-button" type="button" data-view-tab="ytm">YTM Audit</button>
@@ -309,6 +310,62 @@
             <div id="competitorBenchmark" class="benchmark-page"></div>
           </article>
 
+          <article class="panel page-panel outliers-panel is-hidden" data-view="outliers">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Trending</p>
+                <h2>Performance spikes & content recommendations</h2>
+              </div>
+              <strong id="outliersTotal" class="panel-total">0 trending videos</strong>
+            </div>
+            <div class="research-toolbar">
+              <div class="select-wrap" style="flex: 1; min-width: 140px;">
+                <label for="outlierCategorySelect">Category</label>
+                <select id="outlierCategorySelect">
+                  <option value="All">All Categories</option>
+                  <option value="Testbook">Testbook</option>
+                  <option value="Teaching">Teaching</option>
+                  <option value="Railways">Railways</option>
+                  <option value="CGL">CGL</option>
+                  <option value="UGC NET">UGC NET</option>
+                  <option value="Bihar">Bihar</option>
+                  <option value="Banking">Banking</option>
+                  <option value="UPSC">UPSC</option>
+                  <option value="AE JE">AE JE</option>
+                  <option value="Odisha">Odisha</option>
+                  <option value="Bengali">Bengali</option>
+                  <option value="Marathi">Marathi</option>
+                  <option value="MPSC">MPSC</option>
+                  <option value="Punjab">Punjab</option>
+                  <option value="Telugu">Telugu</option>
+                </select>
+              </div>
+              <div class="select-wrap" style="flex: 1; min-width: 140px;">
+                <label for="outlierFormatSelect">Format</label>
+                <select id="outlierFormatSelect">
+                  <option value="All">All Formats</option>
+                  <option value="Video">Video</option>
+                  <option value="Shorts">Shorts</option>
+                  <option value="Live">Live</option>
+                </select>
+              </div>
+              <button class="connect-button" id="scanOutliersButton" type="button" style="height: 38px; margin: 0; align-self: flex-end;">Scan Now</button>
+            </div>
+            
+            <div id="outliersProgressBarContainer" class="progress-bar-container is-hidden" style="margin-top: 15px; margin-bottom: 15px;">
+              <div class="progress-bar-label" id="outliersProgressBarLabel">Starting scan... (0%)</div>
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="outliersProgressBarFill" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <div id="outliersGrid" class="outliers-grid" style="margin-top: 20px;">
+              <div class="empty-card-placeholder" style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--muted);">
+                Click "Scan Now" to scan competitor channels for recent trending videos.
+              </div>
+            </div>
+          </article>
+
           <article class="panel page-panel research-panel" data-view="research">
             <div class="panel-header research-header">
               <div>
@@ -502,6 +559,29 @@
         <div class="modal-actions">
           <button value="cancel" class="ghost-button">Cancel</button>
           <button class="connect-button" type="submit">Add competitor</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="outlierSuggestDialog" class="modal">
+      <form method="dialog" id="outlierSuggestForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">AI Recommendation</p>
+            <h2 id="outlierSuggestTitle">Trending Content Ideas</h2>
+          </div>
+          <button value="cancel" class="icon-button" aria-label="Close">×</button>
+        </div>
+        <div class="seo-suggest-content" style="max-height: 60vh; overflow-y: auto; padding: 15px 0;">
+          <div class="suggest-section">
+            <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--text);">Based on trending topic: <span id="outlierSourceTitle" style="color: var(--accent); font-weight: 600;"></span></h3>
+            <div id="outlierSuggestionsList" class="suggestions-list" style="display: flex; flex-direction: column; gap: 15px;">
+              <!-- suggestions will be loaded here -->
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions" style="margin-top: 20px;">
+          <button value="cancel" class="connect-button">Close</button>
         </div>
       </form>
     </dialog>

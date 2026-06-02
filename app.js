@@ -14,6 +14,7 @@ const formats = {
 const competitorCategories = ["Testbook", "Teaching", "UGC NET", "CGL", "Odisha", "Bengali", "Marathi", "MPSC", "AE JE", "Bihar", "Banking", "Railways", "UPSC", "Punjab", "Telugu"];
 const competitorAutoRefreshMs = 24 * 60 * 60 * 1000; // once a day
 let competitorAutoRefreshTimer = null;
+const activeProgressBars = {};
 
 const candidateMappings = {
   "Vinayak": [
@@ -153,6 +154,7 @@ let state = {
   ytmResults: [],
   ytmFilter: "All",
   ytmSortLowestFirst: true,
+  outliers: [],
 };
 
 const setupScreen = document.querySelector("#setupScreen");
@@ -205,6 +207,10 @@ document.querySelectorAll("[data-view-tab]").forEach((button) => {
       return;
     }
     stopCompetitorAutoRefresh();
+    if (state.activeView === "outliers") {
+      loadOutliers();
+      return;
+    }
     if (state.activeView === "research") renderResearchView();
     if (state.activeView === "seo") renderSeoAuditView();
     if (state.activeView === "ytm") renderYtmAuditView();
@@ -959,11 +965,13 @@ function applyView() {
     ? (state.report?.title || "Channel Analytics")
     : state.activeView === "competitors"
       ? "Competitors"
-      : state.activeView === "seo"
-        ? "SEO Audit"
-        : state.activeView === "ytm"
-          ? "YTM Audit"
-          : "Research";
+      : state.activeView === "outliers"
+        ? "Trending"
+        : state.activeView === "seo"
+          ? "SEO Audit"
+          : state.activeView === "ytm"
+            ? "YTM Audit"
+            : "Research";
 }
 
 function renderResearchView() {
@@ -1304,9 +1312,14 @@ function showDashboard() {
   appShell.hidden = false;
   
   const isAd = (state.isAuditAdmin === undefined || state.isAuditAdmin === true);
-  document.querySelectorAll('[data-view-tab="seo"], [data-view-tab="ytm"]').forEach(btn => {
+  if (!isAd && (state.activeView === "seo" || state.activeView === "ytm" || state.activeView === "outliers")) {
+    state.activeView = "dashboard";
+  }
+  
+  document.querySelectorAll('[data-view-tab="seo"], [data-view-tab="ytm"], [data-view-tab="outliers"]').forEach(btn => {
     btn.style.display = isAd ? "" : "none";
   });
+  applyView();
 }
 
 function showConnectDashboard(status, message) {
@@ -1507,6 +1520,11 @@ function escapeHtml(value) {
 }
 
 function startProgressBar(containerId, fillId, labelId, steps) {
+  if (activeProgressBars[containerId]) {
+    clearInterval(activeProgressBars[containerId]);
+    delete activeProgressBars[containerId];
+  }
+
   const container = document.getElementById(containerId);
   const fill = document.getElementById(fillId);
   const label = document.getElementById(labelId);
@@ -1536,14 +1554,24 @@ function startProgressBar(containerId, fillId, labelId, steps) {
     label.textContent = `${stepText} (${Math.round(currentProgress)}%)`;
   }, 100);
   
+  activeProgressBars[containerId] = interval;
+  
   return {
     stop: (success = true, customSuccessText = "Audit Complete! (100%)", customFailText = "Audit Failed!") => {
-      clearInterval(interval);
+      if (activeProgressBars[containerId] === interval) {
+        clearInterval(interval);
+        delete activeProgressBars[containerId];
+      } else {
+        clearInterval(interval);
+        return;
+      }
       fill.style.width = "100%";
       label.textContent = success ? customSuccessText : customFailText;
       setTimeout(() => {
-        container.classList.add("is-hidden");
-        fill.style.width = "0%";
+        if (!activeProgressBars[containerId]) {
+          container.classList.add("is-hidden");
+          fill.style.width = "0%";
+        }
       }, 800);
     }
   };
@@ -2137,10 +2165,39 @@ function renderYtmAuditResults() {
             <div class="gaps-cell">
               ${gapsHtml}
             </div>
-            <div class="actions-cell">
+            <div class="actions-cell" style="display: flex; gap: 8px;">
               <a class="link-chip watch-link" href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noreferrer">Open</a>
+              ${video.unansweredComments && video.unansweredComments.length > 0 ? `
+                <button class="link-chip comments-toggle-btn" data-drawer-id="drawer-${video.id}">Comments (${video.unansweredComments.length})</button>
+              ` : ''}
             </div>
           </div>
+          ${video.unansweredComments && video.unansweredComments.length > 0 ? `
+            <div class="ytm-comments-drawer is-hidden" id="drawer-${video.id}">
+              <h3>Unanswered Comments</h3>
+              <div class="comments-list" style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+                ${video.unansweredComments.map(comment => `
+                  <div class="ytm-comment-item" id="comment-${comment.id}">
+                    <div class="comment-header">
+                      <img src="${comment.authorProfileImage || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'}" class="comment-author-img" />
+                      <strong>${escapeHtml(comment.authorName)}</strong>
+                      <span class="comment-time">${escapeHtml(formatPublishedAt(comment.publishedAt))}</span>
+                    </div>
+                    <div class="comment-body">
+                      <p>${escapeHtml(comment.text)}</p>
+                    </div>
+                    <div class="comment-reply-box">
+                      <textarea placeholder="Write a reply..." id="reply-text-${comment.id}"></textarea>
+                      <div class="comment-reply-actions">
+                        <button type="button" class="ghost-button draft-reply-btn" data-comment-id="${comment.id}" data-comment-text="${escapeHtml(comment.text)}" data-video-title="${escapeHtml(video.title)}" data-author-name="${escapeHtml(comment.authorName)}">✨ AI Draft</button>
+                        <button type="button" class="connect-button send-reply-btn" data-channel-id="${video.channelId}" data-parent-id="${comment.id}" data-comment-id="${comment.id}">Send Reply</button>
+                      </div>
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          ` : ''}
         `;
       }).join("")}
     </div>
@@ -2228,3 +2285,281 @@ async function copyYtmForSheets(btn) {
     alert("Failed to copy data. Please try again.");
   }
 }
+
+// Outliers Page Controllers and Suggest Dialog
+
+async function loadOutliers(options = {}) {
+  const grid = document.querySelector("#outliersGrid");
+  if (!grid) return;
+  
+  if (!options.silent) {
+    grid.innerHTML = emptyCard("Loading competitor trending videos...");
+  }
+  
+  try {
+    const data = await api("/api/competitors/outliers");
+    state.outliers = data.outliers || [];
+    renderOutliers();
+  } catch (error) {
+    grid.innerHTML = emptyCard(error.message);
+  }
+}
+
+function renderOutliers() {
+  const grid = document.querySelector("#outliersGrid");
+  const totalLabel = document.querySelector("#outliersTotal");
+  if (!grid) return;
+  
+  const categoryFilter = document.querySelector("#outlierCategorySelect")?.value || "All";
+  const formatFilter = document.querySelector("#outlierFormatSelect")?.value || "All";
+  
+  let list = [...state.outliers];
+  
+  if (categoryFilter !== "All") {
+    list = list.filter(item => item.category === categoryFilter);
+  }
+  if (formatFilter !== "All") {
+    list = list.filter(item => item.format === formatFilter);
+  }
+  
+  if (totalLabel) {
+    totalLabel.textContent = `${list.length} trending video${list.length === 1 ? "" : "s"}`;
+  }
+  
+  if (!list.length) {
+    grid.innerHTML = emptyCard("No trending videos found matching the filters.");
+    return;
+  }
+  
+  grid.innerHTML = list.map(item => {
+    const formatClass = (item.format || "Video").toLowerCase();
+    const formattedViews = Number(item.views || 0).toLocaleString();
+    const formattedBaseline = Number(item.baselineAverage || 0).toLocaleString();
+    
+    return `
+      <article class="outlier-card">
+        <div class="outlier-badge">${Number(item.outlierScore || 0).toFixed(1)}x views</div>
+        <span class="outlier-format-badge ${formatClass}">${escapeHtml(item.format || "Video")}</span>
+        <div class="outlier-card-header">
+          <h3>${escapeHtml(item.title)}</h3>
+        </div>
+        <div class="outlier-meta">
+          <span class="outlier-meta-channel">${escapeHtml(item.channelTitle)}</span>
+          <span>Category: ${escapeHtml(item.category)} · Group: ${escapeHtml(item.group)}</span>
+          <span>Published: ${escapeHtml(formatPublishedAt(item.publishedAt))}</span>
+        </div>
+        <div class="outlier-stats">
+          <div class="outlier-stat-item">
+            <span>Views</span>
+            <strong>${formattedViews}</strong>
+          </div>
+          <div class="outlier-stat-item">
+            <span>Avg Baseline</span>
+            <strong>${formattedBaseline}</strong>
+          </div>
+        </div>
+        <div class="outlier-actions">
+          <a class="link-chip watch-link" href="${item.url}" target="_blank" rel="noreferrer">Open Video</a>
+          <button class="link-chip suggest-outlier-btn" data-video-id="${item.id}" style="border: none; cursor: pointer; background: var(--accent); color: white;">Suggest Ideas</button>
+        </div>
+      </article>
+    `;
+  }).join("");
+  
+  grid.querySelectorAll(".suggest-outlier-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const videoId = btn.dataset.videoId;
+      const video = state.outliers.find(v => v.id === videoId);
+      if (video) {
+        suggestOutlierIdeas(video);
+      }
+    });
+  });
+}
+
+async function scanOutliers() {
+  const scanSteps = [
+    { time: 0, text: "Gathering competitor channels..." },
+    { time: 2, text: "Fetching baseline views averages..." },
+    { time: 5, text: "Analyzing latest uploads for trending videos..." },
+    { time: 10, text: "Filtering and sorting trending scores..." }
+  ];
+  const progressBar = startProgressBar("outliersProgressBarContainer", "outliersProgressBarFill", "outliersProgressBarLabel", scanSteps);
+  
+  try {
+    const res = await api("/api/competitors/outliers/scan", { method: "POST" });
+    if (progressBar) progressBar.stop(true, "Scan Complete! (100%)", "Scan Failed!");
+    state.outliers = res.outliers || [];
+    renderOutliers();
+  } catch (error) {
+    if (progressBar) progressBar.stop(false, "Scan Failed!", error.message);
+    alert("Scan failed: " + error.message);
+  }
+}
+
+async function suggestOutlierIdeas(video) {
+  const dialog = document.querySelector("#outlierSuggestDialog");
+  const sourceTitle = document.querySelector("#outlierSourceTitle");
+  const suggestionsList = document.querySelector("#outlierSuggestionsList");
+  
+  if (!dialog || !sourceTitle || !suggestionsList) return;
+  
+  sourceTitle.textContent = video.title;
+  suggestionsList.innerHTML = "<p style='color: var(--muted); text-align: center; padding: 20px 0;'>Drafting suggestions using Claude...</p>";
+  dialog.showModal();
+  
+  try {
+    const res = await api("/api/competitors/outliers/suggest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: video.title,
+        format: video.format,
+        category: video.category,
+        group: video.group,
+        views: video.views,
+        outlierScore: video.outlierScore
+      })
+    });
+    
+    if (!res.suggestions || !res.suggestions.length) {
+      suggestionsList.innerHTML = "<p style='color: var(--accent);'>No suggestions returned.</p>";
+      return;
+    }
+    
+    suggestionsList.innerHTML = res.suggestions.map(s => {
+      const formatClass = (s.format || "Video").toLowerCase();
+      return `
+        <div style="background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <strong style="font-size: 13px; color: var(--text-dark);">${escapeHtml(s.title)}</strong>
+            <span class="outlier-format-badge ${formatClass}" style="margin: 0; padding: 1px 5px; font-size: 9px;">${escapeHtml(s.format)}</span>
+          </div>
+          <p style="margin: 0; font-size: 12px; color: var(--muted); line-height: 1.4;">${escapeHtml(s.strategy)}</p>
+        </div>
+      `;
+    }).join("");
+    
+  } catch (error) {
+    suggestionsList.innerHTML = `<p style="color: var(--accent); font-weight: 500;">Failed to fetch suggestions: ${escapeHtml(error.message)}</p>`;
+  }
+}
+
+// Global click event handlers for comments drawers and reply actions
+document.addEventListener("click", async (event) => {
+  const toggleBtn = event.target.closest(".comments-toggle-btn");
+  if (toggleBtn) {
+    const drawerId = toggleBtn.dataset.drawerId;
+    const drawer = document.getElementById(drawerId);
+    if (drawer) {
+      drawer.classList.toggle("is-hidden");
+    }
+    return;
+  }
+  
+  const draftBtn = event.target.closest(".draft-reply-btn");
+  if (draftBtn) {
+    const commentId = draftBtn.dataset.commentId;
+    const commentText = draftBtn.dataset.commentText;
+    const videoTitle = draftBtn.dataset.videoTitle;
+    const authorName = draftBtn.dataset.authorName;
+    const textarea = document.getElementById(`reply-text-${commentId}`);
+    if (textarea) {
+      draftBtn.disabled = true;
+      const originalText = draftBtn.innerHTML;
+      draftBtn.innerHTML = "Drafting...";
+      try {
+        const response = await api("/api/ytm/comment/draft", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ commentText, videoTitle, authorName }),
+        });
+        textarea.value = response.draft;
+      } catch (err) {
+        alert("Failed to draft reply: " + err.message);
+      } finally {
+        draftBtn.disabled = false;
+        draftBtn.innerHTML = originalText;
+      }
+    }
+    return;
+  }
+  
+  const sendBtn = event.target.closest(".send-reply-btn");
+  if (sendBtn) {
+    const channelId = sendBtn.dataset.channelId;
+    const parentId = sendBtn.dataset.parentId;
+    const commentId = sendBtn.dataset.commentId;
+    const textarea = document.getElementById(`reply-text-${commentId}`);
+    if (textarea) {
+      const replyText = textarea.value.trim();
+      if (!replyText) {
+        alert("Please write a reply first.");
+        return;
+      }
+      sendBtn.disabled = true;
+      const originalText = sendBtn.innerHTML;
+      sendBtn.innerHTML = "Sending...";
+      try {
+        await api("/api/ytm/comment/reply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ channelId, parentId, replyText }),
+        });
+        
+        const item = document.getElementById(`comment-${commentId}`);
+        if (item) {
+          const parent = item.parentElement;
+          item.remove();
+          
+          if (parent && parent.children.length === 0) {
+            const drawer = parent.closest(".ytm-comments-drawer");
+            if (drawer) {
+              drawer.innerHTML = "<p class='no-comments-msg' style='color: green; font-weight: 500;'>All comments replied to!</p>";
+              setTimeout(() => drawer.classList.add("is-hidden"), 2000);
+            }
+            
+            const videoId = drawer.id.replace("drawer-", "");
+            const stateVideo = state.ytmResults.find(v => v.id === videoId);
+            if (stateVideo) {
+              stateVideo.unansweredComments = [];
+              stateVideo.gaps = stateVideo.gaps.filter(g => g !== "Not Replied/Not Hearted");
+              stateVideo.score = Math.max(0, 100 - stateVideo.gaps.length * 25);
+              renderYtmAuditResults();
+            }
+          } else {
+            const drawerId = parent.closest(".ytm-comments-drawer").id;
+            const videoId = drawerId.replace("drawer-", "");
+            const stateVideo = state.ytmResults.find(v => v.id === videoId);
+            if (stateVideo) {
+              stateVideo.unansweredComments = stateVideo.unansweredComments.filter(c => c.id !== commentId);
+              const toggleBtnForVideo = document.querySelector(`[data-drawer-id="${drawerId}"]`);
+              if (toggleBtnForVideo) {
+                toggleBtnForVideo.textContent = `Comments (${stateVideo.unansweredComments.length})`;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        alert("Failed to send reply: " + err.message);
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = originalText;
+      }
+    }
+    return;
+  }
+});
+
+// Attach event listeners for Outliers panel
+document.querySelector("#scanOutliersButton")?.addEventListener("click", () => {
+  scanOutliers();
+});
+
+document.querySelector("#outlierCategorySelect")?.addEventListener("change", () => {
+  renderOutliers();
+});
+
+document.querySelector("#outlierFormatSelect")?.addEventListener("change", () => {
+  renderOutliers();
+});

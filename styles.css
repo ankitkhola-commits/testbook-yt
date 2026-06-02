@@ -2352,3 +2352,239 @@ input {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* YTM Comments Drawer styles */
+.ytm-comments-drawer {
+  background: #f8fafc;
+  border-top: 1px solid var(--line, #e2e8f0);
+  border-bottom: 1px solid var(--line, #e2e8f0);
+  padding: 16px;
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ytm-comments-drawer h3 {
+  font-size: 14px;
+  margin: 0;
+  color: var(--text, #1e293b);
+  font-weight: 600;
+}
+
+.ytm-comment-item {
+  background: #ffffff;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comment-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.comment-author-img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.comment-header strong {
+  font-size: 13px;
+  color: var(--text, #1e293b);
+}
+
+.comment-time {
+  font-size: 11px;
+  color: var(--muted, #64748b);
+}
+
+.comment-body p {
+  margin: 0;
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.4;
+}
+
+.comment-reply-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.comment-reply-box textarea {
+  width: 100%;
+  min-height: 55px;
+  padding: 8px 12px;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 6px;
+  font-size: 13px;
+  resize: vertical;
+  background: #ffffff;
+  color: var(--text, #1e293b);
+  font-family: inherit;
+}
+
+.comment-reply-box textarea:focus {
+  outline: none;
+  border-color: var(--accent, #3b82f6);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.comment-reply-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Outlier Cards and Badges styles */
+.outliers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.outlier-card {
+  background: #ffffff;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.outlier-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.outlier-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+}
+
+.outlier-format-badge {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.outlier-format-badge.video {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.outlier-format-badge.shorts {
+  background: #fce7f3;
+  color: #be185d;
+}
+
+.outlier-format-badge.live {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.outlier-card-header {
+  padding-right: 65px;
+}
+
+.outlier-card-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  color: #0f172a;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.outlier-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--muted, #64748b);
+}
+
+.outlier-meta-channel {
+  font-weight: 600;
+  color: #334155;
+  font-size: 12px;
+}
+
+.outlier-stats {
+  display: flex;
+  justify-content: space-between;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.outlier-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.outlier-stat-item span {
+  color: var(--muted, #64748b);
+  font-size: 9px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.outlier-stat-item strong {
+  color: #0f172a;
+  font-size: 12px;
+}
+
+.outlier-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.outlier-actions .link-chip {
+  flex: 1;
+  text-align: center;
+  justify-content: center;
+  margin: 0;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
