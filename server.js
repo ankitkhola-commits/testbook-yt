@@ -98,7 +98,6 @@ const competitorCategoryMap = {
     { group: "Banking Wallah", ids: ["UCg5_K50hLTKerLkSE7I1yWQ"] },
     { group: "Adda247", ids: ["UC1L2JoMpcY6MRLhFd3gg5Xg"] },
     { group: "Adda247 Bankers", ids: ["UC7DgZZeZD2HKc7JUAsIwe-w"] },
-    { group: "Bankers Way by Unacademy", ids: ["UCzdgWZfyWtkrlRUrLwWYfbw"] },
   ],
   UPSC: [
     { group: "Testbook PrepLab", ids: ["UC1pJ8ods7vGboH2BXuZVBbQ"] },
@@ -1008,7 +1007,7 @@ app.get("/api/ytm/audit", async (req, res, next) => {
               } else {
                 const textOriginal = topComment.snippet?.textOriginal || "";
                 const textDisplay = topComment.snippet?.textDisplay || "";
-                const hasTargetLink = textOriginal.includes("link.testbook.com") || textDisplay.includes("link.testbook.com");
+                const hasTargetLink = /https?:\/\//i.test(textOriginal) || /https?:\/\//i.test(textDisplay);
                 if (!hasTargetLink) {
                   gaps.push("Link Missing in Pinned Comment");
                 }
@@ -2032,35 +2031,64 @@ async function publishedContentResult(auth, channel, dates) {
 
 async function loadPublishedContent(auth, channel, dates) {
   const youtube = google.youtube({ version: "v3", auth });
-  const videos = [];
-  let pageToken;
-  let reachedOlderVideos = false;
-  do {
-    const response = await youtube.playlistItems.list({
-      part: ["snippet", "contentDetails"],
-      playlistId: channel.uploadsPlaylistId,
-      maxResults: 50,
-      pageToken,
-    });
-    for (const item of response.data.items || []) {
-      const publishedAt = item.contentDetails?.videoPublishedAt || item.snippet?.publishedAt;
-      if (!publishedAt) continue;
-      const dateOnly = publishedAt.slice(0, 10);
-      if (dateOnly < dates.startDate) {
-        reachedOlderVideos = true;
+  const playlists = [];
+  if (channel.id && channel.id.startsWith("UC")) {
+    const suffix = channel.id.slice(2);
+    playlists.push({ id: "UULF" + suffix, format: "Video" });
+    playlists.push({ id: "UUSH" + suffix, format: "Shorts" });
+    playlists.push({ id: "UULV" + suffix, format: "Live" });
+  } else if (channel.uploadsPlaylistId) {
+    playlists.push({ id: channel.uploadsPlaylistId, format: null });
+  }
+
+  const videosPromises = playlists.map(async (playlist) => {
+    const list = [];
+    let pageToken;
+    let reachedOlderVideos = false;
+    do {
+      try {
+        const response = await youtube.playlistItems.list({
+          part: ["snippet", "contentDetails"],
+          playlistId: playlist.id,
+          maxResults: 50,
+          pageToken,
+        });
+        const items = response.data.items || [];
+        if (items.length === 0) break;
+        for (const item of items) {
+          const publishedAt = item.contentDetails?.videoPublishedAt || item.snippet?.publishedAt;
+          if (!publishedAt) continue;
+          const dateOnly = publishedAt.slice(0, 10);
+          if (dateOnly < dates.startDate) {
+            reachedOlderVideos = true;
+            break;
+          }
+          if (dateOnly <= dates.endDate) {
+            list.push({
+              id: item.contentDetails?.videoId,
+              publishedAt,
+              date: dateOnly,
+              title: item.snippet?.title || "Untitled",
+              format: playlist.format,
+            });
+          }
+        }
+        pageToken = reachedOlderVideos ? undefined : response.data.nextPageToken;
+      } catch (error) {
+        console.warn(`Could not load playlist ${playlist.id} for ${channel.id}:`, error.message);
         break;
       }
-      if (dateOnly <= dates.endDate) {
-        videos.push({ id: item.contentDetails?.videoId, publishedAt, date: dateOnly, title: item.snippet?.title || "Untitled" });
-      }
-    }
-    pageToken = reachedOlderVideos ? undefined : response.data.nextPageToken;
-  } while (pageToken && videos.length < 500);
+    } while (pageToken && list.length < 500);
+    return list;
+  });
+
+  const results = await Promise.all(videosPromises);
+  const videos = results.flat();
 
   const details = await videoDetails(auth, videos.map((video) => video.id));
   return videos.map((video) => ({
     ...video,
-    format: details[video.id]?.format || "Video",
+    format: video.format || details[video.id]?.format || "Video",
     views: Number(details[video.id]?.views || 0),
   }));
 }
