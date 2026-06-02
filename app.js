@@ -1,6 +1,8 @@
 const ranges = {
-  month: { label: "This month" },
+  "28": { label: "Last 28 days" },
   "7": { label: "Last 7 days" },
+  month: { label: "This month" },
+  prevMonth: { label: "Previous month" },
 };
 
 const formats = {
@@ -132,7 +134,7 @@ let state = {
   channels: [],
   selectedChannelId: "",
   channelSearch: "",
-  activeRange: "month",
+  activeRange: "28",
   selectedMonth: currentMonthValue(),
   activeView: "dashboard",
   activeCompetitorCategory: null,
@@ -1242,8 +1244,16 @@ function renderDelta(selector, currentValue = 0, previousValue = 0) {
 }
 
 function rangeLabel() {
-  if (state.activeRange !== "selectMonth") return ranges[state.activeRange].label;
-  return new Date(`${state.selectedMonth}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+  if (state.activeRange === "7" || state.activeRange === "28") {
+    return ranges[state.activeRange].label;
+  }
+  if (state.activeRange === "selectMonth") {
+    return new Date(`${state.selectedMonth}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+  }
+  if (state.report && state.report.dates) {
+    return new Date(`${state.report.dates.startDate}T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+  }
+  return ranges[state.activeRange].label;
 }
 
 async function loadSearchKeywords(date) {

@@ -2791,6 +2791,10 @@ function dateWindow(range, monthValue = "") {
     end.setTime(Math.min(monthEnd.getTime(), end.getTime()));
   } else if (range === "month") {
     start.setDate(1);
+  } else if (range === "prevMonth") {
+    end.setDate(0);
+    start = new Date(end);
+    start.setDate(1);
   } else {
     start.setDate(end.getDate() - Number(range || 7) + 1);
   }
@@ -2812,7 +2816,7 @@ function shiftIsoDate(dateText, days) {
 function comparisonWindow(dates, range) {
   const start = new Date(`${dates.startDate}T00:00:00Z`);
   const end = new Date(`${dates.endDate}T00:00:00Z`);
-  if (range === "selectMonth") {
+  if (range === "selectMonth" || range === "prevMonth") {
     const previousStart = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() - 1, 1));
     const previousEnd = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 0));
     return { startDate: isoDate(previousStart), endDate: isoDate(previousEnd), days: { startDate: isoDate(previousStart), endDate: isoDate(previousEnd) } };
