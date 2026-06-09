@@ -15,6 +15,7 @@ const port = Number(process.env.PORT || 4173);
 const dataDir = path.join(__dirname, ".data");
 const tokenPath = path.join(dataDir, "google-tokens.json");
 const profilesPath = path.join(dataDir, "google-profiles.json");
+const deletedChannelsPath = path.join(dataDir, "deleted-channels.json");
 const competitorPath = path.join(dataDir, "competitors.json");
 const competitorViewHistoryPath = path.join(dataDir, "competitor-view-history.json");
 const envPath = path.join(__dirname, ".env");
@@ -200,6 +201,9 @@ app.post("/api/config", async (req, res, next) => {
       GOOGLE_REDIRECT_URI: cleanSecret(req.body.googleRedirectUri) || `http://localhost:${port}/oauth2callback`,
       YOUTUBE_API_KEY: cleanSecret(req.body.youtubeApiKey),
       ANTHROPIC_API_KEY: cleanSecret(req.body.anthropicApiKey),
+      OPENAI_API_KEY: cleanSecret(req.body.openaiApiKey),
+      ELEVENLABS_API_KEY: cleanSecret(req.body.elevenlabsApiKey),
+      ELEVENLABS_VOICE_ID: cleanSecret(req.body.elevenlabsVoiceId),
     };
 
     for (const [key, value] of Object.entries(updates)) {
@@ -290,10 +294,16 @@ app.post("/api/logout-app", async (_req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/auth/google", async (_req, res) => {
+app.get("/auth/google", async (req, res) => {
   await hydrateEnvFromFile();
   if (!hasGoogleConfig()) {
     res.status(400).send("Missing Google OAuth config. Copy .env.example to .env and fill GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URI.");
+    return;
+  }
+
+  const viewer = readViewerSession(req);
+  if (!isAuditAdmin(viewer)) {
+    res.status(403).send("Access denied. Only authorized admins can connect new channels.");
     return;
   }
 
@@ -369,6 +379,53 @@ app.get("/api/channels", async (_req, res, next) => {
   try {
     const entries = await connectedChannelEntries();
     res.json({ channels: publicChannels(entries) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/channels/:channelId", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (!isAuditAdmin(viewer)) {
+      return res.status(403).json({ error: "Access denied. Only authorized admins can remove channels." });
+    }
+
+    const { channelId } = req.params;
+    if (!channelId) {
+      return res.status(400).json({ error: "Missing channelId" });
+    }
+
+    // Add to deleted channels blacklist
+    const deletedIds = await readDeletedChannelIds();
+    if (!deletedIds.includes(channelId)) {
+      deletedIds.push(channelId);
+      await saveDeletedChannelIds(deletedIds);
+    }
+
+    // Clean up profiles
+    const profiles = await readProfiles();
+    let profilesChanged = false;
+    const updatedProfiles = [];
+
+    for (const profile of profiles) {
+      const originalLength = (profile.channels || []).length;
+      profile.channels = (profile.channels || []).filter(c => c.id !== channelId);
+      if (profile.channels.length !== originalLength) {
+        profilesChanged = true;
+      }
+      if (profile.channels.length > 0) {
+        updatedProfiles.push(profile);
+      } else {
+        profilesChanged = true;
+      }
+    }
+
+    if (profilesChanged) {
+      await saveProfiles(updatedProfiles);
+    }
+
+    res.json({ success: true });
   } catch (error) {
     next(error);
   }
@@ -835,10 +892,6 @@ app.get("/api/seo/audit", async (req, res, next) => {
 
 app.get("/api/ytm/audit", async (req, res, next) => {
   try {
-    const viewer = readViewerSession(req);
-    if (!isAuditAdmin(viewer)) {
-      return res.status(403).json({ error: "Access denied. Only authorized admins can run SEO and YTM audits." });
-    }
 
     const entries = await connectedChannelEntries();
     if (!entries.length) {
@@ -1243,11 +1296,11 @@ async function runOutliersScanInternal() {
   const activeOutliersMap = new Map();
   const existing = await readCompetitorOutliers();
   const now = Date.now();
-  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+  const oneDayMs = 24 * 60 * 60 * 1000;
   
   for (const item of existing) {
     const age = now - new Date(item.publishedAt).getTime();
-    if (age <= sevenDaysMs) {
+    if (age <= oneDayMs && (item.views || 0) >= 5000) {
       activeOutliersMap.set(item.id, item);
     }
   }
@@ -1344,10 +1397,12 @@ async function runOutliersScanInternal() {
       for (const item of latestDetails) {
         const publishedAt = item.snippet?.publishedAt;
         const pubTime = new Date(publishedAt).getTime();
-        if (now - pubTime > sevenDaysMs) continue;
+        if (now - pubTime > oneDayMs) continue;
         
         const format = classifyPublicVideo(item, liveVideoIdsLatest);
         const views = Number(item.statistics?.viewCount || 0);
+        if (views < 5000) continue;
+        
         const baselineAvg = baseline.averages[format] || baseline.overall || 1;
         
         if (views > baselineAvg) {
@@ -1411,10 +1466,6 @@ function startOutliersScheduler() {
 
 app.post("/api/ytm/comment/draft", async (req, res, next) => {
   try {
-    const viewer = readViewerSession(req);
-    if (!isAuditAdmin(viewer)) {
-      return res.status(403).json({ error: "Access denied." });
-    }
 
     const { commentText, videoTitle, authorName } = req.body;
     if (!commentText) {
@@ -1454,10 +1505,6 @@ Requirements:
 
 app.post("/api/ytm/comment/reply", async (req, res, next) => {
   try {
-    const viewer = readViewerSession(req);
-    if (!isAuditAdmin(viewer)) {
-      return res.status(403).json({ error: "Access denied." });
-    }
 
     const { channelId, parentId, replyText } = req.body;
     if (!channelId || !parentId || !replyText) {
@@ -1559,6 +1606,158 @@ Provide highly engaging, clickable (but not clickbait) titles tailored to educat
     next(error);
   }
 });
+
+app.post("/api/community-posts/generate", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (!isAuditAdmin(viewer)) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+    const { topic, postType, channelContext } = req.body;
+    if (!topic || !postType) {
+      return res.status(400).json({ error: "Missing topic or postType" });
+    }
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(400).json({ error: "Add an Anthropic API key before generating posts." });
+    }
+
+    const prompt = `You are a YouTube growth and audience engagement expert.
+Generate 3 distinct community post concepts for a YouTube channel.
+Topic / Theme: "${topic}"
+Post Type requested: "${postType}" (Must be one of: "poll", "quiz", "teaser", "qa")
+Channel Context / Niche: "${channelContext || "Educational/exam prep and creator growth"}"
+
+Instructions:
+1. YouTube community posts must be highly engaging, use conversational formatting, clear spacing, emojis, and have a clear call-to-action.
+2. For polls, provide 2 to 4 options (max 30 characters each).
+3. For quizzes, provide 2 to 4 options (max 30 characters each) and specify the correct answer index (0-based) along with a clear explanation.
+4. For teasers, write highly curiosity-inducing copy to hype up an upcoming video.
+5. For QA/discussion, write thought-provoking open-ended questions that encourage comments.
+
+Return a strict JSON array only, with exactly 3 items. Do not wrap in markdown except the JSON block if necessary.
+Each item in the array must follow this schema:
+{
+  "postText": "Main post description copy here...",
+  "pollOptions": ["Option A", "Option B", "Option C"], // array of strings (max 30 chars each), omit if not poll/quiz
+  "quizAnswerIndex": 0, // Index of correct option (0-based) if quiz, otherwise null
+  "explanation": "Brief explanation or background info (for quiz or engagement context)..."
+}`;
+
+    const data = await fetchAnthropicJson({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1500,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const text = (data.content || []).map((item) => item.text || "").join("\n").trim();
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error("Claude did not return valid JSON suggestions.");
+    const parsed = JSON.parse(match[0]);
+    res.json({ posts: parsed });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/thumbnail/suggest-concepts", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (!isAuditAdmin(viewer)) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+    const { title } = req.body;
+    if (!title) {
+      return res.status(400).json({ error: "Missing title" });
+    }
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(400).json({ error: "Add an Anthropic API key before requesting suggestions." });
+    }
+
+    const prompt = `You are a YouTube packaging expert.
+For the video title: "${title}"
+Generate 3 distinct visual thumbnail concepts that would achieve high CTR.
+For each concept, specify:
+1. The background (e.g. "split screen dark blue and vibrant red with geometric grid").
+2. The focal point (e.g. "a close up of a shocked face pointing right at a chart").
+3. The exact text overlay (short, 2-4 words, high impact, e.g. "DON'T DO THIS").
+4. The color scheme (e.g. "Yellow text, red arrow").
+5. The visual hook/decal (e.g. "a neon red circle highlighting a specific number on the chart").
+
+Return a strict JSON array of 3 objects.
+Each object must have the fields:
+"backgroundStyle" (description of background/gradients)
+"focalPoint" (description of main character or subject)
+"textOverlay" (the exact text to place on the thumbnail, max 4 words)
+"colorScheme" (dominant colors for elements)
+"visualHook" (arrows, badges, circles, etc.)
+"reasoning" (one sentence explaining why this gets clicks)
+`;
+
+    const data = await fetchAnthropicJson({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1200,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const text = (data.content || []).map((item) => item.text || "").join("\n").trim();
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error("Claude did not return valid JSON suggestions.");
+    const parsed = JSON.parse(match[0]);
+    res.json({ concepts: parsed });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/voiceover/export", async (req, res, next) => {
+  try {
+    const { text, lang } = req.body;
+    if (!text) {
+      return res.status(400).json({ error: "Text is required." });
+    }
+    
+    // Split into chunks of 150 chars
+    const chunks = [];
+    let currentChunk = "";
+    const sentences = text.match(/[^.!?]+[.!?]*/g) || [text];
+    
+    for (const sentence of sentences) {
+      if ((currentChunk + sentence).length < 180) {
+        currentChunk += sentence;
+      } else {
+        if (currentChunk) chunks.push(currentChunk.trim());
+        currentChunk = sentence;
+      }
+    }
+    if (currentChunk) chunks.push(currentChunk.trim());
+
+    const audioBuffers = [];
+    const language = lang || "en";
+    
+    for (const chunk of chunks) {
+      const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${language}&client=tw-ob&q=${encodeURIComponent(chunk)}`;
+      const response = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        }
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch speech chunk from Google.");
+      }
+      const buffer = await response.arrayBuffer();
+      audioBuffers.push(Buffer.from(buffer));
+    }
+    
+    // Concat all buffers
+    const merged = Buffer.concat(audioBuffers);
+    
+    res.setHeader("Content-Type", "audio/mpeg");
+    res.send(merged);
+  } catch (error) {
+    next(error);
+  }
+});
+
 
 function classifySeoVideo(video, liveVideoIds = new Set()) {
   const title = `${video.snippet?.title || ""} ${(video.snippet?.tags || []).join(" ")}`.toLowerCase();
@@ -1831,16 +2030,23 @@ function configStatus() {
   const googleConfigured = hasGoogleConfig();
   const youtubeApiKeyConfigured = Boolean(process.env.YOUTUBE_API_KEY);
   const claudeConfigured = Boolean(process.env.ANTHROPIC_API_KEY);
+  const openaiConfigured = Boolean(process.env.OPENAI_API_KEY);
+  const elevenlabsConfigured = Boolean(process.env.ELEVENLABS_API_KEY);
   return {
     connected: false,
     googleConfigured,
     youtubeApiKeyConfigured,
     claudeConfigured,
+    openaiConfigured,
+    elevenlabsConfigured,
     allConfigured: googleConfigured && youtubeApiKeyConfigured && claudeConfigured,
     redirectUri: process.env.GOOGLE_REDIRECT_URI || `http://localhost:${port}/oauth2callback`,
     clientIdPreview: previewSecret(process.env.GOOGLE_CLIENT_ID),
     youtubeKeyPreview: previewSecret(process.env.YOUTUBE_API_KEY),
     anthropicKeyPreview: previewSecret(process.env.ANTHROPIC_API_KEY),
+    openaiKeyPreview: previewSecret(process.env.OPENAI_API_KEY),
+    elevenlabsKeyPreview: previewSecret(process.env.ELEVENLABS_API_KEY),
+    elevenlabsVoiceId: process.env.ELEVENLABS_VOICE_ID || "",
     storageMode: sql ? "database" : "local",
   };
 }
@@ -1997,11 +2203,40 @@ async function hasConnectedGoogle() {
   return Boolean(await readTokens());
 }
 
+async function readDeletedChannelIds() {
+  if (sql) {
+    await ensureStorage();
+    const rows = await sql`select payload from app_state where key = 'deleted_channels' limit 1`;
+    return Array.isArray(rows[0]?.payload) ? rows[0].payload : [];
+  }
+  try {
+    return JSON.parse(await readFile(deletedChannelsPath, "utf8"));
+  } catch {
+    return [];
+  }
+}
+
+async function saveDeletedChannelIds(ids) {
+  if (sql) {
+    await ensureStorage();
+    await sql`
+      insert into app_state (key, payload)
+      values ('deleted_channels', ${sql.json(ids)})
+      on conflict (key) do update set payload = excluded.payload, updated_at = now()
+    `;
+    return;
+  }
+  await mkdir(dataDir, { recursive: true });
+  await writeFile(deletedChannelsPath, JSON.stringify(ids, null, 2), "utf8");
+}
+
 async function connectedChannelEntries() {
   let profiles = await readProfiles();
   if (!profiles.length) {
     profiles = await migrateLegacyToken();
   }
+
+  const deletedIds = await readDeletedChannelIds();
 
   const entries = [];
   for (const profile of profiles) {
@@ -2009,11 +2244,13 @@ async function connectedChannelEntries() {
     let channels = profile.channels || [];
     try {
       channels = await listOwnedChannels(auth);
+      channels = channels.filter(c => !deletedIds.includes(c.id));
       await updateProfileChannels(profile.id, channels);
     } catch {
       // Keep last-known channels visible if a token refresh fails; API calls will surface errors later.
     }
     for (const channel of channels) {
+      if (deletedIds.includes(channel.id)) continue;
       entries.push({ auth, profileId: profile.id, channel: { ...channel, profileId: profile.id } });
     }
   }
@@ -2172,7 +2409,16 @@ async function hydrateEnvFromFile() {
 }
 
 async function writeEnvFile(values) {
-  const orderedKeys = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URI", "YOUTUBE_API_KEY", "ANTHROPIC_API_KEY"];
+  const orderedKeys = [
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "GOOGLE_REDIRECT_URI",
+    "YOUTUBE_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "ELEVENLABS_API_KEY",
+    "ELEVENLABS_VOICE_ID"
+  ];
   const body = orderedKeys
     .filter((key) => values[key])
     .map((key) => `${key}=${values[key]}`)
