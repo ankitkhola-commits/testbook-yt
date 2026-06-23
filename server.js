@@ -1291,126 +1291,130 @@ async function runOutliersScanInternal() {
     }
   }
 
-  for (const comp of competitors) {
-    try {
-      const channelId = comp.id;
-      const uploadsPlaylistId = "UU" + channelId.slice(2);
-      const livePlaylistId = "UULV" + channelId.slice(2);
-      
-      const cacheKey = makeCacheKey("competitor-baseline", channelId);
-      const baseline = await cached(cacheKey, 24 * 60 * 60 * 1000, async () => {
-        const res = await youtube.playlistItems.list({
-          part: ["snippet", "contentDetails"],
-          playlistId: uploadsPlaylistId,
-          maxResults: 30,
-        }).catch(() => ({ data: { items: [] } }));
+  const batchSize = 10;
+  for (let i = 0; i < competitors.length; i += batchSize) {
+    const chunk = competitors.slice(i, i + batchSize);
+    await Promise.all(chunk.map(async (comp) => {
+      try {
+        const channelId = comp.id;
+        const uploadsPlaylistId = "UU" + channelId.slice(2);
+        const livePlaylistId = "UULV" + channelId.slice(2);
         
-        const items = res.data.items || [];
-        const videoIds = items.map(item => item.contentDetails?.videoId).filter(Boolean);
-        if (!videoIds.length) {
-          return { averages: { Video: 0, Shorts: 0, Live: 0 }, overall: 0 };
-        }
-        
-        const liveRes = await youtube.playlistItems.list({
-          part: ["contentDetails"],
-          playlistId: livePlaylistId,
-          maxResults: 30,
-        }).catch(() => ({ data: { items: [] } }));
-        const liveVideoIds = new Set((liveRes.data.items || []).map(item => item.contentDetails?.videoId).filter(Boolean));
-        
-        const details = [];
-        for (let i = 0; i < videoIds.length; i += 50) {
-          const chunk = videoIds.slice(i, i + 50);
-          const chunkRes = await youtube.videos.list({
-            part: ["snippet", "contentDetails", "statistics", "liveStreamingDetails"],
-            id: chunk,
+        const cacheKey = makeCacheKey("competitor-baseline", channelId);
+        const baseline = await cached(cacheKey, 24 * 60 * 60 * 1000, async () => {
+          const res = await youtube.playlistItems.list({
+            part: ["snippet", "contentDetails"],
+            playlistId: uploadsPlaylistId,
+            maxResults: 30,
+          }).catch(() => ({ data: { items: [] } }));
+          
+          const items = res.data.items || [];
+          const videoIds = items.map(item => item.contentDetails?.videoId).filter(Boolean);
+          if (!videoIds.length) {
+            return { averages: { Video: 0, Shorts: 0, Live: 0 }, overall: 0 };
+          }
+          
+          const liveRes = await youtube.playlistItems.list({
+            part: ["contentDetails"],
+            playlistId: livePlaylistId,
+            maxResults: 30,
+          }).catch(() => ({ data: { items: [] } }));
+          const liveVideoIds = new Set((liveRes.data.items || []).map(item => item.contentDetails?.videoId).filter(Boolean));
+          
+          const details = [];
+          for (let idx = 0; idx < videoIds.length; idx += 50) {
+            const videoChunk = videoIds.slice(idx, idx + 50);
+            const chunkRes = await youtube.videos.list({
+              part: ["snippet", "contentDetails", "statistics", "liveStreamingDetails"],
+              id: videoChunk,
+            });
+            details.push(...(chunkRes.data.items || []));
+          }
+          
+          const videos = details.map(item => {
+            const format = classifyPublicVideo(item, liveVideoIds);
+            return {
+              views: Number(item.statistics?.viewCount || 0),
+              format,
+            };
           });
-          details.push(...(chunkRes.data.items || []));
-        }
-        
-        const videos = details.map(item => {
-          const format = classifyPublicVideo(item, liveVideoIds);
-          return {
-            views: Number(item.statistics?.viewCount || 0),
-            format,
+          
+          const formatSum = { Video: 0, Shorts: 0, Live: 0 };
+          const formatCount = { Video: 0, Shorts: 0, Live: 0 };
+          let totalViews = 0;
+          
+          for (const v of videos) {
+            formatSum[v.format] += v.views;
+            formatCount[v.format]++;
+            totalViews += v.views;
+          }
+          
+          const overall = Math.round(totalViews / Math.max(1, videos.length));
+          const averages = {
+            Video: formatCount.Video > 0 ? Math.round(formatSum.Video / formatCount.Video) : overall,
+            Shorts: formatCount.Shorts > 0 ? Math.round(formatSum.Shorts / formatCount.Shorts) : overall,
+            Live: formatCount.Live > 0 ? Math.round(formatSum.Live / formatCount.Live) : overall,
           };
+          
+          return { averages, overall };
         });
         
-        const formatSum = { Video: 0, Shorts: 0, Live: 0 };
-        const formatCount = { Video: 0, Shorts: 0, Live: 0 };
-        let totalViews = 0;
+        const latestRes = await youtube.playlistItems.list({
+          part: ["snippet", "contentDetails"],
+          playlistId: uploadsPlaylistId,
+          maxResults: 5,
+        }).catch(() => ({ data: { items: [] } }));
         
-        for (const v of videos) {
-          formatSum[v.format] += v.views;
-          formatCount[v.format]++;
-          totalViews += v.views;
+        const latestItems = latestRes.data.items || [];
+        const latestVideoIds = latestItems.map(item => item.contentDetails?.videoId).filter(Boolean);
+        if (!latestVideoIds.length) return;
+        
+        const liveResLatest = await youtube.playlistItems.list({
+          part: ["contentDetails"],
+          playlistId: livePlaylistId,
+          maxResults: 10,
+        }).catch(() => ({ data: { items: [] } }));
+        const liveVideoIdsLatest = new Set((liveResLatest.data.items || []).map(item => item.contentDetails?.videoId).filter(Boolean));
+        
+        const latestDetailsRes = await youtube.videos.list({
+          part: ["snippet", "contentDetails", "statistics", "liveStreamingDetails"],
+          id: latestVideoIds,
+        });
+        
+        const latestDetails = latestDetailsRes.data.items || [];
+        
+        for (const item of latestDetails) {
+          const publishedAt = item.snippet?.publishedAt;
+          const pubTime = new Date(publishedAt).getTime();
+          if (now - pubTime > sevenDaysMs) continue;
+          
+          const format = classifyPublicVideo(item, liveVideoIdsLatest);
+          const views = Number(item.statistics?.viewCount || 0);
+          const baselineAvg = baseline.averages[format] || baseline.overall || 1;
+          
+          if (views > baselineAvg && views > 5000) {
+            const outlierScore = Number((views / baselineAvg).toFixed(2));
+            activeOutliersMap.set(item.id, {
+              id: item.id,
+              title: item.snippet?.title || "Untitled",
+              channelId,
+              channelTitle: item.snippet?.channelTitle || comp.name,
+              category: comp.category,
+              group: comp.group,
+              views,
+              baselineAverage: baselineAvg,
+              outlierScore,
+              publishedAt,
+              format,
+              url: `https://www.youtube.com/watch?v=${item.id}`,
+              scannedAt: new Date().toISOString(),
+            });
+          }
         }
-        
-        const overall = Math.round(totalViews / Math.max(1, videos.length));
-        const averages = {
-          Video: formatCount.Video > 0 ? Math.round(formatSum.Video / formatCount.Video) : overall,
-          Shorts: formatCount.Shorts > 0 ? Math.round(formatSum.Shorts / formatCount.Shorts) : overall,
-          Live: formatCount.Live > 0 ? Math.round(formatSum.Live / formatCount.Live) : overall,
-        };
-        
-        return { averages, overall };
-      });
-      
-      const latestRes = await youtube.playlistItems.list({
-        part: ["snippet", "contentDetails"],
-        playlistId: uploadsPlaylistId,
-        maxResults: 5,
-      }).catch(() => ({ data: { items: [] } }));
-      
-      const latestItems = latestRes.data.items || [];
-      const latestVideoIds = latestItems.map(item => item.contentDetails?.videoId).filter(Boolean);
-      if (!latestVideoIds.length) continue;
-      
-      const liveResLatest = await youtube.playlistItems.list({
-        part: ["contentDetails"],
-        playlistId: livePlaylistId,
-        maxResults: 10,
-      }).catch(() => ({ data: { items: [] } }));
-      const liveVideoIdsLatest = new Set((liveResLatest.data.items || []).map(item => item.contentDetails?.videoId).filter(Boolean));
-      
-      const latestDetailsRes = await youtube.videos.list({
-        part: ["snippet", "contentDetails", "statistics", "liveStreamingDetails"],
-        id: latestVideoIds,
-      });
-      
-      const latestDetails = latestDetailsRes.data.items || [];
-      
-      for (const item of latestDetails) {
-        const publishedAt = item.snippet?.publishedAt;
-        const pubTime = new Date(publishedAt).getTime();
-        if (now - pubTime > sevenDaysMs) continue;
-        
-        const format = classifyPublicVideo(item, liveVideoIdsLatest);
-        const views = Number(item.statistics?.viewCount || 0);
-        const baselineAvg = baseline.averages[format] || baseline.overall || 1;
-        
-        if (views > baselineAvg && views > 5000) {
-          const outlierScore = Number((views / baselineAvg).toFixed(2));
-          activeOutliersMap.set(item.id, {
-            id: item.id,
-            title: item.snippet?.title || "Untitled",
-            channelId,
-            channelTitle: item.snippet?.channelTitle || comp.name,
-            category: comp.category,
-            group: comp.group,
-            views,
-            baselineAverage: baselineAvg,
-            outlierScore,
-            publishedAt,
-            format,
-            url: `https://www.youtube.com/watch?v=${item.id}`,
-            scannedAt: new Date().toISOString(),
-          });
-        }
+      } catch (err) {
+        console.error(`Failed scanning competitor ${comp.name} (${comp.id}):`, err.message);
       }
-    } catch (err) {
-      console.error(`Failed scanning competitor ${comp.name} (${comp.id}):`, err.message);
-    }
+    }));
   }
   
   const sortedOutliers = Array.from(activeOutliersMap.values())
