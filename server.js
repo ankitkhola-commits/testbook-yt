@@ -151,6 +151,23 @@ const competitorCategoryMap = {
     { group: "Adda247 Telugu", ids: ["UCqqDD-1K6WTjS16Y8pdY1_Q"] },
     { group: "SI / Constable & Groups", ids: ["UCN52umFhTwXEkVoFZqZs4eg"] },
   ],
+  Tamil: [
+    { group: "Testbook Tamil", ids: ["UC-a42jy3Ow5RTLGBQwa2y8g"] },
+    { group: "VERANDA RACE", ids: ["UCaOd6Iy8peqYR8_wDBAcXaQ"] },
+    { group: "Adda247 Tamil (SSC Railway)", ids: ["UCqDr2ZYjgARlzcRi5OEqCGA"] },
+    { group: "Adda247 Tamil", ids: ["UCmJXBP6ccOwCodih8RZDGkQ"] },
+    { group: "Genius SSC", ids: ["UCHGCINM4m3SpGyPI4i66b7Q"] },
+    { group: "Learn with Vignesh", ids: ["UCk-VE43GWfhckqRrnM16kZA"] },
+    { group: "Chandru Maths", ids: ["UCGpQ0YuawhirWPKFnXcTh5A"] },
+  ],
+  "JAIIB CAIIB": [
+    { group: "Testbook JAIIB CAIIB", ids: ["UCqY1_5OPoTn2QoWL7mbiI_Q"] },
+    { group: "PW JAIIB", ids: ["UC2TJx6PrcReByvidr7-tdSQ"] },
+    { group: "Oliveboard JAIIB", ids: ["UC18uJ0aohtMg5BLRcdwoGkw"] },
+    { group: "Mahesh Sir JAIIB", ids: ["UCkOSmpPtkRc86R9W_iw2TDw"] },
+    { group: "Edutap JAIIB", ids: ["UC922p9PusjDy40qBsmypzYA"] },
+    { group: "Adda247 JAIIB", ids: ["UCxykVmXr1GwZZZxKG8ZRaUg"] },
+  ],
 };
 
 const scopes = [
@@ -636,13 +653,10 @@ const candidateMappings = {
 };
 
 const ytmMappings = {
-  "Himanshu": [
+  "Nitin": [
     "SuperCoaching MPSC by Testbook",
-    "SuperCoaching Marathi by Testbook"
-  ],
-  "Ayush": [
-    "Supercoaching Regulatory Bodies by Testbook",
-    "Testbook - JAIIB CAIIB"
+    "SuperCoaching Marathi by Testbook",
+    "UCcpVPJAwpfJlcGE1J84QXvA"
   ],
   "Atul Sharma": [
     "UPSC PrepLab"
@@ -678,7 +692,8 @@ const ytmMappings = {
   ],
   "Vivek": [
     "AE JE Testbook",
-    "SSC Testbook"
+    "SSC Testbook",
+    "Testbook - JAIIB CAIIB"
   ]
 };
 
@@ -875,7 +890,8 @@ app.get("/api/ytm/audit", async (req, res, next) => {
       const allowedTitlesLower = new Set(allowedTitles.map(t => t.toLowerCase().trim()));
       selectedEntries = entries.filter(entry => {
         const title = (entry.channel.name || "").toLowerCase().trim();
-        return allowedTitlesLower.has(title);
+        const id = (entry.channel.id || "").toLowerCase().trim();
+        return allowedTitlesLower.has(title) || allowedTitlesLower.has(id);
       });
     }
     
@@ -1373,7 +1389,7 @@ async function runOutliersScanInternal() {
         const views = Number(item.statistics?.viewCount || 0);
         const baselineAvg = baseline.averages[format] || baseline.overall || 1;
         
-        if (views > baselineAvg) {
+        if (views > baselineAvg && views > 5000) {
           const outlierScore = Number((views / baselineAvg).toFixed(2));
           activeOutliersMap.set(item.id, {
             id: item.id,
@@ -1513,7 +1529,8 @@ app.get("/api/competitors/outliers", async (req, res, next) => {
       return res.status(403).json({ error: "Access denied. Only authorized admins can view trending alerts." });
     }
     const outliers = await readCompetitorOutliers();
-    res.json({ outliers });
+    const filtered = outliers.filter(item => Number(item.views || 0) > 5000);
+    res.json({ outliers: filtered });
   } catch (error) {
     next(error);
   }

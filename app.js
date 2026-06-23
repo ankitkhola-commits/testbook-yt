@@ -11,7 +11,7 @@ const formats = {
   live: { label: "Live", color: "#0f9f96" },
 };
 
-const competitorCategories = ["Testbook", "Teaching", "UGC NET", "CGL", "Odisha", "Bengali", "Marathi", "MPSC", "AE JE", "Bihar", "Banking", "Railways", "UPSC", "Punjab", "Telugu"];
+const competitorCategories = ["Testbook", "Teaching", "UGC NET", "CGL", "Odisha", "Bengali", "Marathi", "MPSC", "AE JE", "Bihar", "Banking", "Railways", "UPSC", "Punjab", "Telugu", "Tamil", "JAIIB CAIIB"];
 const competitorAutoRefreshMs = 24 * 60 * 60 * 1000; // once a day
 let competitorAutoRefreshTimer = null;
 const activeProgressBars = {};
@@ -66,13 +66,10 @@ function getCandidateName(channelTitle) {
 }
 
 const ytmMappings = {
-  "Himanshu": [
+  "Nitin": [
     "SuperCoaching MPSC by Testbook",
-    "SuperCoaching Marathi by Testbook"
-  ],
-  "Ayush": [
-    "Supercoaching Regulatory Bodies by Testbook",
-    "Testbook - JAIIB CAIIB"
+    "SuperCoaching Marathi by Testbook",
+    "UCcpVPJAwpfJlcGE1J84QXvA"
   ],
   "Atul Sharma": [
     "UPSC PrepLab"
@@ -108,14 +105,19 @@ const ytmMappings = {
   ],
   "Vivek": [
     "AE JE Testbook",
-    "SSC Testbook"
+    "SSC Testbook",
+    "Testbook - JAIIB CAIIB"
   ]
 };
 
-function getYtmName(channelTitle) {
+function getYtmName(channelTitle, channelId) {
   const cleanTitle = String(channelTitle || "").trim().toLowerCase();
+  const cleanId = String(channelId || "").trim().toLowerCase();
   for (const [manager, channels] of Object.entries(ytmMappings)) {
-    if (channels.some(ch => ch.trim().toLowerCase() === cleanTitle)) {
+    if (channels.some(ch => {
+      const cleanCh = ch.trim().toLowerCase();
+      return cleanCh === cleanTitle || cleanCh === cleanId;
+    })) {
       return manager;
     }
   }
@@ -864,7 +866,6 @@ function renderCategoryBenchmark(data) {
           <span>Short</span>
           <span>Video</span>
           <span>Live</span>
-          <span>Eng %</span>
         </div>
         ${data.groups.map((group) => `
           <div class="benchmark-row">
@@ -873,7 +874,6 @@ function renderCategoryBenchmark(data) {
             ${benchmarkCell(group.averageViews.shorts, leaders.shorts, group.name)}
             ${benchmarkCell(group.averageViews.videos, leaders.videos, group.name)}
             ${benchmarkCell(group.averageViews.live, leaders.live, group.name)}
-            ${benchmarkCell(group.engagement, leaders.engagement, group.name, formatPercentCompact)}
           </div>
         `).join("")}
       </div>
@@ -1066,7 +1066,6 @@ function renderResearchResults() {
         <span>Channel</span>
         <span>Format</span>
         <span>Views</span>
-        <span>Outlier</span>
         <span>Link</span>
       </div>
       ${filtered.map((item, index) => `
@@ -1079,7 +1078,6 @@ function renderResearchResults() {
           <span class="research-channel">${escapeHtml(item.channelTitle)}</span>
           <span class="research-format">${escapeHtml(item.format)}</span>
           <strong>${formatCompactNumber(item.views)}</strong>
-          <strong>${formatOutlier(item.outlierScore)}</strong>
           <a class="link-chip" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">YouTube</a>
         </div>
       `).join("")}
@@ -2028,11 +2026,11 @@ function renderYtmChannelFilters() {
   
   const managersWithResults = new Set();
   state.ytmResults.forEach(video => {
-    const manager = getYtmName(video.channelTitle);
+    const manager = getYtmName(video.channelTitle, video.channelId);
     managersWithResults.add(manager);
   });
   
-  const managerList = ["Himanshu", "Ayush", "Atul Sharma", "Shubham", "Raubnish", "Amit", "Abhinav", "Shukendu", "Ashish Tyagi", "Lubna", "Vivek", "Other"].filter(m => managersWithResults.has(m));
+  const managerList = ["Nitin", "Atul Sharma", "Shubham", "Raubnish", "Amit", "Abhinav", "Shukendu", "Ashish Tyagi", "Lubna", "Vivek", "Other"].filter(m => managersWithResults.has(m));
   
   if (!managerList.includes(state.ytmFilter)) {
     state.ytmFilter = managerList[0] || "Other";
@@ -2119,7 +2117,7 @@ function filteredYtmResults(includeOptimized = false) {
   
   if (state.ytmFilter) {
     list = list.filter(video => {
-      const manager = getYtmName(video.channelTitle);
+      const manager = getYtmName(video.channelTitle, video.channelId);
       return manager === state.ytmFilter;
     });
   }
@@ -2342,7 +2340,7 @@ function renderOutliers() {
   const categoryFilter = document.querySelector("#outlierCategorySelect")?.value || "All";
   const formatFilter = document.querySelector("#outlierFormatSelect")?.value || "All";
   
-  let list = [...state.outliers];
+  let list = [...state.outliers].filter(item => Number(item.views || 0) > 5000);
   
   if (categoryFilter !== "All") {
     list = list.filter(item => item.category === categoryFilter);
@@ -2367,7 +2365,6 @@ function renderOutliers() {
     
     return `
       <article class="outlier-card">
-        <div class="outlier-badge">${Number(item.outlierScore || 0).toFixed(1)}x views</div>
         <span class="outlier-format-badge ${formatClass}">${escapeHtml(item.format || "Video")}</span>
         <div class="outlier-card-header">
           <h3>${escapeHtml(item.title)}</h3>

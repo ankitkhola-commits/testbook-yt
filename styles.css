@@ -1248,7 +1248,7 @@ input {
 
 .benchmark-row {
   display: grid;
-  grid-template-columns: minmax(154px, 1.48fr) repeat(5, minmax(0, 0.7fr));
+  grid-template-columns: minmax(154px, 1.48fr) repeat(4, minmax(0, 0.7fr));
   align-items: center;
   border-bottom: 1px solid #eef1f5;
   width: 100%;
@@ -1528,7 +1528,7 @@ input {
 
 .research-row {
   display: grid;
-  grid-template-columns: 56px minmax(0, 2.4fr) minmax(120px, 1fr) 86px 100px 86px 92px;
+  grid-template-columns: 56px minmax(0, 2.4fr) minmax(120px, 1fr) 86px 100px 92px;
   gap: 10px;
   align-items: center;
   padding: 12px 14px;
@@ -1878,7 +1878,7 @@ input {
   }
 
   .research-row {
-    grid-template-columns: 48px minmax(0, 1.7fr) minmax(0, 1fr) 76px 92px 80px 84px;
+    grid-template-columns: 48px minmax(0, 1.7fr) minmax(0, 1fr) 76px 92px 84px;
   }
 
   .sidebar {
