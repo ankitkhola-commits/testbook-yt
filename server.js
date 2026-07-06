@@ -245,6 +245,7 @@ app.get("/api/status", async (req, res) => {
     allowedEmailDomain: allowedEmailDomain(),
     viewerAllowlistEnabled: allowedViewerEmails().length > 0,
     isAuditAdmin: isAuditAdmin(viewer),
+    allowedToAddChannel: isAllowedToAddChannel(viewer),
   });
 });
 
@@ -256,6 +257,7 @@ app.get("/api/session", async (req, res) => {
     allowedEmailDomain: allowedEmailDomain(),
     viewerAllowlistEnabled: allowedViewerEmails().length > 0,
     isAuditAdmin: isAuditAdmin(viewer),
+    allowedToAddChannel: isAllowedToAddChannel(viewer),
   });
 });
 
@@ -308,10 +310,16 @@ app.post("/api/logout-app", async (_req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/auth/google", async (_req, res) => {
+app.get("/auth/google", async (req, res) => {
   await hydrateEnvFromFile();
   if (!hasGoogleConfig()) {
     res.status(400).send("Missing Google OAuth config. Copy .env.example to .env and fill GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URI.");
+    return;
+  }
+
+  const viewer = readViewerSession(req);
+  if (!isAllowedToAddChannel(viewer)) {
+    res.status(403).send("Access denied. You do not have permission to connect channels.");
     return;
   }
 
@@ -334,8 +342,16 @@ app.get("/oauth2callback", async (req, res, next) => {
     const oauth2Client = makeOAuthClient();
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
+    
+    const viewer = readViewerSession(req);
+    if (!isAllowedToAddChannel(viewer)) {
+      res.status(403).send("Access denied. You do not have permission to connect channels.");
+      return;
+    }
+    const userEmail = viewer ? viewer.email : null;
+
     const channels = await listOwnedChannels(oauth2Client);
-    await saveGoogleProfile(tokens, channels);
+    await saveGoogleProfile(tokens, channels, userEmail);
     res.redirect("/");
   } catch (error) {
     next(error);
@@ -384,9 +400,10 @@ app.post("/api/reset", async (_req, res) => {
   res.json({ ok: true, ...configStatus() });
 });
 
-app.get("/api/channels", async (_req, res, next) => {
+app.get("/api/channels", async (req, res, next) => {
   try {
-    const entries = await connectedChannelEntries();
+    const viewer = readViewerSession(req);
+    const entries = await connectedChannelEntries(viewer);
     res.json({ channels: publicChannels(entries) });
   } catch (error) {
     next(error);
@@ -419,7 +436,8 @@ app.delete("/api/channels/:channelId", async (req, res, next) => {
 
 app.get("/api/dashboard", async (req, res, next) => {
   try {
-    const entries = await connectedChannelEntries();
+    const viewer = readViewerSession(req);
+    const entries = await connectedChannelEntries(viewer);
     const channels = [{ id: "all-in-one", name: "All in One", handle: "@all-in-one" }, ...publicChannels(entries)];
     const range = String(req.query.range || "month");
     const month = String(req.query.month || "");
@@ -468,7 +486,8 @@ app.get("/api/dashboard", async (req, res, next) => {
 
 app.get("/api/search-keywords", async (req, res, next) => {
   try {
-    const entries = await connectedChannelEntries();
+    const viewer = readViewerSession(req);
+    const entries = await connectedChannelEntries(viewer);
     const channels = publicChannels(entries);
     const range = String(req.query.range || "7");
     const month = String(req.query.month || "");
@@ -483,6 +502,962 @@ app.get("/api/search-keywords", async (req, res, next) => {
     const selectedEntries = entries.filter((entry) => entry.channel.id === activeChannelId);
     const keywords = await searchKeywordsForDate(selectedEntries, date);
     res.json({ date, keywords });
+  } catch (error) {
+    next(error);
+  }
+});
+
+const quarterTargetsPath = path.join(dataDir, "quarter_targets.json");
+
+const defaultTargets = {
+  "AMJ_2026": {
+    "ytm": [
+      {
+        "id": "ytm_t1",
+        "employee": "Atul Sharma",
+        "channelId": "UC1pJ8ods7vGboH2BXuZVBbQ",
+        "channelName": "UPSC PrepLab",
+        "viewsTarget": 1000000,
+        "subsTarget": 10000
+      },
+      {
+        "id": "ytm_t2",
+        "employee": "Shubham",
+        "channelId": "UC0FSg3oiJZlpTYgI0hCNazQ",
+        "channelName": "Bihar Testbook",
+        "viewsTarget": 5000000,
+        "subsTarget": 25000
+      },
+      {
+        "id": "ytm_t3",
+        "employee": "Shubham",
+        "channelId": "UCgM9qPLv7R-hTRQIGa4wgKA",
+        "channelName": "Testbook",
+        "viewsTarget": 25000000,
+        "subsTarget": 110000
+      },
+      {
+        "id": "ytm_t4",
+        "employee": "Shubham",
+        "channelId": "UC_fKmFGyY4MPVzz4TT_N_6Q",
+        "channelName": "Banking Testbook",
+        "viewsTarget": 4000000,
+        "subsTarget": 12000
+      },
+      {
+        "id": "ytm_t5",
+        "employee": "Raubnish",
+        "channelId": "UC1y7Nv1-ZdkJdNUkUgFaydg",
+        "channelName": "Odisha Testbook",
+        "viewsTarget": 18000000,
+        "subsTarget": 35000
+      },
+      {
+        "id": "ytm_t6",
+        "employee": "Raubnish",
+        "channelId": "UCUIaneuBNuiTdMQIyfOvUFA",
+        "channelName": "Odisha Teaching by Testbook",
+        "viewsTarget": 3000000,
+        "subsTarget": 15000
+      },
+      {
+        "id": "ytm_t7",
+        "employee": "Narendra/Amit",
+        "channelId": "UC_uR26BodKBZ4HVwxwd5isQ",
+        "channelName": "UGC NET Testbook",
+        "viewsTarget": 20000000,
+        "subsTarget": 60000
+      },
+      {
+        "id": "ytm_t8",
+        "employee": "Narendra/Amit",
+        "channelId": "UCXx7EB5fueJeOI5pYuYSagQ",
+        "channelName": "Testbook NET JRF",
+        "viewsTarget": 9000000,
+        "subsTarget": 40000
+      },
+      {
+        "id": "ytm_t9",
+        "employee": "Abhinav",
+        "channelId": "UCLLhVCsO2Em-IQXwqq2EVyw",
+        "channelName": "TET PRT Testbook",
+        "viewsTarget": 9000000,
+        "subsTarget": 30000
+      },
+      {
+        "id": "ytm_t10",
+        "employee": "Abhinav",
+        "channelId": "UCUdYrLrnPFVpvWM6hNJSnJg",
+        "channelName": "TGT PGT Testbook",
+        "viewsTarget": 4500000,
+        "subsTarget": 10000
+      },
+      {
+        "id": "ytm_t11",
+        "employee": "Abhinav",
+        "channelId": "UCYmiOXiMpiwlQFU4OIDPZzA",
+        "channelName": "CTET Testbook",
+        "viewsTarget": 3000000,
+        "subsTarget": 15000
+      },
+      {
+        "id": "ytm_t12",
+        "employee": "Abhinav",
+        "channelId": "UCaPCIXHm03fSYi3M3_LOf2Q",
+        "channelName": "Bihar Teaching Exams by Testbook",
+        "viewsTarget": 5000000,
+        "subsTarget": 12000
+      },
+      {
+        "id": "ytm_t13",
+        "employee": "Shukendu",
+        "channelId": "UCSzinFg4bwJktBgvmWKNP6Q",
+        "channelName": "Testbook Bengali",
+        "viewsTarget": 4000000,
+        "subsTarget": 25000
+      },
+      {
+        "id": "ytm_t14",
+        "employee": "Shukendu",
+        "channelId": "UC1pQayM4quYlDZbrhD6VEUg",
+        "channelName": "WBPSC Testbook",
+        "viewsTarget": 3000000,
+        "subsTarget": 25000
+      },
+      {
+        "id": "ytm_t15",
+        "employee": "Ashish Tyagi",
+        "channelId": "UCW3qu1ViFQhIMLZRXugCFRg",
+        "channelName": "Punjab Testbook",
+        "viewsTarget": 15000000,
+        "subsTarget": 60000
+      },
+      {
+        "id": "ytm_t16",
+        "employee": "Lubna",
+        "channelId": "UCuTgFUujt6tQXWxQMg-DHrQ",
+        "channelName": "Railway Testbook",
+        "viewsTarget": 23000000,
+        "subsTarget": 100000
+      },
+      {
+        "id": "ytm_t17",
+        "employee": "Vivek",
+        "channelId": "UCFTTIDN58laGeV8DM9D4spg",
+        "channelName": "AE JE Testbook",
+        "viewsTarget": 7000000,
+        "subsTarget": 20000
+      },
+      {
+        "id": "ytm_t18",
+        "employee": "Vivek",
+        "channelId": "UCGZmxSKg2tKMvn9TO-IYpqw",
+        "channelName": "SSC Testbook",
+        "viewsTarget": 10000000,
+        "subsTarget": 75000
+      }
+    ],
+    "seo": [
+      {
+        "id": "seo_t1",
+        "employee": "Saijal",
+        "channelId": "UCLLhVCsO2Em-IQXwqq2EVyw",
+        "channelName": "TET PRT Testbook",
+        "searchViewsTarget": 2500000
+      },
+      {
+        "id": "seo_t2",
+        "employee": "Saijal",
+        "channelId": "UCUdYrLrnPFVpvWM6hNJSnJg",
+        "channelName": "TGT PGT Testbook",
+        "searchViewsTarget": 1230000
+      },
+      {
+        "id": "seo_t3",
+        "employee": "Saijal",
+        "channelId": "UCYmiOXiMpiwlQFU4OIDPZzA",
+        "channelName": "CTET Testbook",
+        "searchViewsTarget": 675000
+      },
+      {
+        "id": "seo_t4",
+        "employee": "Saijal",
+        "channelId": "UC_uR26BodKBZ4HVwxwd5isQ",
+        "channelName": "UGC NET Testbook",
+        "searchViewsTarget": 6200000
+      },
+      {
+        "id": "seo_t5",
+        "employee": "Saijal",
+        "channelId": "UCXx7EB5fueJeOI5pYuYSagQ",
+        "channelName": "Testbook NET JRF",
+        "searchViewsTarget": 1530000
+      },
+      {
+        "id": "seo_t6",
+        "employee": "Saijal",
+        "channelId": "UCaPCIXHm03fSYi3M3_LOf2Q",
+        "channelName": "Bihar Teaching Exams by Testbook",
+        "searchViewsTarget": 600000
+      },
+      {
+        "id": "seo_t7",
+        "employee": "Mohit",
+        "channelId": "UC0FSg3oiJZlpTYgI0hCNazQ",
+        "channelName": "Bihar Testbook",
+        "searchViewsTarget": 1250000
+      },
+      {
+        "id": "seo_t8",
+        "employee": "Mohit",
+        "channelId": "UCgM9qPLv7R-hTRQIGa4wgKA",
+        "channelName": "Testbook",
+        "searchViewsTarget": 6250000
+      },
+      {
+        "id": "seo_t9",
+        "employee": "Mohit",
+        "channelId": "UC1pJ8ods7vGboH2BXuZVBbQ",
+        "channelName": "UPSC PrepLab",
+        "searchViewsTarget": 150000
+      },
+      {
+        "id": "seo_t10",
+        "employee": "Vinayak",
+        "channelId": "UC_fKmFGyY4MPVzz4TT_N_6Q",
+        "channelName": "Banking Testbook",
+        "searchViewsTarget": 1080000
+      },
+      {
+        "id": "seo_t11",
+        "employee": "Vinayak",
+        "channelId": "UCfG_bedD0HBbrFo1JpgUEqA",
+        "channelName": "SuperCoaching MPSC by Testbook",
+        "searchViewsTarget": 960000
+      },
+      {
+        "id": "seo_t12",
+        "employee": "Vinayak",
+        "channelId": "UCuTgFUujt6tQXWxQMg-DHrQ",
+        "channelName": "Railway Testbook",
+        "searchViewsTarget": 6210000
+      },
+      {
+        "id": "seo_t13",
+        "employee": "Aditya",
+        "channelId": "UCSzinFg4bwJktBgvmWKNP6Q",
+        "channelName": "Testbook Bengali",
+        "searchViewsTarget": 640000
+      },
+      {
+        "id": "seo_t14",
+        "employee": "Aditya",
+        "channelId": "UC1pQayM4quYlDZbrhD6VEUg",
+        "channelName": "WBPSC Testbook",
+        "searchViewsTarget": 720000
+      },
+      {
+        "id": "seo_t15",
+        "employee": "Aditya",
+        "channelId": "UCKtAel248rFM1Nxd1UJlQHA",
+        "channelName": "SuperCoaching Marathi by Testbook",
+        "searchViewsTarget": 1610000
+      },
+      {
+        "id": "seo_t16",
+        "employee": "Aditya",
+        "channelId": "UCUIaneuBNuiTdMQIyfOvUFA",
+        "channelName": "Odisha Teaching by Testbook",
+        "searchViewsTarget": 480000
+      },
+      {
+        "id": "seo_t17",
+        "employee": "Aditya",
+        "channelId": "UC1y7Nv1-ZdkJdNUkUgFaydg",
+        "channelName": "Odisha Testbook",
+        "searchViewsTarget": 2880000
+      },
+      {
+        "id": "seo_t18",
+        "employee": "Aditya",
+        "channelId": "UCW3qu1ViFQhIMLZRXugCFRg",
+        "channelName": "Punjab Testbook",
+        "searchViewsTarget": 1950000
+      }
+    ]
+  },
+  "JAS_2026": {
+    "ytm": [
+      {
+        "id": "ytm_t19",
+        "employee": "Atul Sharma",
+        "channelId": "UC1pJ8ods7vGboH2BXuZVBbQ",
+        "channelName": "UPSC PrepLab",
+        "viewsTarget": 1000000,
+        "subsTarget": 10000
+      },
+      {
+        "id": "ytm_t20",
+        "employee": "Shubham",
+        "channelId": "UC0FSg3oiJZlpTYgI0hCNazQ",
+        "channelName": "Bihar Testbook",
+        "viewsTarget": 5000000,
+        "subsTarget": 25000
+      },
+      {
+        "id": "ytm_t21",
+        "employee": "Shubham",
+        "channelId": "UCgM9qPLv7R-hTRQIGa4wgKA",
+        "channelName": "Testbook",
+        "viewsTarget": 25000000,
+        "subsTarget": 110000
+      },
+      {
+        "id": "ytm_t22",
+        "employee": "Shubham",
+        "channelId": "UC_fKmFGyY4MPVzz4TT_N_6Q",
+        "channelName": "Banking Testbook",
+        "viewsTarget": 4000000,
+        "subsTarget": 12000
+      },
+      {
+        "id": "ytm_t23",
+        "employee": "Raubnish",
+        "channelId": "UC1y7Nv1-ZdkJdNUkUgFaydg",
+        "channelName": "Odisha Testbook",
+        "viewsTarget": 18000000,
+        "subsTarget": 35000
+      },
+      {
+        "id": "ytm_t24",
+        "employee": "Raubnish",
+        "channelId": "UCUIaneuBNuiTdMQIyfOvUFA",
+        "channelName": "Odisha Teaching by Testbook",
+        "viewsTarget": 3000000,
+        "subsTarget": 15000
+      },
+      {
+        "id": "ytm_t25",
+        "employee": "Narendra/Amit",
+        "channelId": "UC_uR26BodKBZ4HVwxwd5isQ",
+        "channelName": "UGC NET Testbook",
+        "viewsTarget": 20000000,
+        "subsTarget": 60000
+      },
+      {
+        "id": "ytm_t26",
+        "employee": "Narendra/Amit",
+        "channelId": "UCXx7EB5fueJeOI5pYuYSagQ",
+        "channelName": "Testbook NET JRF",
+        "viewsTarget": 9000000,
+        "subsTarget": 40000
+      },
+      {
+        "id": "ytm_t27",
+        "employee": "Abhinav",
+        "channelId": "UCLLhVCsO2Em-IQXwqq2EVyw",
+        "channelName": "TET PRT Testbook",
+        "viewsTarget": 9000000,
+        "subsTarget": 30000
+      },
+      {
+        "id": "ytm_t28",
+        "employee": "Abhinav",
+        "channelId": "UCUdYrLrnPFVpvWM6hNJSnJg",
+        "channelName": "TGT PGT Testbook",
+        "viewsTarget": 4500000,
+        "subsTarget": 10000
+      },
+      {
+        "id": "ytm_t29",
+        "employee": "Abhinav",
+        "channelId": "UCYmiOXiMpiwlQFU4OIDPZzA",
+        "channelName": "CTET Testbook",
+        "viewsTarget": 3000000,
+        "subsTarget": 15000
+      },
+      {
+        "id": "ytm_t30",
+        "employee": "Abhinav",
+        "channelId": "UCaPCIXHm03fSYi3M3_LOf2Q",
+        "channelName": "Bihar Teaching Exams by Testbook",
+        "viewsTarget": 5000000,
+        "subsTarget": 12000
+      },
+      {
+        "id": "ytm_t31",
+        "employee": "Shukendu",
+        "channelId": "UCSzinFg4bwJktBgvmWKNP6Q",
+        "channelName": "Testbook Bengali",
+        "viewsTarget": 4000000,
+        "subsTarget": 25000
+      },
+      {
+        "id": "ytm_t32",
+        "employee": "Shukendu",
+        "channelId": "UC1pQayM4quYlDZbrhD6VEUg",
+        "channelName": "WBPSC Testbook",
+        "viewsTarget": 3000000,
+        "subsTarget": 25000
+      },
+      {
+        "id": "ytm_t33",
+        "employee": "Ashish Tyagi",
+        "channelId": "UCW3qu1ViFQhIMLZRXugCFRg",
+        "channelName": "Punjab Testbook",
+        "viewsTarget": 15000000,
+        "subsTarget": 60000
+      },
+      {
+        "id": "ytm_t34",
+        "employee": "Lubna",
+        "channelId": "UCuTgFUujt6tQXWxQMg-DHrQ",
+        "channelName": "Railway Testbook",
+        "viewsTarget": 23000000,
+        "subsTarget": 100000
+      },
+      {
+        "id": "ytm_t35",
+        "employee": "Vivek",
+        "channelId": "UCFTTIDN58laGeV8DM9D4spg",
+        "channelName": "AE JE Testbook",
+        "viewsTarget": 7000000,
+        "subsTarget": 20000
+      },
+      {
+        "id": "ytm_t36",
+        "employee": "Vivek",
+        "channelId": "UCGZmxSKg2tKMvn9TO-IYpqw",
+        "channelName": "SSC Testbook",
+        "viewsTarget": 10000000,
+        "subsTarget": 75000
+      }
+    ],
+    "seo": [
+      {
+        "id": "seo_t19",
+        "employee": "Saijal",
+        "channelId": "UCLLhVCsO2Em-IQXwqq2EVyw",
+        "channelName": "TET PRT Testbook",
+        "searchViewsTarget": 2500000
+      },
+      {
+        "id": "seo_t20",
+        "employee": "Saijal",
+        "channelId": "UCUdYrLrnPFVpvWM6hNJSnJg",
+        "channelName": "TGT PGT Testbook",
+        "searchViewsTarget": 1230000
+      },
+      {
+        "id": "seo_t21",
+        "employee": "Saijal",
+        "channelId": "UCYmiOXiMpiwlQFU4OIDPZzA",
+        "channelName": "CTET Testbook",
+        "searchViewsTarget": 675000
+      },
+      {
+        "id": "seo_t22",
+        "employee": "Saijal",
+        "channelId": "UC_uR26BodKBZ4HVwxwd5isQ",
+        "channelName": "UGC NET Testbook",
+        "searchViewsTarget": 6200000
+      },
+      {
+        "id": "seo_t23",
+        "employee": "Saijal",
+        "channelId": "UCXx7EB5fueJeOI5pYuYSagQ",
+        "channelName": "Testbook NET JRF",
+        "searchViewsTarget": 1530000
+      },
+      {
+        "id": "seo_t24",
+        "employee": "Saijal",
+        "channelId": "UCaPCIXHm03fSYi3M3_LOf2Q",
+        "channelName": "Bihar Teaching Exams by Testbook",
+        "searchViewsTarget": 600000
+      },
+      {
+        "id": "seo_t25",
+        "employee": "Mohit",
+        "channelId": "UC0FSg3oiJZlpTYgI0hCNazQ",
+        "channelName": "Bihar Testbook",
+        "searchViewsTarget": 1250000
+      },
+      {
+        "id": "seo_t26",
+        "employee": "Mohit",
+        "channelId": "UCgM9qPLv7R-hTRQIGa4wgKA",
+        "channelName": "Testbook",
+        "searchViewsTarget": 6250000
+      },
+      {
+        "id": "seo_t27",
+        "employee": "Mohit",
+        "channelId": "UC1pJ8ods7vGboH2BXuZVBbQ",
+        "channelName": "UPSC PrepLab",
+        "searchViewsTarget": 150000
+      },
+      {
+        "id": "seo_t28",
+        "employee": "Vinayak",
+        "channelId": "UC_fKmFGyY4MPVzz4TT_N_6Q",
+        "channelName": "Banking Testbook",
+        "searchViewsTarget": 1080000
+      },
+      {
+        "id": "seo_t29",
+        "employee": "Vinayak",
+        "channelId": "UCfG_bedD0HBbrFo1JpgUEqA",
+        "channelName": "SuperCoaching MPSC by Testbook",
+        "searchViewsTarget": 960000
+      },
+      {
+        "id": "seo_t30",
+        "employee": "Vinayak",
+        "channelId": "UCuTgFUujt6tQXWxQMg-DHrQ",
+        "channelName": "Railway Testbook",
+        "searchViewsTarget": 6210000
+      },
+      {
+        "id": "seo_t31",
+        "employee": "Aditya",
+        "channelId": "UCSzinFg4bwJktBgvmWKNP6Q",
+        "channelName": "Testbook Bengali",
+        "searchViewsTarget": 640000
+      },
+      {
+        "id": "seo_t32",
+        "employee": "Aditya",
+        "channelId": "UC1pQayM4quYlDZbrhD6VEUg",
+        "channelName": "WBPSC Testbook",
+        "searchViewsTarget": 720000
+      },
+      {
+        "id": "seo_t33",
+        "employee": "Aditya",
+        "channelId": "UCKtAel248rFM1Nxd1UJlQHA",
+        "channelName": "SuperCoaching Marathi by Testbook",
+        "searchViewsTarget": 1610000
+      },
+      {
+        "id": "seo_t34",
+        "employee": "Aditya",
+        "channelId": "UCUIaneuBNuiTdMQIyfOvUFA",
+        "channelName": "Odisha Teaching by Testbook",
+        "searchViewsTarget": 480000
+      },
+      {
+        "id": "seo_t35",
+        "employee": "Aditya",
+        "channelId": "UC1y7Nv1-ZdkJdNUkUgFaydg",
+        "channelName": "Odisha Testbook",
+        "searchViewsTarget": 2880000
+      },
+      {
+        "id": "seo_t36",
+        "employee": "Aditya",
+        "channelId": "UCW3qu1ViFQhIMLZRXugCFRg",
+        "channelName": "Punjab Testbook",
+        "searchViewsTarget": 1950000
+      }
+    ]
+  }
+};
+
+async function readQuarterTargets() {
+  if (sql) {
+    await ensureStorage();
+    const rows = await sql`select payload from app_state where key = 'quarter_targets' limit 1`;
+    return rows[0]?.payload || defaultTargets;
+  }
+  try {
+    return JSON.parse(await readFile(quarterTargetsPath, "utf8"));
+  } catch {
+    return defaultTargets;
+  }
+}
+
+async function saveQuarterTargets(targets) {
+  if (sql) {
+    await ensureStorage();
+    await sql`
+      insert into app_state (key, payload)
+      values ('quarter_targets', ${sql.json(targets)})
+      on conflict (key) do update set payload = excluded.payload, updated_at = now()
+    `;
+    return;
+  }
+  await mkdir(dataDir, { recursive: true });
+  await writeFile(quarterTargetsPath, JSON.stringify(targets, null, 2), "utf8");
+}
+
+async function channelTargetAnalytics(auth, channelId, startDate, endDate, options = {}) {
+  return cached(
+    makeCacheKey("channel-target-analytics-v2", channelId, startDate, endDate),
+    2 * 60 * 60 * 1000, // 2 hours
+    async () => {
+      const [dailyRows, trafficRows] = await Promise.all([
+        analyticsRows(auth, {
+          ids: `channel==${channelId}`,
+          startDate,
+          endDate,
+          dimensions: "day",
+          metrics: "views,subscribersGained,subscribersLost",
+          sort: "day",
+        }).catch((err) => {
+          console.error(`dailyRows fetch error for ${channelId}:`, err);
+          return [];
+        }),
+        analyticsRows(auth, {
+          ids: `channel==${channelId}`,
+          startDate,
+          endDate,
+          dimensions: "day,insightTrafficSourceType",
+          metrics: "views",
+          sort: "day",
+        }).catch((err) => {
+          console.error(`trafficRows fetch error for ${channelId}:`, err);
+          return [];
+        }),
+      ]);
+
+      let totalViews = 0;
+      let subscribersGained = 0;
+      let subscribersLost = 0;
+      for (const row of dailyRows) {
+        totalViews += Number(row[1] || 0);
+        subscribersGained += Number(row[2] || 0);
+        subscribersLost += Number(row[3] || 0);
+      }
+
+      let searchViews = 0;
+      let adViews = 0;
+      for (const row of trafficRows) {
+        const source = row[1];
+        const views = Number(row[2] || 0);
+        if (source === "YT_SEARCH") {
+          searchViews += views;
+        } else if (source === "ADVERTISING") {
+          adViews += views;
+        }
+      }
+
+      const organicViews = Math.max(0, totalViews - adViews);
+      const netSubscribers = subscribersGained - subscribersLost;
+      const days = dailyRows.map(row => row[0]).filter(Boolean);
+      return {
+        organicViews,
+        netSubscribers,
+        searchViews,
+        days
+      };
+    },
+    options
+  );
+}
+
+app.get("/api/targets", async (req, res, next) => {
+  try {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth(); // 0-11
+    const force = req.query.force === "1";
+    let currentQuarterKey = "";
+    if (month >= 3 && month <= 5) currentQuarterKey = `AMJ_${year}`;
+    else if (month >= 6 && month <= 8) currentQuarterKey = `JAS_${year}`;
+    else if (month >= 9 && month <= 11) currentQuarterKey = `OND_${year}`;
+    else currentQuarterKey = `JFM_${year}`;
+    const quarterKey = String(req.query.quarter || currentQuarterKey);
+    const data = await readQuarterTargets();
+    if (!data[quarterKey]) {
+      data[quarterKey] = { ytm: [], seo: [] };
+    }
+
+    const parts = quarterKey.split("_");
+    const name = parts[0];
+    const qYear = Number(parts[1] || year);
+
+    let startMonth, endMonth, endDay;
+    if (name === "AMJ") {
+      startMonth = 3; endMonth = 5; endDay = 30;
+    } else if (name === "JAS") {
+      startMonth = 6; endMonth = 8; endDay = 30;
+    } else if (name === "OND") {
+      startMonth = 9; endMonth = 11; endDay = 31;
+    } else {
+      startMonth = 0; endMonth = 2; endDay = 31;
+    }
+
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const qStart = new Date(Date.UTC(qYear, startMonth, 1));
+    const qEnd = new Date(Date.UTC(qYear, endMonth, endDay));
+
+    const startDate = qStart.toISOString().slice(0, 10);
+    let endDate = new Date(Math.min(qEnd.getTime(), yesterday.getTime())).toISOString().slice(0, 10);
+    if (endDate < startDate) {
+      endDate = startDate;
+    }
+
+    const hasStarted = yesterday >= qStart;
+
+    const entries = await connectedChannelEntries();
+    const channelMap = new Map();
+    for (const entry of entries) {
+      channelMap.set(entry.channel.id, entry);
+    }
+
+    const totalDays = Math.round((qEnd - qStart) / (1000 * 60 * 60 * 24)) + 1;
+
+    const activeTargets = data[quarterKey] || { ytm: [], seo: [] };
+
+    const targetYtmFiltered = activeTargets.ytm;
+    const targetSeoFiltered = activeTargets.seo;
+
+    const targetChannelIds = new Set();
+    for (const t of targetYtmFiltered) {
+      const ids = t.channelIds || (t.channelId ? [t.channelId] : []);
+      for (const id of ids) targetChannelIds.add(id);
+    }
+    for (const t of targetSeoFiltered) {
+      const ids = t.channelIds || (t.channelId ? [t.channelId] : []);
+      for (const id of ids) targetChannelIds.add(id);
+    }
+
+    const statsMap = new Map();
+    const allDays = new Set();
+
+    await Promise.all(
+      Array.from(targetChannelIds).map(async (channelId) => {
+        const entry = channelMap.get(channelId);
+        if (!entry || !hasStarted) {
+          statsMap.set(channelId, { organicViews: 0, netSubscribers: 0, searchViews: 0, days: [] });
+          return;
+        }
+        try {
+          const stats = await channelTargetAnalytics(entry.auth, channelId, startDate, endDate, { force });
+          statsMap.set(channelId, stats);
+          if (stats.days) {
+            for (const d of stats.days) allDays.add(d);
+          }
+        } catch (err) {
+          console.error(`Error fetching target stats for channel ${channelId}:`, err);
+          statsMap.set(channelId, { organicViews: 0, netSubscribers: 0, searchViews: 0, days: [] });
+        }
+      })
+    );
+
+    let elapsedDays = 0;
+    if (hasStarted) {
+      elapsedDays = allDays.size;
+    }
+
+    const ytmResults = targetYtmFiltered.map(t => {
+      const ids = t.channelIds || (t.channelId ? [t.channelId] : []);
+      let actualViews = 0;
+      let actualSubs = 0;
+      for (const id of ids) {
+        const stats = statsMap.get(id) || { organicViews: 0, netSubscribers: 0, searchViews: 0 };
+        actualViews += stats.organicViews;
+        actualSubs += stats.netSubscribers;
+      }
+
+      const viewsPercent = t.viewsTarget ? (actualViews / t.viewsTarget) * 100 : 0;
+      const subsPercent = t.subsTarget ? (actualSubs / t.subsTarget) * 100 : 0;
+
+      let viewsProRataPercent = 0;
+      let subsProRataPercent = 0;
+      if (elapsedDays > 0 && totalDays > 0) {
+        const expectedViews = (t.viewsTarget * elapsedDays) / totalDays;
+        const expectedSubs = (t.subsTarget * elapsedDays) / totalDays;
+        viewsProRataPercent = expectedViews ? (actualViews / expectedViews) * 100 : 0;
+        subsProRataPercent = expectedSubs ? (actualSubs / expectedSubs) * 100 : 0;
+      }
+
+      return {
+        ...t,
+        actualViews,
+        actualSubs,
+        viewsPercent,
+        subsPercent,
+        viewsProRataPercent,
+        subsProRataPercent
+      };
+    });
+
+    const seoResults = targetSeoFiltered.map(t => {
+      const ids = t.channelIds || (t.channelId ? [t.channelId] : []);
+      let actualSearchViews = 0;
+      for (const id of ids) {
+        const stats = statsMap.get(id) || { organicViews: 0, netSubscribers: 0, searchViews: 0 };
+        actualSearchViews += stats.searchViews;
+      }
+
+      const searchPercent = t.searchViewsTarget ? (actualSearchViews / t.searchViewsTarget) * 100 : 0;
+
+      let searchProRataPercent = 0;
+      if (elapsedDays > 0 && totalDays > 0) {
+        const expectedSearch = (t.searchViewsTarget * elapsedDays) / totalDays;
+        searchProRataPercent = expectedSearch ? (actualSearchViews / expectedSearch) * 100 : 0;
+      }
+
+      return {
+        ...t,
+        actualSearchViews,
+        searchPercent,
+        searchProRataPercent
+      };
+    });
+
+    res.json({
+      quarter: quarterKey,
+      startDate,
+      endDate,
+      hasStarted,
+      elapsedDays,
+      totalDays,
+      ytm: ytmResults,
+      seo: seoResults
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/targets/save", async (req, res, next) => {
+  try {
+    const { quarter, ytm, seo } = req.body;
+    if (!quarter || !ytm || !seo) {
+      res.status(400).json({ error: "Missing quarter, ytm, or seo configurations." });
+      return;
+    }
+    const data = await readQuarterTargets();
+    data[quarter] = { ytm, seo };
+    await saveQuarterTargets(data);
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/keywords/rankings", async (req, res, next) => {
+  try {
+    const channelId = String(req.query.channelId || "");
+    if (!channelId) {
+      res.status(400).json({ error: "Missing channelId" });
+      return;
+    }
+    const viewer = readViewerSession(req);
+    const entries = await connectedChannelEntries(viewer);
+    const entry = entries.find(e => e.channel.id === channelId);
+    if (!entry) {
+      res.status(403).json({ error: "Access denied or channel not connected." });
+      return;
+    }
+    const data = await readKeywordRankings();
+    const rankings = data[channelId] || {
+      channelId,
+      lastUpdated: null,
+      manualKeywords: [],
+      rankings: { automated: [], manual: [] }
+    };
+    res.json(rankings);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/keywords/manual", async (req, res, next) => {
+  try {
+    const channelId = String(req.body.channelId || "");
+    const keyword = String(req.body.keyword || "").trim();
+    if (!channelId || !keyword) {
+      res.status(400).json({ error: "Missing channelId or keyword" });
+      return;
+    }
+    const viewer = readViewerSession(req);
+    const entries = await connectedChannelEntries(viewer);
+    const entry = entries.find(e => e.channel.id === channelId);
+    if (!entry) {
+      res.status(403).json({ error: "Access denied or channel not connected." });
+      return;
+    }
+    const data = await readKeywordRankings();
+    if (!data[channelId]) {
+      data[channelId] = {
+        channelId,
+        lastUpdated: null,
+        manualKeywords: [],
+        rankings: { automated: [], manual: [] }
+      };
+    }
+    if ((data[channelId].manualKeywords || []).length >= 50) {
+      res.status(400).json({ error: "Maximum limit of 50 manual keywords reached." });
+      return;
+    }
+    if (!data[channelId].manualKeywords.includes(keyword)) {
+      data[channelId].manualKeywords.push(keyword);
+      await saveKeywordRankings(data);
+    }
+    const updated = await refreshKeywordRankingsInternal(channelId);
+    res.json(updated);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/keywords/manual", async (req, res, next) => {
+  try {
+    const channelId = String(req.body.channelId || "");
+    const keyword = String(req.body.keyword || "").trim();
+    if (!channelId || !keyword) {
+      res.status(400).json({ error: "Missing channelId or keyword" });
+      return;
+    }
+    const viewer = readViewerSession(req);
+    const entries = await connectedChannelEntries(viewer);
+    const entry = entries.find(e => e.channel.id === channelId);
+    if (!entry) {
+      res.status(403).json({ error: "Access denied or channel not connected." });
+      return;
+    }
+    const data = await readKeywordRankings();
+    if (data[channelId]) {
+      data[channelId].manualKeywords = (data[channelId].manualKeywords || []).filter(k => k !== keyword);
+      if (data[channelId].rankings && data[channelId].rankings.manual) {
+        data[channelId].rankings.manual = data[channelId].rankings.manual.filter(r => r.keyword !== keyword);
+      }
+      await saveKeywordRankings(data);
+    }
+    const updated = data[channelId] || {
+      channelId,
+      lastUpdated: null,
+      manualKeywords: [],
+      rankings: { automated: [], manual: [] }
+    };
+    res.json(updated);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/keywords/refresh", async (req, res, next) => {
+  try {
+    const channelId = String(req.body.channelId || "");
+    if (!channelId) {
+      res.status(400).json({ error: "Missing channelId" });
+      return;
+    }
+    const viewer = readViewerSession(req);
+    const entries = await connectedChannelEntries(viewer);
+    const entry = entries.find(e => e.channel.id === channelId);
+    if (!entry) {
+      res.status(403).json({ error: "Access denied or channel not connected." });
+      return;
+    }
+    const updated = await refreshKeywordRankingsInternal(channelId);
+    res.json(updated);
   } catch (error) {
     next(error);
   }
@@ -620,13 +1595,9 @@ const candidateMappings = {
     "Railway Testbook"
   ],
   "Mohit": [
-    "UPSC PrepLab",
     "Bihar Testbook",
-    "Testbook"
-  ],
-  "Raubinsh": [
-    "Odisha Testbook",
-    "Odisha Teaching by Testbook"
+    "Testbook",
+    "Punjab Testbook"
   ],
   "Saijal": [
     "UGC NET Testbook",
@@ -637,18 +1608,22 @@ const candidateMappings = {
     "Bihar Teaching Exams by Testbook",
     "Assistant Professor & PhD by Testbook"
   ],
-  "Aditya": [
-    "Testbook Bengali",
-    "WBPSC Testbook",
-    "Punjab Testbook",
-    "SuperCoaching Marathi by Testbook",
-    "TET Factory by Testbook",
+  "Govardhan": [
+    "Testbook Tamil",
     "Testbook Telugu"
   ],
   "Vivek": [
     "AE JE Testbook",
     "SSC Testbook",
-    "Testbook Tamil"
+    "Testbook - JAIIB CAIIB"
+  ],
+  "Aditya": [
+    "Testbook Bengali",
+    "WBPSC Testbook",
+    "SuperCoaching Marathi by Testbook",
+    "TET Factory by Testbook",
+    "Odisha Testbook",
+    "Odisha Teaching by Testbook"
   ]
 };
 
@@ -658,9 +1633,6 @@ const ytmMappings = {
     "SuperCoaching Marathi by Testbook",
     "UCcpVPJAwpfJlcGE1J84QXvA"
   ],
-  "Atul Sharma": [
-    "UPSC PrepLab"
-  ],
   "Shubham": [
     "Bihar Testbook",
     "Testbook",
@@ -668,9 +1640,10 @@ const ytmMappings = {
   ],
   "Raubnish": [
     "Odisha Testbook",
-    "Odisha Teaching by Testbook"
+    "Odisha Teaching by Testbook",
+    "UPSC PrepLab"
   ],
-  "Amit": [
+  "Narendra/Amit": [
     "UGC NET Testbook",
     "Testbook NET JRF"
   ],
@@ -694,6 +1667,10 @@ const ytmMappings = {
     "AE JE Testbook",
     "SSC Testbook",
     "Testbook - JAIIB CAIIB"
+  ],
+  "Govardhan": [
+    "Testbook Tamil",
+    "Testbook Telugu"
   ]
 };
 
@@ -1247,6 +2224,35 @@ async function saveCompetitorOutliers(outliers) {
   }
   await mkdir(dataDir, { recursive: true });
   await writeFile(competitorOutliersPath, JSON.stringify(outliers, null, 2), "utf8");
+}
+
+const keywordRankingsPath = path.join(dataDir, "keyword_rankings.json");
+
+async function readKeywordRankings() {
+  if (sql) {
+    await ensureStorage();
+    const rows = await sql`select payload from app_state where key = 'keyword_rankings' limit 1`;
+    return rows[0]?.payload || {};
+  }
+  try {
+    return JSON.parse(await readFile(keywordRankingsPath, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+async function saveKeywordRankings(rankings) {
+  if (sql) {
+    await ensureStorage();
+    await sql`
+      insert into app_state (key, payload)
+      values ('keyword_rankings', ${sql.json(rankings)})
+      on conflict (key) do update set payload = excluded.payload, updated_at = now()
+    `;
+    return;
+  }
+  await mkdir(dataDir, { recursive: true });
+  await writeFile(keywordRankingsPath, JSON.stringify(rankings, null, 2), "utf8");
 }
 
 function uniqueCompetitorsList() {
@@ -1820,10 +2826,40 @@ app.use((error, _req, res, _next) => {
 await hydrateEnvFromFile();
 
 const isDirectRun = process.argv[1] && path.resolve(process.argv[1]) === currentFilePath;
+let isRefreshingKeywords = false;
+function startKeywordScheduler() {
+  setInterval(async () => {
+    try {
+      const options = { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false };
+      const formatter = new Intl.DateTimeFormat('en-US', options);
+      const hourInIST = parseInt(formatter.format(new Date()), 10);
+      
+      if (hourInIST === 3) {
+        if (isRefreshingKeywords) return;
+        isRefreshingKeywords = true;
+        console.log("Starting scheduled keyword rankings refresh...");
+        const entries = await connectedChannelEntries();
+        for (const entry of entries) {
+          try {
+            console.log(`Refreshing keyword rankings for channel ${entry.channel.name} (${entry.channel.id})...`);
+            await refreshKeywordRankingsInternal(entry.channel.id);
+          } catch (err) {
+            console.error(`Scheduled keyword refresh failed for ${entry.channel.id}:`, err.message);
+          }
+        }
+        isRefreshingKeywords = false;
+      }
+    } catch (err) {
+      isRefreshingKeywords = false;
+      console.error("Error in background keyword refresh scheduler:", err);
+    }
+  }, 60 * 60 * 1000);
+}
+
 if (isDirectRun) {
   app.listen(port, () => {
     console.log(`YouTube dashboard running at http://localhost:${port}`);
-    startOutliersScheduler();
+    startKeywordScheduler();
   });
 }
 
@@ -1947,6 +2983,18 @@ function isAuditAdmin(viewer) {
   return admins.includes(viewer.email.toLowerCase().trim()) || viewer.email.toLowerCase().trim() === "ankit.khola@testbook.com";
 }
 
+function isAllowedToAddChannel(viewer) {
+  if (!teamAuthEnabled()) return true;
+  if (!viewer || !viewer.email) return false;
+  if (isAuditAdmin(viewer)) return true;
+  const allowedEmailsStr = process.env.ALLOWED_SEO_EMAILS || process.env.ALLOWED_ADD_CHANNEL_EMAILS || "";
+  if (!allowedEmailsStr) {
+    return true;
+  }
+  const allowed = allowedEmailsStr.split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
+  return allowed.includes(viewer.email.toLowerCase().trim());
+}
+
 function parseCookies(req) {
   return Object.fromEntries(
     String(req.headers.cookie || "")
@@ -2035,10 +3083,16 @@ async function hasConnectedGoogle() {
   return Boolean(await readTokens());
 }
 
-async function connectedChannelEntries() {
+async function connectedChannelEntries(viewer = null) {
   let profiles = await readProfiles();
   if (!profiles.length) {
     profiles = await migrateLegacyToken();
+  }
+
+  if (teamAuthEnabled() && viewer) {
+    if (!isAuditAdmin(viewer)) {
+      profiles = profiles.filter(p => p.userEmail === viewer.email);
+    }
   }
 
   const removedIds = await readRemovedChannelIds();
@@ -2150,7 +3204,7 @@ async function saveProfiles(profiles) {
   await writeFile(profilesPath, JSON.stringify(profiles, null, 2), "utf8");
 }
 
-async function saveGoogleProfile(tokens, channels) {
+async function saveGoogleProfile(tokens, channels, userEmail = null) {
   const profiles = await readProfiles();
   const channelIds = new Set(channels.map((channel) => channel.id));
 
@@ -2163,8 +3217,11 @@ async function saveGoogleProfile(tokens, channels) {
   if (existing) {
     existing.tokens = { ...existing.tokens, ...tokens };
     existing.channels = channels;
+    if (userEmail) {
+      existing.userEmail = userEmail;
+    }
   } else {
-    profiles.push({ id: randomUUID(), tokens, channels });
+    profiles.push({ id: randomUUID(), tokens, channels, userEmail });
   }
   await saveProfiles(profiles);
   await saveTokens(tokens);
@@ -2454,6 +3511,140 @@ async function searchKeywordsForDate(entries, date) {
     .map(([keyword, views]) => ({ keyword, views }))
     .sort((a, b) => b.views - a.views)
     .slice(0, 10);
+}
+
+function isBrandKeyword(keyword, channelTitle) {
+  const lowerKeyword = String(keyword || "").toLowerCase().trim();
+  if (!lowerKeyword) return true;
+  
+  const brandTerms = ["testbook", "supercoaching", "super coaching", "preplab"];
+  return brandTerms.some(term => lowerKeyword.includes(term));
+}
+
+async function fetchKeywordRank(youtube, keyword, targetChannelId) {
+  try {
+    const res = await youtube.search.list({
+      part: ["snippet"],
+      q: keyword,
+      type: ["video"],
+      maxResults: 50,
+      regionCode: "IN",
+    });
+    const items = res.data.items || [];
+    let rank = null;
+    let videoId = null;
+    let videoTitle = "";
+    
+    for (let index = 0; index < items.length; index++) {
+      if (items[index].snippet?.channelId === targetChannelId) {
+        rank = index + 1;
+        videoId = items[index].id?.videoId || null;
+        videoTitle = items[index].snippet?.title || "";
+        break;
+      }
+    }
+    return { rank, videoId, videoTitle };
+  } catch (err) {
+    console.error(`Error scanning rank for keyword "${keyword}":`, err.message);
+    const isQuota = String(err.message || "").toLowerCase().includes("quota");
+    return { rank: isQuota ? "quota_exceeded" : null, videoId: null, videoTitle: "" };
+  }
+}
+
+async function refreshKeywordRankingsInternal(channelId) {
+  const entries = await connectedChannelEntries();
+  const entry = entries.find(e => e.channel.id === channelId);
+  if (!entry) throw new Error("Channel not connected.");
+  
+  const auth = entry.auth;
+  const youtube = google.youtube({ version: "v3", auth });
+  
+  const dates = dateWindow("7");
+  const rows = await analyticsRows(auth, {
+    ids: `channel==${channelId}`,
+    startDate: dates.startDate,
+    endDate: dates.endDate,
+    dimensions: "insightTrafficSourceDetail",
+    metrics: "views",
+    filters: "insightTrafficSourceType==YT_SEARCH",
+    sort: "-views",
+    maxResults: 25,
+  }).catch((err) => {
+    console.error("analyticsRows error in refreshKeywordRankingsInternal:", err);
+    return [];
+  });
+  
+  const channelName = entry.channel.name || "";
+  const filteredQueries = [];
+  for (const row of rows) {
+    const keyword = String(row[0] || "").trim();
+    const views = Number(row[1] || 0);
+    if (keyword && !isBrandKeyword(keyword, channelName)) {
+      filteredQueries.push({ keyword, views });
+    }
+  }
+  
+  const top10 = filteredQueries
+    .sort((a, b) => b.views - a.views)
+    .slice(0, 10);
+    
+  const data = await readKeywordRankings();
+  const manualKeywords = data[channelId]?.manualKeywords || [];
+  
+  const allKeywords = [
+    ...top10.map(k => ({ keyword: k.keyword, views: k.views, type: "automated" })),
+    ...manualKeywords.map(k => ({ keyword: k, views: null, type: "manual" }))
+  ];
+  
+  const results = {
+    automated: [],
+    manual: []
+  };
+  
+  const batchSize = 5;
+  for (let idx = 0; idx < allKeywords.length; idx += batchSize) {
+    const chunk = allKeywords.slice(idx, idx + batchSize);
+    await Promise.all(chunk.map(async (item) => {
+      const { rank, videoId, videoTitle } = await fetchKeywordRank(youtube, item.keyword, channelId);
+      
+      const prevData = data[channelId]?.rankings?.[item.type]?.find(r => r.keyword === item.keyword);
+      const previousRank = prevData ? prevData.currentRank : null;
+      const history = prevData ? [...(prevData.history || [])] : [];
+      
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const existingHistoryIndex = history.findIndex(h => h.date === todayStr);
+      if (existingHistoryIndex !== -1) {
+        history[existingHistoryIndex].rank = rank;
+      } else {
+        history.push({ date: todayStr, rank });
+        if (history.length > 7) history.shift();
+      }
+      
+      const record = {
+        keyword: item.keyword,
+        views: item.views,
+        currentRank: rank,
+        previousRank,
+        history,
+        videoId,
+        videoTitle
+      };
+      
+      results[item.type].push(record);
+    }));
+  }
+  
+  results.automated.sort((a, b) => (b.views || 0) - (a.views || 0));
+  
+  data[channelId] = {
+    channelId,
+    lastUpdated: new Date().toISOString(),
+    manualKeywords,
+    rankings: results
+  };
+  
+  await saveKeywordRankings(data);
+  return data[channelId];
 }
 
 async function uploadedVideoViewsById(auth, channelId, dates) {

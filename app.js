@@ -23,13 +23,9 @@ const candidateMappings = {
     "Railway Testbook"
   ],
   "Mohit": [
-    "UPSC PrepLab",
     "Bihar Testbook",
-    "Testbook"
-  ],
-  "Raubinsh": [
-    "Odisha Testbook",
-    "Odisha Teaching by Testbook"
+    "Testbook",
+    "Punjab Testbook"
   ],
   "Saijal": [
     "UGC NET Testbook",
@@ -40,18 +36,22 @@ const candidateMappings = {
     "Bihar Teaching Exams by Testbook",
     "Assistant Professor & PhD by Testbook"
   ],
-  "Aditya": [
-    "Testbook Bengali",
-    "WBPSC Testbook",
-    "Punjab Testbook",
-    "SuperCoaching Marathi by Testbook",
-    "TET Factory by Testbook",
+  "Govardhan": [
+    "Testbook Tamil",
     "Testbook Telugu"
   ],
   "Vivek": [
     "AE JE Testbook",
     "SSC Testbook",
-    "Testbook Tamil"
+    "Testbook - JAIIB CAIIB"
+  ],
+  "Aditya": [
+    "Testbook Bengali",
+    "WBPSC Testbook",
+    "SuperCoaching Marathi by Testbook",
+    "TET Factory by Testbook",
+    "Odisha Testbook",
+    "Odisha Teaching by Testbook"
   ]
 };
 
@@ -71,9 +71,6 @@ const ytmMappings = {
     "SuperCoaching Marathi by Testbook",
     "UCcpVPJAwpfJlcGE1J84QXvA"
   ],
-  "Atul Sharma": [
-    "UPSC PrepLab"
-  ],
   "Shubham": [
     "Bihar Testbook",
     "Testbook",
@@ -81,9 +78,10 @@ const ytmMappings = {
   ],
   "Raubnish": [
     "Odisha Testbook",
-    "Odisha Teaching by Testbook"
+    "Odisha Teaching by Testbook",
+    "UPSC PrepLab"
   ],
-  "Amit": [
+  "Narendra/Amit": [
     "UGC NET Testbook",
     "Testbook NET JRF"
   ],
@@ -107,6 +105,10 @@ const ytmMappings = {
     "AE JE Testbook",
     "SSC Testbook",
     "Testbook - JAIIB CAIIB"
+  ],
+  "Govardhan": [
+    "Testbook Tamil",
+    "Testbook Telugu"
   ]
 };
 
@@ -156,7 +158,6 @@ let state = {
   ytmResults: [],
   ytmFilter: "All",
   ytmSortLowestFirst: true,
-  outliers: [],
 };
 
 const setupScreen = document.querySelector("#setupScreen");
@@ -172,7 +173,11 @@ const researchRangeSelect = document.querySelector("#researchRangeSelect");
 const competitorDialog = document.querySelector("#competitorDialog");
 const competitorForm = document.querySelector("#competitorForm");
 
-document.querySelector("#connectChannelButton").addEventListener("click", () => {
+document.querySelector("#connectChannelButton")?.addEventListener("click", () => {
+  window.location.href = "/auth/google";
+});
+
+document.querySelector("#keywordsConnectChannelButton")?.addEventListener("click", () => {
   window.location.href = "/auth/google";
 });
 
@@ -197,6 +202,14 @@ document.querySelector("#refreshButton").addEventListener("click", () => {
     loadYtmAudit({ force: true });
     return;
   }
+  if (state.activeView === "keywords") {
+    refreshKeywordRankings();
+    return;
+  }
+  if (state.activeView === "targets") {
+    loadTargets({ force: true });
+    return;
+  }
   loadDashboard({ force: true });
 });
 
@@ -209,13 +222,10 @@ document.querySelectorAll("[data-view-tab]").forEach((button) => {
       return;
     }
     stopCompetitorAutoRefresh();
-    if (state.activeView === "outliers") {
-      loadOutliers();
-      return;
-    }
     if (state.activeView === "research") renderResearchView();
     if (state.activeView === "seo") renderSeoAuditView();
     if (state.activeView === "ytm") renderYtmAuditView();
+    if (state.activeView === "targets") loadTargets();
   });
 });
 
@@ -526,7 +536,13 @@ function channelButton(channel) {
   `;
   button.addEventListener("click", () => {
     state.selectedChannelId = channel.id;
+    if (channel.id !== "all-in-one") {
+      state.selectedKeywordsChannelId = channel.id;
+    }
     loadDashboard();
+    if (state.activeView === "keywords") {
+      loadKeywords();
+    }
   });
   container.appendChild(button);
 
@@ -994,12 +1010,12 @@ function applyView() {
     ? (state.report?.title || "Channel Analytics")
     : state.activeView === "competitors"
       ? "Competitors"
-      : state.activeView === "outliers"
-        ? "Trending"
-        : state.activeView === "seo"
-          ? "SEO Audit"
-          : state.activeView === "ytm"
-            ? "YTM Audit"
+      : state.activeView === "seo"
+        ? "SEO Audit"
+        : state.activeView === "ytm"
+          ? "YTM Audit"
+          : state.activeView === "targets"
+            ? "Target Tracker"
             : "Research";
 }
 
@@ -1339,13 +1355,21 @@ function showDashboard() {
   appShell.hidden = false;
   
   const isAd = (state.isAuditAdmin === undefined || state.isAuditAdmin === true);
-  if (!isAd && (state.activeView === "seo" || state.activeView === "outliers")) {
+  if (!isAd && (state.activeView === "seo" || state.activeView === "ytm")) {
     state.activeView = "dashboard";
   }
   
-  document.querySelectorAll('[data-view-tab="seo"], [data-view-tab="outliers"]').forEach(btn => {
+  document.querySelectorAll('[data-view-tab="seo"], [data-view-tab="ytm"]').forEach(btn => {
     btn.style.display = isAd ? "" : "none";
   });
+
+  document.querySelector("#manageTargetsButton")?.classList.remove("is-hidden");
+
+  const canAdd = (state.allowedToAddChannel === undefined || state.allowedToAddChannel === true);
+  document.querySelectorAll("#connectChannelButton, #keywordsConnectChannelButton").forEach(btn => {
+    btn.classList.toggle("is-hidden", !canAdd);
+  });
+
   applyView();
 }
 
@@ -1673,7 +1697,7 @@ function renderSeoChannelFilters() {
     candidatesWithResults.add(candidate);
   });
   
-  const candidateList = ["Vinayak", "Mohit", "Raubinsh", "Saijal", "Aditya", "Vivek", "Other"].filter(c => candidatesWithResults.has(c));
+  const candidateList = ["Vinayak", "Mohit", "Saijal", "Aditya", "Vivek", "Govardhan", "Other"].filter(c => candidatesWithResults.has(c));
   
   if (!candidateList.includes(state.seoFilter)) {
     state.seoFilter = candidateList[0] || "Other";
@@ -2030,7 +2054,7 @@ function renderYtmChannelFilters() {
     managersWithResults.add(manager);
   });
   
-  const managerList = ["Nitin", "Atul Sharma", "Shubham", "Raubnish", "Amit", "Abhinav", "Shukendu", "Ashish Tyagi", "Lubna", "Vivek", "Other"].filter(m => managersWithResults.has(m));
+  const managerList = ["Nitin", "Shubham", "Raubnish", "Narendra/Amit", "Abhinav", "Shukendu", "Ashish Tyagi", "Lubna", "Vivek", "Govardhan", "Other"].filter(m => managersWithResults.has(m));
   
   if (!managerList.includes(state.ytmFilter)) {
     state.ytmFilter = managerList[0] || "Other";
@@ -2313,164 +2337,6 @@ async function copyYtmForSheets(btn) {
   }
 }
 
-// Outliers Page Controllers and Suggest Dialog
-
-async function loadOutliers(options = {}) {
-  const grid = document.querySelector("#outliersGrid");
-  if (!grid) return;
-  
-  if (!options.silent) {
-    grid.innerHTML = emptyCard("Loading competitor trending videos...");
-  }
-  
-  try {
-    const data = await api("/api/competitors/outliers");
-    state.outliers = data.outliers || [];
-    renderOutliers();
-  } catch (error) {
-    grid.innerHTML = emptyCard(error.message);
-  }
-}
-
-function renderOutliers() {
-  const grid = document.querySelector("#outliersGrid");
-  const totalLabel = document.querySelector("#outliersTotal");
-  if (!grid) return;
-  
-  const categoryFilter = document.querySelector("#outlierCategorySelect")?.value || "All";
-  const formatFilter = document.querySelector("#outlierFormatSelect")?.value || "All";
-  
-  let list = [...state.outliers].filter(item => Number(item.views || 0) > 5000);
-  
-  if (categoryFilter !== "All") {
-    list = list.filter(item => item.category === categoryFilter);
-  }
-  if (formatFilter !== "All") {
-    list = list.filter(item => item.format === formatFilter);
-  }
-  
-  if (totalLabel) {
-    totalLabel.textContent = `${list.length} trending video${list.length === 1 ? "" : "s"}`;
-  }
-  
-  if (!list.length) {
-    grid.innerHTML = emptyCard("No trending videos found matching the filters.");
-    return;
-  }
-  
-  grid.innerHTML = list.map(item => {
-    const formatClass = (item.format || "Video").toLowerCase();
-    const formattedViews = Number(item.views || 0).toLocaleString();
-    const formattedBaseline = Number(item.baselineAverage || 0).toLocaleString();
-    
-    return `
-      <article class="outlier-card">
-        <span class="outlier-format-badge ${formatClass}">${escapeHtml(item.format || "Video")}</span>
-        <div class="outlier-card-header">
-          <h3>${escapeHtml(item.title)}</h3>
-        </div>
-        <div class="outlier-meta">
-          <span class="outlier-meta-channel">${escapeHtml(item.channelTitle)}</span>
-          <span>Category: ${escapeHtml(item.category)} · Group: ${escapeHtml(item.group)}</span>
-          <span>Published: ${escapeHtml(formatPublishedAt(item.publishedAt))}</span>
-        </div>
-        <div class="outlier-stats">
-          <div class="outlier-stat-item">
-            <span>Views</span>
-            <strong>${formattedViews}</strong>
-          </div>
-          <div class="outlier-stat-item">
-            <span>Avg Baseline</span>
-            <strong>${formattedBaseline}</strong>
-          </div>
-        </div>
-        <div class="outlier-actions">
-          <a class="link-chip watch-link" href="${item.url}" target="_blank" rel="noreferrer">Open Video</a>
-          <button class="link-chip suggest-outlier-btn" data-video-id="${item.id}" style="border: none; cursor: pointer; background: var(--accent); color: white;">Suggest Ideas</button>
-        </div>
-      </article>
-    `;
-  }).join("");
-  
-  grid.querySelectorAll(".suggest-outlier-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const videoId = btn.dataset.videoId;
-      const video = state.outliers.find(v => v.id === videoId);
-      if (video) {
-        suggestOutlierIdeas(video);
-      }
-    });
-  });
-}
-
-async function scanOutliers() {
-  const scanSteps = [
-    { time: 0, text: "Gathering competitor channels..." },
-    { time: 2, text: "Fetching baseline views averages..." },
-    { time: 5, text: "Analyzing latest uploads for trending videos..." },
-    { time: 10, text: "Filtering and sorting trending scores..." }
-  ];
-  const progressBar = startProgressBar("outliersProgressBarContainer", "outliersProgressBarFill", "outliersProgressBarLabel", scanSteps);
-  
-  try {
-    const res = await api("/api/competitors/outliers/scan", { method: "POST" });
-    if (progressBar) progressBar.stop(true, "Scan Complete! (100%)", "Scan Failed!");
-    state.outliers = res.outliers || [];
-    renderOutliers();
-  } catch (error) {
-    if (progressBar) progressBar.stop(false, "Scan Failed!", error.message);
-    alert("Scan failed: " + error.message);
-  }
-}
-
-async function suggestOutlierIdeas(video) {
-  const dialog = document.querySelector("#outlierSuggestDialog");
-  const sourceTitle = document.querySelector("#outlierSourceTitle");
-  const suggestionsList = document.querySelector("#outlierSuggestionsList");
-  
-  if (!dialog || !sourceTitle || !suggestionsList) return;
-  
-  sourceTitle.textContent = video.title;
-  suggestionsList.innerHTML = "<p style='color: var(--muted); text-align: center; padding: 20px 0;'>Drafting suggestions using Claude...</p>";
-  dialog.showModal();
-  
-  try {
-    const res = await api("/api/competitors/outliers/suggest", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: video.title,
-        format: video.format,
-        category: video.category,
-        group: video.group,
-        views: video.views,
-        outlierScore: video.outlierScore
-      })
-    });
-    
-    if (!res.suggestions || !res.suggestions.length) {
-      suggestionsList.innerHTML = "<p style='color: var(--accent);'>No suggestions returned.</p>";
-      return;
-    }
-    
-    suggestionsList.innerHTML = res.suggestions.map(s => {
-      const formatClass = (s.format || "Video").toLowerCase();
-      return `
-        <div style="background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <strong style="font-size: 13px; color: var(--text-dark);">${escapeHtml(s.title)}</strong>
-            <span class="outlier-format-badge ${formatClass}" style="margin: 0; padding: 1px 5px; font-size: 9px;">${escapeHtml(s.format)}</span>
-          </div>
-          <p style="margin: 0; font-size: 12px; color: var(--muted); line-height: 1.4;">${escapeHtml(s.strategy)}</p>
-        </div>
-      `;
-    }).join("");
-    
-  } catch (error) {
-    suggestionsList.innerHTML = `<p style="color: var(--accent); font-weight: 500;">Failed to fetch suggestions: ${escapeHtml(error.message)}</p>`;
-  }
-}
-
 // Global click event handlers for comments drawers and reply actions
 document.addEventListener("click", async (event) => {
   const toggleBtn = event.target.closest(".comments-toggle-btn");
@@ -2577,15 +2443,696 @@ document.addEventListener("click", async (event) => {
   }
 });
 
-// Attach event listeners for Outliers panel
-document.querySelector("#scanOutliersButton")?.addEventListener("click", () => {
-  scanOutliers();
+
+// Keywords View Controllers
+async function loadKeywords(options = {}) {
+  const channelFilters = document.querySelector("#keywordsChannelFilters");
+  const automatedContainer = document.querySelector("#automatedKeywordsTableContainer");
+  const manualContainer = document.querySelector("#manualKeywordsTableContainer");
+  
+  if (!state.channels || !state.channels.length) {
+    if (channelFilters) channelFilters.innerHTML = "";
+    if (automatedContainer) automatedContainer.innerHTML = emptyCard("No connected channels found.");
+    if (manualContainer) manualContainer.innerHTML = "";
+    return;
+  }
+
+  const publicChs = state.channels.filter(c => c.id !== "all-in-one");
+  if (!publicChs.length) {
+    if (automatedContainer) automatedContainer.innerHTML = emptyCard("No public channels connected.");
+    return;
+  }
+  if (!state.selectedKeywordsChannelId || !publicChs.some(c => c.id === state.selectedKeywordsChannelId)) {
+    if (state.selectedChannelId && publicChs.some(c => c.id === state.selectedChannelId)) {
+      state.selectedKeywordsChannelId = state.selectedChannelId;
+    } else {
+      state.selectedKeywordsChannelId = publicChs[0].id;
+    }
+  }
+
+  renderKeywordsChannelFilters(publicChs);
+
+  try {
+    if (!options.force) {
+      automatedContainer.innerHTML = emptyCard("Loading rankings...");
+      manualContainer.innerHTML = emptyCard("Loading rankings...");
+    }
+    const data = await api("/api/keywords/rankings?channelId=" + encodeURIComponent(state.selectedKeywordsChannelId));
+    state.keywordRankings = data;
+    renderKeywordsView();
+  } catch (err) {
+    automatedContainer.innerHTML = emptyCard(err.message || "Failed to load keyword rankings.");
+    manualContainer.innerHTML = "";
+  }
+}
+
+function renderKeywordsChannelFilters(channels) {
+  const container = document.querySelector("#keywordsChannelFilters");
+  if (!container) return;
+  
+  container.innerHTML = channels.map(channel => {
+    const isActive = state.selectedKeywordsChannelId === channel.id;
+    return `<button class="filter-chip ${isActive ? "active" : ""}" type="button" data-keywords-channel-id="${escapeHtml(channel.id)}">${escapeHtml(channel.name)}</button>`;
+  }).join("");
+
+  container.querySelectorAll("[data-keywords-channel-id]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.selectedKeywordsChannelId = btn.dataset.keywordsChannelId;
+      loadKeywords();
+    });
+  });
+}
+
+function renderKeywordsView() {
+  const data = state.keywordRankings || { rankings: { automated: [], manual: [] }, manualKeywords: [], lastUpdated: null };
+  
+  const lastUpdatedEl = document.querySelector("#keywordsLastUpdated");
+  if (lastUpdatedEl) {
+    if (data.lastUpdated) {
+      lastUpdatedEl.textContent = "Last scanned: " + new Date(data.lastUpdated).toLocaleString();
+    } else {
+      lastUpdatedEl.textContent = "Not scanned yet";
+    }
+  }
+
+  renderKeywordTable(
+    document.querySelector("#automatedKeywordsTableContainer"),
+    data.rankings?.automated || [],
+    "automated"
+  );
+
+  renderKeywordTable(
+    document.querySelector("#manualKeywordsTableContainer"),
+    data.rankings?.manual || [],
+    "manual"
+  );
+
+  const trackBtn = document.querySelector("#addManualKeywordButton");
+  const trackInput = document.querySelector("#manualKeywordInput");
+  const currentManualCount = (data.manualKeywords || []).length;
+  if (trackBtn && trackInput) {
+    if (currentManualCount >= 50) {
+      trackBtn.disabled = true;
+      trackInput.disabled = true;
+      trackInput.placeholder = "Limit of 50 keywords reached.";
+    } else {
+      trackBtn.disabled = false;
+      trackInput.disabled = false;
+      trackInput.placeholder = "e.g. ssc cgl 2026 classes";
+    }
+  }
+
+  // Dynamically swap order of sections if manual keywords are added
+  const autoSec = document.querySelector("#automatedKeywordsSection");
+  const manualSec = document.querySelector("#manualKeywordsSection");
+  if (autoSec && manualSec) {
+    if (currentManualCount > 0) {
+      manualSec.style.order = "1";
+      autoSec.style.order = "2";
+      manualSec.style.borderTop = "none";
+      manualSec.style.paddingTop = "0";
+      autoSec.style.borderTop = "1px solid var(--line)";
+      autoSec.style.paddingTop = "24px";
+    } else {
+      autoSec.style.order = "1";
+      manualSec.style.order = "2";
+      autoSec.style.borderTop = "none";
+      autoSec.style.paddingTop = "0";
+      manualSec.style.borderTop = "1px solid var(--line)";
+      manualSec.style.paddingTop = "24px";
+    }
+  }
+}
+
+function renderKeywordTable(container, list, type) {
+  if (!container) return;
+  if (!list || !list.length) {
+    container.innerHTML = emptyCard(
+      type === "automated" 
+        ? "No search keywords found. Run a refresh to scan your channel's traffic data."
+        : "No custom keywords tracked yet. Type a keyword above and click Track Keyword."
+    );
+    return;
+  }
+
+  const isAutomated = type === "automated";
+  
+  container.innerHTML = `
+    <div class="keywords-table">
+      <div class="keywords-row keywords-head ${type}-row">
+        <span>Rank & Trend</span>
+        <span>Keyword</span>
+        ${isAutomated ? "<span>Views (7d)</span>" : ""}
+        <span>Best Ranking Video</span>
+        <span>Search Page</span>
+        ${!isAutomated ? "<span>Action</span>" : ""}
+      </div>
+      ${list.map(row => {
+        const trendHtml = getTrendBadgeHtml(row.currentRank, row.previousRank);
+        const searchUrl = "https://www.youtube.com/results?search_query=" + encodeURIComponent(row.keyword);
+        
+        let videoHtml = `<span style="color: var(--muted); font-size: 12px;">Not in Top 50</span>`;
+        if (row.videoId) {
+          const videoUrl = "https://www.youtube.com/watch?v=" + row.videoId;
+          videoHtml = `
+            <div class="keywords-video-cell">
+              <strong title="${escapeHtml(row.videoTitle)}">${escapeHtml(row.videoTitle)}</strong>
+              <a href="${videoUrl}" target="_blank" rel="noreferrer" style="font-size: 11px; color: var(--accent); text-decoration: none;">Watch video</a>
+            </div>
+          `;
+        }
+
+        const isQuota = row.currentRank === "quota_exceeded";
+        const rankText = isQuota ? "Quota Reached" : (row.currentRank ? `#${row.currentRank}` : "50+");
+        const rankFontSize = isQuota ? "11px" : "14px";
+        return `
+          <div class="keywords-row ${type}-row">
+            <div class="rank-badge-container">
+              <strong style="font-size: ${rankFontSize}; white-space: nowrap;">${rankText}</strong>
+              ${trendHtml}
+            </div>
+            <strong>${escapeHtml(row.keyword)}</strong>
+            ${isAutomated ? `<span>${Number(row.views || 0).toLocaleString()}</span>` : ""}
+            ${videoHtml}
+            <a class="link-chip" href="${searchUrl}" target="_blank" rel="noreferrer" style="text-align: center; border-radius: 6px;">YouTube</a>
+            ${!isAutomated ? `
+              <button class="keywords-delete-btn" type="button" data-delete-keyword="${escapeHtml(row.keyword)}">Delete</button>
+            ` : ""}
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+
+  if (!isAutomated) {
+    container.querySelectorAll("[data-delete-keyword]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const kw = btn.dataset.deleteKeyword;
+        if (confirm(`Remove keyword "${kw}" from manual tracking?`)) {
+          try {
+            btn.disabled = true;
+            btn.textContent = "Deleting...";
+            const updated = await api("/api/keywords/manual", {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                channelId: state.selectedKeywordsChannelId,
+                keyword: kw
+              })
+            });
+            state.keywordRankings = updated;
+            renderKeywordsView();
+          } catch (err) {
+            alert(err.message || "Failed to delete keyword.");
+            btn.disabled = false;
+            btn.textContent = "Delete";
+          }
+        }
+      });
+    });
+  }
+}
+
+function getTrendBadgeHtml(curr, prev) {
+  if (curr === "quota_exceeded" || prev === "quota_exceeded") {
+    return `<span class="trend-badge trend-flat">-</span>`;
+  }
+  if (prev === null || prev === undefined) {
+    return `<span class="trend-badge trend-flat">New</span>`;
+  }
+  if (curr === null || curr === undefined) {
+    return `<span class="trend-badge trend-down">Lost</span>`;
+  }
+  const delta = prev - curr;
+  if (delta > 0) {
+    return `<span class="trend-badge trend-up">▲ ${delta}</span>`;
+  }
+  if (delta < 0) {
+    return `<span class="trend-badge trend-down">▼ ${Math.abs(delta)}</span>`;
+  }
+  return `<span class="trend-badge trend-flat">=</span>`;
+}
+
+async function addManualKeyword() {
+  const input = document.querySelector("#manualKeywordInput");
+  const keyword = (input?.value || "").trim();
+  if (!keyword) return;
+
+  const btn = document.querySelector("#addManualKeywordButton");
+  try {
+    if (btn) btn.disabled = true;
+    if (input) input.disabled = true;
+    
+    const updated = await api("/api/keywords/manual", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        channelId: state.selectedKeywordsChannelId,
+        keyword: keyword
+      })
+    });
+    state.keywordRankings = updated;
+    renderKeywordsView();
+    if (input) input.value = "";
+  } catch (err) {
+    alert(err.message || "Failed to add manual keyword.");
+  } finally {
+    if (btn) btn.disabled = false;
+    if (input) input.disabled = false;
+    if (input) input.focus();
+  }
+}
+
+async function refreshKeywordRankings() {
+  const refreshBtn = document.querySelector("#keywordsRefreshButton");
+  const progressBarContainer = document.querySelector("#keywordsProgressBarContainer");
+  const progressBarFill = document.querySelector("#keywordsProgressBarFill");
+  const progressBarLabel = document.querySelector("#keywordsProgressBarLabel");
+
+  try {
+    if (refreshBtn) refreshBtn.disabled = true;
+    if (progressBarContainer) progressBarContainer.classList.remove("is-hidden");
+    
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 10;
+      if (progress > 90) progress = 90;
+      if (progressBarFill) progressBarFill.style.width = progress + "%";
+      if (progressBarLabel) progressBarLabel.textContent = `Scanning keyword rankings... (${progress}%)`;
+    }, 800);
+
+    const updated = await api("/api/keywords/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        channelId: state.selectedKeywordsChannelId
+      })
+    });
+    
+    clearInterval(interval);
+    if (progressBarFill) progressBarFill.style.width = "100%";
+    if (progressBarLabel) progressBarLabel.textContent = "Scan complete! (100%)";
+    
+    state.keywordRankings = updated;
+    renderKeywordsView();
+    
+    setTimeout(() => {
+      if (progressBarContainer) progressBarContainer.classList.add("is-hidden");
+    }, 1500);
+  } catch (err) {
+    alert(err.message || "Failed to refresh keyword rankings.");
+    if (progressBarContainer) progressBarContainer.classList.add("is-hidden");
+  } finally {
+    if (refreshBtn) refreshBtn.disabled = false;
+  }
+}
+
+// Attach event listeners for Keywords panel
+document.querySelector("#keywordsRefreshButton")?.addEventListener("click", () => {
+  refreshKeywordRankings();
 });
 
-document.querySelector("#outlierCategorySelect")?.addEventListener("change", () => {
-  renderOutliers();
+document.querySelector("#addManualKeywordButton")?.addEventListener("click", () => {
+  addManualKeyword();
 });
 
-document.querySelector("#outlierFormatSelect")?.addEventListener("change", () => {
-  renderOutliers();
+document.querySelector("#manualKeywordInput")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    addManualKeyword();
+  }
 });
+
+// Target Tracker View Controllers
+
+async function loadTargets(options = {}) {
+  const ytmBody = document.querySelector("#ytmTargetsTableBody");
+  const seoBody = document.querySelector("#seoTargetsTableBody");
+  const dateRangeEl = document.querySelector("#targetsDateRange");
+
+  state.activeQuarter = state.activeQuarter || "JAS_2026";
+  state.activeTargetSubTab = state.activeTargetSubTab || "ytm";
+
+  // Render initial tab UI state
+  updateTargetSubTabUI();
+
+  try {
+    if (ytmBody) ytmBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 20px; color: var(--muted);">Loading target stats...</td></tr>`;
+    if (seoBody) seoBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--muted);">Loading target stats...</td></tr>`;
+    if (dateRangeEl) dateRangeEl.textContent = "Loading date range...";
+
+    const res = await api(`/api/targets?quarter=${encodeURIComponent(state.activeQuarter)}${options.force ? "&force=1" : ""}`);
+    state.targetsData = res;
+
+    // Update date range info
+    if (dateRangeEl) {
+      if (res.hasStarted) {
+        const daysText = res.elapsedDays !== undefined && res.totalDays !== undefined
+          ? ` (${res.elapsedDays} of ${res.totalDays} days elapsed, pro-rated target calculation)`
+          : "";
+        dateRangeEl.textContent = `Quarter performance: ${formatDateText(res.startDate)} to ${formatDateText(res.endDate)}${daysText}`;
+      } else {
+        dateRangeEl.textContent = `Quarter has not started yet (starts ${formatDateText(res.startDate)})`;
+      }
+    }
+
+    renderTargetsTable();
+  } catch (err) {
+    console.error("Failed to load targets:", err);
+    if (ytmBody) ytmBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 20px; color: var(--red);">Error: ${err.message || "Failed to load targets"}</td></tr>`;
+    if (seoBody) seoBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--red);">Error: ${err.message || "Failed to load targets"}</td></tr>`;
+  }
+}
+
+function formatDateText(isoString) {
+  if (!isoString) return "";
+  try {
+    const d = new Date(`${isoString}T00:00:00Z`);
+    const day = d.getUTCDate();
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const month = months[d.getUTCMonth()];
+    const year = d.getUTCFullYear();
+    
+    let suffix = "th";
+    if (day === 1 || day === 21 || day === 31) suffix = "st";
+    else if (day === 2 || day === 22) suffix = "nd";
+    else if (day === 3 || day === 23) suffix = "rd";
+    
+    return `${month} ${day}${suffix}, ${year}`;
+  } catch {
+    return isoString;
+  }
+}
+
+function formatPercentText(val) {
+  if (!val) return "0%";
+  if (val >= 100) return `${Math.round(val)}%`;
+  return `${val.toFixed(1)}%`;
+}
+
+function renderTargetsTable() {
+  const ytmBody = document.querySelector("#ytmTargetsTableBody");
+  const seoBody = document.querySelector("#seoTargetsTableBody");
+  if (!state.targetsData) return;
+
+  const { ytm, seo } = state.targetsData;
+
+  // Render YTM Targets Table
+  if (ytmBody) {
+    if (!ytm || !ytm.length) {
+      ytmBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 20px; color: var(--muted);">No YTM targets configured for this quarter. Click "Manage Targets" to add.</td></tr>`;
+    } else {
+      ytmBody.innerHTML = ytm.map(t => {
+        const viewsBadgeClass = getProgressBadgeClass(t.viewsProRataPercent);
+        const subsBadgeClass = getProgressBadgeClass(t.subsProRataPercent);
+
+        return `
+          <tr style="border-bottom: 1px solid var(--line);">
+            <td style="padding: 12px 8px; font-weight: 500; color: var(--text);">${escapeHtml(t.employee)}</td>
+            <td style="padding: 12px 8px; color: var(--muted);">${escapeHtml(t.channelName)}</td>
+            <td style="padding: 12px 8px; text-align: right; font-variant-numeric: tabular-nums;">${formatInteger(t.viewsTarget)}</td>
+            <td style="padding: 12px 8px; text-align: right; font-variant-numeric: tabular-nums;">${formatInteger(t.actualViews)}</td>
+            <td style="padding: 12px 8px; text-align: right;"><span class="${viewsBadgeClass}">${formatPercentText(t.viewsPercent)} reached</span></td>
+            <td style="padding: 12px 8px; text-align: right; font-variant-numeric: tabular-nums;">${formatInteger(t.subsTarget)}</td>
+            <td style="padding: 12px 8px; text-align: right; font-variant-numeric: tabular-nums;">${formatInteger(t.actualSubs)}</td>
+            <td style="padding: 12px 8px; text-align: right;"><span class="${subsBadgeClass}">${formatPercentText(t.subsPercent)} reached</span></td>
+          </tr>
+        `;
+      }).join("");
+    }
+  }
+
+  // Render SEO Targets Table
+  if (seoBody) {
+    if (!seo || !seo.length) {
+      seoBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--muted);">No SEO targets configured for this quarter. Click "Manage Targets" to add.</td></tr>`;
+    } else {
+      seoBody.innerHTML = seo.map(t => {
+        const searchBadgeClass = getProgressBadgeClass(t.searchProRataPercent);
+
+        return `
+          <tr style="border-bottom: 1px solid var(--line);">
+            <td style="padding: 12px 8px; font-weight: 500; color: var(--text);">${escapeHtml(t.employee)}</td>
+            <td style="padding: 12px 8px; color: var(--muted);">${escapeHtml(t.channelName)}</td>
+            <td style="padding: 12px 8px; text-align: right; font-variant-numeric: tabular-nums;">${formatInteger(t.searchViewsTarget)}</td>
+            <td style="padding: 12px 8px; text-align: right; font-variant-numeric: tabular-nums;">${formatInteger(t.actualSearchViews)}</td>
+            <td style="padding: 12px 8px; text-align: right;"><span class="${searchBadgeClass}">${formatPercentText(t.searchPercent)} reached</span></td>
+          </tr>
+        `;
+      }).join("");
+    }
+  }
+}
+
+function getProgressBadgeClass(percent) {
+  if (percent >= 100) return "badge-reached-good";
+  if (percent >= 80) return "badge-reached-warn";
+  return "badge-reached-danger";
+}
+
+function updateTargetSubTabUI() {
+  const subTabYtm = document.querySelector("#subTabYtm");
+  const subTabSeo = document.querySelector("#subTabSeo");
+  const ytmSection = document.querySelector("#ytmTargetsTableSection");
+  const seoSection = document.querySelector("#seoTargetsTableSection");
+
+  if (state.activeTargetSubTab === "ytm") {
+    subTabYtm?.classList.add("active-sub-tab");
+    subTabSeo?.classList.remove("active-sub-tab");
+    ytmSection?.classList.remove("is-hidden");
+    seoSection?.classList.add("is-hidden");
+  } else {
+    subTabYtm?.classList.remove("active-sub-tab");
+    subTabSeo?.classList.add("active-sub-tab");
+    ytmSection?.classList.add("is-hidden");
+    seoSection?.classList.remove("is-hidden");
+  }
+}
+
+// Modal Target Editor Controllers
+
+let tempYtmTargets = [];
+let tempSeoTargets = [];
+
+function openTargetsEditor() {
+  const dialog = document.querySelector("#targetsDialog");
+  const channelSelect = document.querySelector("#targetChannelInput");
+  const editorQuarterLabel = document.querySelector("#targetsEditorQuarter");
+
+  if (!dialog) return;
+
+  editorQuarterLabel.textContent = `Quarter Targets for ${state.activeQuarter.replace("_", " ")}`;
+
+  // Populate Channel dropdown select options
+  if (channelSelect && state.channels) {
+    const publicChs = state.channels.filter(c => c.id !== "all-in-one");
+    channelSelect.innerHTML = publicChs.map(c => `
+      <option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>
+    `).join("");
+  }
+
+  // Load active targets into temporary lists
+  if (state.targetsData) {
+    tempYtmTargets = JSON.parse(JSON.stringify(state.targetsData.ytm || []));
+    tempSeoTargets = JSON.parse(JSON.stringify(state.targetsData.seo || []));
+  } else {
+    tempYtmTargets = [];
+    tempSeoTargets = [];
+  }
+
+  // Reset Add form inputs
+  document.querySelector("#targetEmployeeInput").value = "";
+  document.querySelector("#targetViewsInput").value = "";
+  document.querySelector("#targetSubsInput").value = "";
+  document.querySelector("#targetSearchViewsInput").value = "";
+
+  renderEditorTargets();
+  dialog.showModal();
+}
+
+function renderEditorTargets() {
+  const ytmBody = document.querySelector("#editorYtmTableBody");
+  const seoBody = document.querySelector("#editorSeoTableBody");
+
+  if (ytmBody) {
+    if (!tempYtmTargets.length) {
+      ytmBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 12px; color: var(--muted);">No YTM targets added yet. Use form above to add.</td></tr>`;
+    } else {
+      ytmBody.innerHTML = tempYtmTargets.map((t, idx) => `
+        <tr style="border-bottom: 1px solid var(--line);">
+          <td style="padding: 8px 4px; font-weight: 500;">${escapeHtml(t.employee)}</td>
+          <td style="padding: 8px 4px; color: var(--muted);">${escapeHtml(t.channelName)}</td>
+          <td style="padding: 8px 4px; text-align: right;">${formatInteger(t.viewsTarget)}</td>
+          <td style="padding: 8px 4px; text-align: right;">${formatInteger(t.subsTarget)}</td>
+          <td style="padding: 8px 4px; text-align: center;">
+            <button class="keywords-delete-btn" type="button" onclick="deleteEditorTargetRow('ytm', ${idx})">Delete</button>
+          </td>
+        </tr>
+      `).join("");
+    }
+  }
+
+  if (seoBody) {
+    if (!tempSeoTargets.length) {
+      seoBody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 12px; color: var(--muted);">No SEO targets added yet. Use form above to add.</td></tr>`;
+    } else {
+      seoBody.innerHTML = tempSeoTargets.map((t, idx) => `
+        <tr style="border-bottom: 1px solid var(--line);">
+          <td style="padding: 8px 4px; font-weight: 500;">${escapeHtml(t.employee)}</td>
+          <td style="padding: 8px 4px; color: var(--muted);">${escapeHtml(t.channelName)}</td>
+          <td style="padding: 8px 4px; text-align: right;">${formatInteger(t.searchViewsTarget)}</td>
+          <td style="padding: 8px 4px; text-align: center;">
+            <button class="keywords-delete-btn" type="button" onclick="deleteEditorTargetRow('seo', ${idx})">Delete</button>
+          </td>
+        </tr>
+      `).join("");
+    }
+  }
+}
+
+// Expose deleteEditorTargetRow globally for inline onclick attribute
+window.deleteEditorTargetRow = function(category, idx) {
+  if (category === "ytm") {
+    tempYtmTargets.splice(idx, 1);
+  } else {
+    tempSeoTargets.splice(idx, 1);
+  }
+  renderEditorTargets();
+};
+
+function addEditorTargetRow() {
+  const employee = document.querySelector("#targetEmployeeInput").value.trim();
+  const category = document.querySelector("#targetCategoryInput").value;
+  const channelSelect = document.querySelector("#targetChannelInput");
+  const channelId = channelSelect.value;
+  const channelName = channelSelect.options[channelSelect.selectedIndex]?.text || "";
+
+  if (!employee) {
+    alert("Please enter Employee Name.");
+    return;
+  }
+  if (!channelId) {
+    alert("No channel selected.");
+    return;
+  }
+
+  if (category === "ytm") {
+    const viewsVal = parseInt(document.querySelector("#targetViewsInput").value, 10);
+    const subsVal = parseInt(document.querySelector("#targetSubsInput").value, 10);
+    if (isNaN(viewsVal) || viewsVal < 0 || isNaN(subsVal) || subsVal < 0) {
+      alert("Please enter valid Views and Subscribers targets.");
+      return;
+    }
+
+    tempYtmTargets.push({
+      id: "t_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+      employee,
+      channelId,
+      channelName,
+      viewsTarget: viewsVal,
+      subsTarget: subsVal
+    });
+  } else {
+    const searchVal = parseInt(document.querySelector("#targetSearchViewsInput").value, 10);
+    if (isNaN(searchVal) || searchVal < 0) {
+      alert("Please enter a valid YT Search Views target.");
+      return;
+    }
+
+    tempSeoTargets.push({
+      id: "t_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+      employee,
+      channelId,
+      channelName,
+      searchViewsTarget: searchVal
+    });
+  }
+
+  // Clear numeric inputs
+  document.querySelector("#targetViewsInput").value = "";
+  document.querySelector("#targetSubsInput").value = "";
+  document.querySelector("#targetSearchViewsInput").value = "";
+
+  renderEditorTargets();
+}
+
+async function saveEditorTargets() {
+  try {
+    const body = {
+      quarter: state.activeQuarter,
+      ytm: tempYtmTargets.map(t => ({
+        id: t.id,
+        employee: t.employee,
+        channelId: t.channelId,
+        channelName: t.channelName,
+        viewsTarget: t.viewsTarget,
+        subsTarget: t.subsTarget
+      })),
+      seo: tempSeoTargets.map(t => ({
+        id: t.id,
+        employee: t.employee,
+        channelId: t.channelId,
+        channelName: t.channelName,
+        searchViewsTarget: t.searchViewsTarget
+      }))
+    };
+
+    const dialog = document.querySelector("#targetsDialog");
+    const saveBtn = document.querySelector("#saveTargetsEditorBtn");
+    if (saveBtn) saveBtn.disabled = true;
+
+    await api("/api/targets/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    if (dialog) dialog.close();
+    await loadTargets();
+  } catch (err) {
+    alert("Failed to save changes: " + err.message);
+  } finally {
+    const saveBtn = document.querySelector("#saveTargetsEditorBtn");
+    if (saveBtn) saveBtn.disabled = false;
+  }
+}
+
+// Attach Event Listeners for targets panel elements
+document.querySelector("#quarterSelect")?.addEventListener("change", (e) => {
+  state.activeQuarter = e.target.value;
+  loadTargets();
+});
+
+document.querySelector("#manageTargetsButton")?.addEventListener("click", () => {
+  openTargetsEditor();
+});
+
+document.querySelector("#subTabYtm")?.addEventListener("click", () => {
+  state.activeTargetSubTab = "ytm";
+  updateTargetSubTabUI();
+});
+
+document.querySelector("#subTabSeo")?.addEventListener("click", () => {
+  state.activeTargetSubTab = "seo";
+  updateTargetSubTabUI();
+});
+
+document.querySelector("#targetCategoryInput")?.addEventListener("change", (e) => {
+  const ytmFields = document.querySelector("#targetYtmFields");
+  const seoFields = document.querySelector("#targetSeoFields");
+  if (e.target.value === "ytm") {
+    ytmFields?.classList.remove("is-hidden");
+    seoFields?.classList.add("is-hidden");
+  } else {
+    ytmFields?.classList.add("is-hidden");
+    seoFields?.classList.remove("is-hidden");
+  }
+});
+
+document.querySelector("#addNewTargetRowBtn")?.addEventListener("click", () => {
+  addEditorTargetRow();
+});
+
+document.querySelector("#saveTargetsEditorBtn")?.addEventListener("click", () => {
+  saveEditorTargets();
+});
+

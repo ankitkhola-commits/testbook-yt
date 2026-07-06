@@ -2621,3 +2621,164 @@ input {
   font-size: 12px;
 }
 
+/* Keyword Tracker Styles */
+.keywords-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 12px 16px;
+  border-radius: 8px;
+}
+
+.keywords-table {
+  display: grid;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.keywords-row {
+  display: grid;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef1f5;
+  font-size: 13px;
+}
+
+.keywords-row:last-child {
+  border-bottom: 0;
+}
+
+.keywords-row.automated-row {
+  grid-template-columns: 115px minmax(0, 1.8fr) 100px minmax(180px, 1fr) 92px;
+}
+
+.keywords-row.manual-row {
+  grid-template-columns: 115px minmax(0, 1.8fr) minmax(180px, 1fr) 92px 92px;
+}
+
+.keywords-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f7f9fb;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.keywords-head span {
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.keywords-row strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.keywords-row small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.keywords-video-cell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.keywords-video-cell strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rank-badge-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trend-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+.trend-up {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.trend-down {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.trend-flat {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.keywords-delete-btn {
+  background: #fee2e2;
+  color: #ef4444;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background 0.2s;
+  text-align: center;
+}
+
+.keywords-delete-btn:hover {
+  background: #fca5a5;
+}
+
+.active-sub-tab {
+  background: var(--green) !important;
+  color: #fff !important;
+  border-color: var(--green) !important;
+}
+
+.badge-reached-good {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+}
+
+.badge-reached-warn {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+}
+
+.badge-reached-danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+}
+
+

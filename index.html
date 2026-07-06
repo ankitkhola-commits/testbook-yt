@@ -104,7 +104,7 @@
         <nav class="sidebar-nav" aria-label="Workspace sections">
           <button class="side-nav-button active" type="button" data-view-tab="dashboard">Dashboard</button>
           <button class="side-nav-button" type="button" data-view-tab="competitors">Competitors</button>
-          <button class="side-nav-button" type="button" data-view-tab="outliers">Trending</button>
+          <button class="side-nav-button" type="button" data-view-tab="targets">Target Tracker</button>
           <button class="side-nav-button" type="button" data-view-tab="research">Research</button>
           <button class="side-nav-button" type="button" data-view-tab="seo">SEO Audit</button>
           <button class="side-nav-button" type="button" data-view-tab="ytm">YTM Audit</button>
@@ -310,64 +310,6 @@
             <div id="competitorBenchmark" class="benchmark-page"></div>
           </article>
 
-          <article class="panel page-panel outliers-panel is-hidden" data-view="outliers">
-            <div class="panel-header">
-              <div>
-                <p class="eyebrow">Trending</p>
-                <h2>Performance spikes & content recommendations</h2>
-              </div>
-              <strong id="outliersTotal" class="panel-total">0 trending videos</strong>
-            </div>
-            <div class="research-toolbar">
-              <div class="select-wrap" style="flex: 1; min-width: 140px;">
-                <label for="outlierCategorySelect">Category</label>
-                <select id="outlierCategorySelect">
-                  <option value="All">All Categories</option>
-                  <option value="Testbook">Testbook</option>
-                  <option value="Teaching">Teaching</option>
-                  <option value="Railways">Railways</option>
-                  <option value="CGL">CGL</option>
-                  <option value="UGC NET">UGC NET</option>
-                  <option value="Bihar">Bihar</option>
-                  <option value="Banking">Banking</option>
-                  <option value="UPSC">UPSC</option>
-                  <option value="AE JE">AE JE</option>
-                  <option value="Odisha">Odisha</option>
-                  <option value="Bengali">Bengali</option>
-                  <option value="Marathi">Marathi</option>
-                  <option value="MPSC">MPSC</option>
-                  <option value="Punjab">Punjab</option>
-                  <option value="Telugu">Telugu</option>
-                  <option value="Tamil">Tamil</option>
-                  <option value="JAIIB CAIIB">JAIIB CAIIB</option>
-                </select>
-              </div>
-              <div class="select-wrap" style="flex: 1; min-width: 140px;">
-                <label for="outlierFormatSelect">Format</label>
-                <select id="outlierFormatSelect">
-                  <option value="All">All Formats</option>
-                  <option value="Video">Video</option>
-                  <option value="Shorts">Shorts</option>
-                  <option value="Live">Live</option>
-                </select>
-              </div>
-              <button class="connect-button" id="scanOutliersButton" type="button" style="height: 38px; margin: 0; align-self: flex-end;">Scan Now</button>
-            </div>
-            
-            <div id="outliersProgressBarContainer" class="progress-bar-container is-hidden" style="margin-top: 15px; margin-bottom: 15px;">
-              <div class="progress-bar-label" id="outliersProgressBarLabel">Starting scan... (0%)</div>
-              <div class="progress-bar-track">
-                <div class="progress-bar-fill" id="outliersProgressBarFill" style="width: 0%"></div>
-              </div>
-            </div>
-
-            <div id="outliersGrid" class="outliers-grid" style="margin-top: 20px;">
-              <div class="empty-card-placeholder" style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--muted);">
-                Click "Scan Now" to scan competitor channels for recent trending videos.
-              </div>
-            </div>
-          </article>
-
           <article class="panel page-panel research-panel" data-view="research">
             <div class="panel-header research-header">
               <div>
@@ -497,6 +439,73 @@
             <div id="ytmResults" class="ytm-results"></div>
           </article>
 
+
+
+          <article class="panel page-panel targets-panel is-hidden" data-view="targets">
+            <div class="panel-header targets-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 20px;">
+              <div>
+                <p class="eyebrow" id="targetsDateRange">Target Tracker</p>
+                <h2 id="targetsPanelTitle">Quarterly Target Tracker</h2>
+              </div>
+              <div class="targets-controls" style="display: flex; align-items: center; gap: 12px;">
+                <div class="select-wrap" style="margin: 0;">
+                  <label for="quarterSelect" style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 4px;">Quarter</label>
+                  <select id="quarterSelect" style="background: #fff; color: var(--ink); border: 1px solid var(--line); padding: 6px 12px; border-radius: 6px; font-weight: 500;">
+                    <option value="AMJ_2026">AMJ 2026 (Apr - Jun)</option>
+                    <option value="JAS_2026" selected>JAS 2026 (Jul - Sep)</option>
+                  </select>
+                </div>
+                <button class="connect-button" type="button" id="manageTargetsButton" style="padding: 8px 16px; font-size: 13px; margin-top: 14px;">Manage Targets</button>
+              </div>
+            </div>
+
+            <div class="sub-tabs" style="display: flex; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 20px;">
+              <button class="ghost-button active-sub-tab" type="button" id="subTabYtm" style="padding: 6px 16px; font-weight: 600; border-radius: 6px; border: 1px solid var(--line); font-size: 13px; cursor: pointer; transition: all 0.2s;">YTM Targets</button>
+              <button class="ghost-button" type="button" id="subTabSeo" style="padding: 6px 16px; font-weight: 600; border-radius: 6px; border: 1px solid var(--line); font-size: 13px; cursor: pointer; transition: all 0.2s;">SEO Targets</button>
+            </div>
+
+            <div id="ytmTargetsTableSection" class="targets-table-section">
+              <div class="table-scroll-container">
+                <table class="data-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                  <thead>
+                    <tr style="border-bottom: 1px solid var(--line); color: var(--muted); font-weight: 500;">
+                      <th style="padding: 12px 8px;">Employee</th>
+                      <th style="padding: 12px 8px;">Channel</th>
+                      <th style="padding: 12px 8px; text-align: right;">Views Target</th>
+                      <th style="padding: 12px 8px; text-align: right;">Actual Organic Views</th>
+                      <th style="padding: 12px 8px; text-align: right;">Views % Reached</th>
+                      <th style="padding: 12px 8px; text-align: right;">Subscribers Target</th>
+                      <th style="padding: 12px 8px; text-align: right;">Actual Net Subs</th>
+                      <th style="padding: 12px 8px; text-align: right;">Subs % Reached</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ytmTargetsTableBody">
+                    <!-- Rendered dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div id="seoTargetsTableSection" class="targets-table-section is-hidden">
+              <div class="table-scroll-container">
+                <table class="data-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                  <thead>
+                    <tr style="border-bottom: 1px solid var(--line); color: var(--muted); font-weight: 500;">
+                      <th style="padding: 12px 8px;">SEO Person</th>
+                      <th style="padding: 12px 8px;">Channel</th>
+                      <th style="padding: 12px 8px; text-align: right;">Search Views Target</th>
+                      <th style="padding: 12px 8px; text-align: right;">Actual Search Views</th>
+                      <th style="padding: 12px 8px; text-align: right;">Search % Reached</th>
+                    </tr>
+                  </thead>
+                  <tbody id="seoTargetsTableBody">
+                    <!-- Rendered dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </article>
+
         </section>
       </main>
     </div>
@@ -564,29 +573,6 @@
       </form>
     </dialog>
 
-    <dialog id="outlierSuggestDialog" class="modal">
-      <form method="dialog" id="outlierSuggestForm">
-        <div class="modal-header">
-          <div>
-            <p class="eyebrow">AI Recommendation</p>
-            <h2 id="outlierSuggestTitle">Trending Content Ideas</h2>
-          </div>
-          <button value="cancel" class="icon-button" aria-label="Close">×</button>
-        </div>
-        <div class="seo-suggest-content" style="max-height: 60vh; overflow-y: auto; padding: 15px 0;">
-          <div class="suggest-section">
-            <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--text);">Based on trending topic: <span id="outlierSourceTitle" style="color: var(--accent); font-weight: 600;"></span></h3>
-            <div id="outlierSuggestionsList" class="suggestions-list" style="display: flex; flex-direction: column; gap: 15px;">
-              <!-- suggestions will be loaded here -->
-            </div>
-          </div>
-        </div>
-        <div class="modal-actions" style="margin-top: 20px;">
-          <button value="cancel" class="connect-button">Close</button>
-        </div>
-      </form>
-    </dialog>
-
     <dialog id="seoSuggestDialog" class="modal">
       <form method="dialog" id="seoSuggestForm">
         <div class="modal-header">
@@ -625,8 +611,103 @@
             <p id="seoSuggestReason" class="suggest-reason"></p>
           </div>
         </div>
-        <div class="modal-actions">
-          <button value="cancel" class="connect-button">Close</button>
+    <dialog id="targetsDialog" class="modal" style="width: 100%; max-width: 800px;">
+      <form method="dialog" id="targetsForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow" id="targetsEditorQuarter">Quarter Targets</p>
+            <h2>Manage Target Settings</h2>
+          </div>
+          <button value="cancel" class="icon-button" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body" style="max-height: 60vh; overflow-y: auto; padding: 16px 0; display: flex; flex-direction: column; gap: 24px;">
+          
+          <!-- Add New Target Section -->
+          <div style="background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid var(--line);">
+            <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--ink);">Add New Target</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+              <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
+                Employee Name
+                <input type="text" id="targetEmployeeInput" placeholder="e.g. Nitin" style="padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink);" />
+              </label>
+              <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
+                Category
+                <select id="targetCategoryInput" style="padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink);">
+                  <option value="ytm">YTM (Views & Subs)</option>
+                  <option value="seo">SEO (YT Search Views)</option>
+                </select>
+              </label>
+              <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
+                Target Channel
+                <select id="targetChannelInput" style="padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink);"></select>
+              </label>
+            </div>
+            
+            <div id="targetYtmFields" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+              <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
+                Views Target (Organic)
+                <input type="number" id="targetViewsInput" placeholder="e.g. 1000000" style="padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink);" />
+              </label>
+              <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
+                Subscribers Target (Net Addition)
+                <input type="number" id="targetSubsInput" placeholder="e.g. 5000" style="padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink);" />
+              </label>
+            </div>
+            
+            <div id="targetSeoFields" class="is-hidden" style="margin-top: 12px;">
+              <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
+                YT Search Views Target
+                <input type="number" id="targetSearchViewsInput" placeholder="e.g. 500000" style="padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink);" />
+              </label>
+            </div>
+            
+            <button class="connect-button" type="button" id="addNewTargetRowBtn" style="margin-top: 16px; padding: 8px 16px; font-size: 12px; width: auto; white-space: nowrap;">Add Target</button>
+          </div>
+          
+          <!-- Existing Target Configuration List -->
+          <div>
+            <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text);">YTM Targets List</h3>
+            <div class="table-scroll-container">
+              <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 12px;">
+                <thead>
+                  <tr style="border-bottom: 1px solid var(--line); color: var(--muted);">
+                    <th style="padding: 6px 4px;">Employee</th>
+                    <th style="padding: 6px 4px;">Channel</th>
+                    <th style="padding: 6px 4px; text-align: right;">Views Target</th>
+                    <th style="padding: 6px 4px; text-align: right;">Subs Target</th>
+                    <th style="padding: 6px 4px; text-align: center;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="editorYtmTableBody">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div>
+            <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text);">SEO Targets List</h3>
+            <div class="table-scroll-container">
+              <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 12px;">
+                <thead>
+                  <tr style="border-bottom: 1px solid var(--line); color: var(--muted);">
+                    <th style="padding: 6px 4px;">Employee</th>
+                    <th style="padding: 6px 4px;">Channel</th>
+                    <th style="padding: 6px 4px; text-align: right;">Search Views Target</th>
+                    <th style="padding: 6px 4px; text-align: center;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="editorSeoTableBody">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+        </div>
+        <div class="modal-actions" style="border-top: 1px solid var(--line); padding-top: 16px; margin-top: 16px;">
+          <button value="cancel" class="ghost-button">Close</button>
+          <button class="connect-button" type="button" id="saveTargetsEditorBtn">Save Changes</button>
         </div>
       </form>
     </dialog>
