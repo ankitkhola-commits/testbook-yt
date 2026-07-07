@@ -789,71 +789,82 @@ const defaultTargets = {
   "JAS_2026": {
     "ytm": [
       {
-        "id": "ytm_t19",
-        "employee": "Atul Sharma",
-        "channelId": "UC1pJ8ods7vGboH2BXuZVBbQ",
-        "channelName": "UPSC PrepLab",
-        "viewsTarget": 1000000,
-        "subsTarget": 10000
-      },
-      {
-        "id": "ytm_t20",
-        "employee": "Shubham",
-        "channelId": "UC0FSg3oiJZlpTYgI0hCNazQ",
-        "channelName": "Bihar Testbook",
-        "viewsTarget": 5000000,
-        "subsTarget": 25000
-      },
-      {
-        "id": "ytm_t21",
-        "employee": "Shubham",
-        "channelId": "UCgM9qPLv7R-hTRQIGa4wgKA",
-        "channelName": "Testbook",
-        "viewsTarget": 25000000,
-        "subsTarget": 110000
-      },
-      {
-        "id": "ytm_t22",
-        "employee": "Shubham",
-        "channelId": "UC_fKmFGyY4MPVzz4TT_N_6Q",
-        "channelName": "Banking Testbook",
-        "viewsTarget": 4000000,
+        "id": "ytm_t19_nitin_mpsc",
+        "employee": "Nitin",
+        "channelId": "UCfG_bedD0HBbrFo1JpgUEqA",
+        "channelName": "SuperCoaching MPSC by Testbook",
+        "viewsTarget": 7000000,
         "subsTarget": 12000
       },
       {
-        "id": "ytm_t23",
+        "id": "ytm_t20_nitin_marathi",
+        "employee": "Nitin",
+        "channelId": "UCKtAel248rFM1Nxd1UJlQHA",
+        "channelName": "SuperCoaching Marathi by Testbook",
+        "viewsTarget": 7000000,
+        "subsTarget": 20000
+      },
+      {
+        "id": "ytm_t21_nitin_tet",
+        "employee": "Nitin",
+        "channelId": "UCcpVPJAwpfJlcGE1J84QXvA",
+        "channelName": "TET Factory",
+        "viewsTarget": 1000000,
+        "subsTarget": 20000
+      },
+      {
+        "id": "ytm_t22_shubham_bihar",
+        "employee": "Shubham",
+        "channelId": "UC0FSg3oiJZlpTYgI0hCNazQ",
+        "channelName": "Bihar Testbook",
+        "viewsTarget": 7000000,
+        "subsTarget": 30000
+      },
+      {
+        "id": "ytm_t23_shubham_testbook",
+        "employee": "Shubham",
+        "channelId": "UCgM9qPLv7R-hTRQIGa4wgKA",
+        "channelName": "Testbook",
+        "viewsTarget": 40000000,
+        "subsTarget": 186000
+      },
+      {
+        "id": "ytm_t24_shubham_banking",
+        "employee": "Shubham",
+        "channelId": "UC_fKmFGyY4MPVzz4TT_N_6Q",
+        "channelName": "Banking Testbook",
+        "viewsTarget": 8000000,
+        "subsTarget": 30000
+      },
+      {
+        "id": "ytm_t25_raubnish_odisha",
         "employee": "Raubnish",
         "channelId": "UC1y7Nv1-ZdkJdNUkUgFaydg",
         "channelName": "Odisha Testbook",
-        "viewsTarget": 18000000,
+        "viewsTarget": 20000000,
         "subsTarget": 35000
       },
       {
-        "id": "ytm_t24",
+        "id": "ytm_t26_raubnish_odishateach",
         "employee": "Raubnish",
         "channelId": "UCUIaneuBNuiTdMQIyfOvUFA",
         "channelName": "Odisha Teaching by Testbook",
-        "viewsTarget": 3000000,
-        "subsTarget": 15000
+        "viewsTarget": 1000000,
+        "subsTarget": 25000
       },
       {
-        "id": "ytm_t25",
+        "id": "ytm_t27_amit_narendra_combined",
         "employee": "Narendra/Amit",
-        "channelId": "UC_uR26BodKBZ4HVwxwd5isQ",
-        "channelName": "UGC NET Testbook",
-        "viewsTarget": 20000000,
-        "subsTarget": 60000
+        "channelIds": [
+          "UC_uR26BodKBZ4HVwxwd5isQ",
+          "UCXx7EB5fueJeOI5pYuYSagQ"
+        ],
+        "channelName": "UGC NET & NET JRF",
+        "viewsTarget": 18000000,
+        "subsTarget": 70000
       },
       {
-        "id": "ytm_t26",
-        "employee": "Narendra/Amit",
-        "channelId": "UCXx7EB5fueJeOI5pYuYSagQ",
-        "channelName": "Testbook NET JRF",
-        "viewsTarget": 9000000,
-        "subsTarget": 40000
-      },
-      {
-        "id": "ytm_t27",
+        "id": "ytm_t28_abhinav_tetprt",
         "employee": "Abhinav",
         "channelId": "UCLLhVCsO2Em-IQXwqq2EVyw",
         "channelName": "TET PRT Testbook",
@@ -861,220 +872,259 @@ const defaultTargets = {
         "subsTarget": 30000
       },
       {
-        "id": "ytm_t28",
+        "id": "ytm_t29_abhinav_tgtpgt",
         "employee": "Abhinav",
         "channelId": "UCUdYrLrnPFVpvWM6hNJSnJg",
         "channelName": "TGT PGT Testbook",
-        "viewsTarget": 4500000,
+        "viewsTarget": 5000000,
         "subsTarget": 10000
       },
       {
-        "id": "ytm_t29",
+        "id": "ytm_t30_abhinav_ctet",
         "employee": "Abhinav",
         "channelId": "UCYmiOXiMpiwlQFU4OIDPZzA",
         "channelName": "CTET Testbook",
-        "viewsTarget": 3000000,
-        "subsTarget": 15000
+        "viewsTarget": 10000000,
+        "subsTarget": 38000
       },
       {
-        "id": "ytm_t30",
+        "id": "ytm_t31_abhinav_biharteach",
         "employee": "Abhinav",
         "channelId": "UCaPCIXHm03fSYi3M3_LOf2Q",
         "channelName": "Bihar Teaching Exams by Testbook",
-        "viewsTarget": 5000000,
-        "subsTarget": 12000
+        "viewsTarget": 7500000,
+        "subsTarget": 10000
       },
       {
-        "id": "ytm_t31",
+        "id": "ytm_t32_shukendu_bengali",
         "employee": "Shukendu",
         "channelId": "UCSzinFg4bwJktBgvmWKNP6Q",
         "channelName": "Testbook Bengali",
-        "viewsTarget": 4000000,
-        "subsTarget": 25000
+        "viewsTarget": 6000000,
+        "subsTarget": 30000
       },
       {
-        "id": "ytm_t32",
+        "id": "ytm_t33_shukendu_wbpsc",
         "employee": "Shukendu",
         "channelId": "UC1pQayM4quYlDZbrhD6VEUg",
         "channelName": "WBPSC Testbook",
-        "viewsTarget": 3000000,
-        "subsTarget": 25000
+        "viewsTarget": 4000000,
+        "subsTarget": 27000
       },
       {
-        "id": "ytm_t33",
+        "id": "ytm_t34_ashish_punjab",
         "employee": "Ashish Tyagi",
         "channelId": "UCW3qu1ViFQhIMLZRXugCFRg",
         "channelName": "Punjab Testbook",
-        "viewsTarget": 15000000,
-        "subsTarget": 60000
+        "viewsTarget": 25000000,
+        "subsTarget": 50000
       },
       {
-        "id": "ytm_t34",
+        "id": "ytm_t35_lubna_railway",
         "employee": "Lubna",
         "channelId": "UCuTgFUujt6tQXWxQMg-DHrQ",
         "channelName": "Railway Testbook",
-        "viewsTarget": 23000000,
-        "subsTarget": 100000
+        "viewsTarget": 25000000,
+        "subsTarget": 70000
       },
       {
-        "id": "ytm_t35",
+        "id": "ytm_t36_vivek_aeje",
         "employee": "Vivek",
         "channelId": "UCFTTIDN58laGeV8DM9D4spg",
         "channelName": "AE JE Testbook",
-        "viewsTarget": 7000000,
-        "subsTarget": 20000
+        "viewsTarget": 7500000,
+        "subsTarget": 25000
       },
       {
-        "id": "ytm_t36",
+        "id": "ytm_t37_vivek_ssc",
         "employee": "Vivek",
         "channelId": "UCGZmxSKg2tKMvn9TO-IYpqw",
         "channelName": "SSC Testbook",
-        "viewsTarget": 10000000,
-        "subsTarget": 75000
+        "viewsTarget": 12000000,
+        "subsTarget": 80000
+      },
+      {
+        "id": "ytm_t38_vivek_jaiib",
+        "employee": "Vivek",
+        "channelId": "UCqY1_5OPoTn2QoWL7mbiI_Q",
+        "channelName": "Testbook - JAIIB CAIIB",
+        "viewsTarget": 150000,
+        "subsTarget": 600
+      },
+      {
+        "id": "ytm_t39_govardhan_tamil",
+        "employee": "Govardhan",
+        "channelId": "UC-a42jy3Ow5RTLGBQwa2y8g",
+        "channelName": "Testbook Tamil",
+        "viewsTarget": 1800000,
+        "subsTarget": 18000
+      },
+      {
+        "id": "ytm_t40_govardhan_telugu",
+        "employee": "Govardhan",
+        "channelId": "UC08MiG8-bjllfy94OeY5zWw",
+        "channelName": "Testbook Telugu",
+        "viewsTarget": 1530000,
+        "subsTarget": 12000
       }
     ],
     "seo": [
       {
-        "id": "seo_t19",
+        "id": "seo_t19_saijal_tetprt",
         "employee": "Saijal",
         "channelId": "UCLLhVCsO2Em-IQXwqq2EVyw",
         "channelName": "TET PRT Testbook",
-        "searchViewsTarget": 2500000
+        "searchViewsTarget": 2379960
       },
       {
-        "id": "seo_t20",
+        "id": "seo_t20_saijal_tgtpgt",
         "employee": "Saijal",
         "channelId": "UCUdYrLrnPFVpvWM6hNJSnJg",
         "channelName": "TGT PGT Testbook",
-        "searchViewsTarget": 1230000
+        "searchViewsTarget": 1327748
       },
       {
-        "id": "seo_t21",
+        "id": "seo_t21_saijal_ctet",
         "employee": "Saijal",
         "channelId": "UCYmiOXiMpiwlQFU4OIDPZzA",
         "channelName": "CTET Testbook",
-        "searchViewsTarget": 675000
+        "searchViewsTarget": 2244039
       },
       {
-        "id": "seo_t22",
+        "id": "seo_t22_saijal_combined",
         "employee": "Saijal",
-        "channelId": "UC_uR26BodKBZ4HVwxwd5isQ",
-        "channelName": "UGC NET Testbook",
-        "searchViewsTarget": 6200000
+        "channelIds": [
+          "UC_uR26BodKBZ4HVwxwd5isQ",
+          "UCXx7EB5fueJeOI5pYuYSagQ"
+        ],
+        "channelName": "UGC NET & NET JRF",
+        "searchViewsTarget": 4230900
       },
       {
-        "id": "seo_t23",
-        "employee": "Saijal",
-        "channelId": "UCXx7EB5fueJeOI5pYuYSagQ",
-        "channelName": "Testbook NET JRF",
-        "searchViewsTarget": 1530000
-      },
-      {
-        "id": "seo_t24",
+        "id": "seo_t23_saijal_biharteach",
         "employee": "Saijal",
         "channelId": "UCaPCIXHm03fSYi3M3_LOf2Q",
         "channelName": "Bihar Teaching Exams by Testbook",
-        "searchViewsTarget": 600000
+        "searchViewsTarget": 923624
       },
       {
-        "id": "seo_t25",
+        "id": "seo_t24_mohit_bihar",
         "employee": "Mohit",
         "channelId": "UC0FSg3oiJZlpTYgI0hCNazQ",
         "channelName": "Bihar Testbook",
-        "searchViewsTarget": 1250000
+        "searchViewsTarget": 1580288
       },
       {
-        "id": "seo_t26",
+        "id": "seo_t25_mohit_testbook",
         "employee": "Mohit",
         "channelId": "UCgM9qPLv7R-hTRQIGa4wgKA",
         "channelName": "Testbook",
-        "searchViewsTarget": 6250000
+        "searchViewsTarget": 10038040
       },
       {
-        "id": "seo_t27",
+        "id": "seo_t26_mohit_punjab",
         "employee": "Mohit",
-        "channelId": "UC1pJ8ods7vGboH2BXuZVBbQ",
-        "channelName": "UPSC PrepLab",
-        "searchViewsTarget": 150000
+        "channelId": "UCW3qu1ViFQhIMLZRXugCFRg",
+        "channelName": "Punjab Testbook",
+        "searchViewsTarget": 4000000
       },
       {
-        "id": "seo_t28",
+        "id": "seo_t27_vinayak_banking",
         "employee": "Vinayak",
         "channelId": "UC_fKmFGyY4MPVzz4TT_N_6Q",
         "channelName": "Banking Testbook",
-        "searchViewsTarget": 1080000
+        "searchViewsTarget": 2343827
       },
       {
-        "id": "seo_t29",
+        "id": "seo_t28_vinayak_mpsc",
         "employee": "Vinayak",
         "channelId": "UCfG_bedD0HBbrFo1JpgUEqA",
         "channelName": "SuperCoaching MPSC by Testbook",
-        "searchViewsTarget": 960000
+        "searchViewsTarget": 1044109
       },
       {
-        "id": "seo_t30",
+        "id": "seo_t29_vinayak_railway",
         "employee": "Vinayak",
         "channelId": "UCuTgFUujt6tQXWxQMg-DHrQ",
         "channelName": "Railway Testbook",
-        "searchViewsTarget": 6210000
+        "searchViewsTarget": 5998456
       },
       {
-        "id": "seo_t31",
+        "id": "seo_t30_aditya_bengali",
         "employee": "Aditya",
         "channelId": "UCSzinFg4bwJktBgvmWKNP6Q",
         "channelName": "Testbook Bengali",
-        "searchViewsTarget": 640000
+        "searchViewsTarget": 819798
       },
       {
-        "id": "seo_t32",
+        "id": "seo_t31_aditya_wbpsc",
         "employee": "Aditya",
         "channelId": "UC1pQayM4quYlDZbrhD6VEUg",
         "channelName": "WBPSC Testbook",
-        "searchViewsTarget": 720000
+        "searchViewsTarget": 847632
       },
       {
-        "id": "seo_t33",
+        "id": "seo_t32_aditya_marathi",
         "employee": "Aditya",
         "channelId": "UCKtAel248rFM1Nxd1UJlQHA",
         "channelName": "SuperCoaching Marathi by Testbook",
-        "searchViewsTarget": 1610000
+        "searchViewsTarget": 1570271
       },
       {
-        "id": "seo_t34",
+        "id": "seo_t33_aditya_odishateach",
         "employee": "Aditya",
         "channelId": "UCUIaneuBNuiTdMQIyfOvUFA",
         "channelName": "Odisha Teaching by Testbook",
-        "searchViewsTarget": 480000
+        "searchViewsTarget": 110087
       },
       {
-        "id": "seo_t35",
+        "id": "seo_t34_aditya_odisha",
         "employee": "Aditya",
         "channelId": "UC1y7Nv1-ZdkJdNUkUgFaydg",
         "channelName": "Odisha Testbook",
-        "searchViewsTarget": 2880000
+        "searchViewsTarget": 3744070
       },
       {
-        "id": "seo_t36",
+        "id": "seo_t35_aditya_tetfactory",
         "employee": "Aditya",
-        "channelId": "UCW3qu1ViFQhIMLZRXugCFRg",
-        "channelName": "Punjab Testbook",
-        "searchViewsTarget": 1950000
+        "channelId": "UCcpVPJAwpfJlcGE1J84QXvA",
+        "channelName": "TET Factory",
+        "searchViewsTarget": 150000
       }
     ]
   }
 };
 
 async function readQuarterTargets() {
+  let targets;
   if (sql) {
     await ensureStorage();
     const rows = await sql`select payload from app_state where key = 'quarter_targets' limit 1`;
-    return rows[0]?.payload || defaultTargets;
+    targets = rows[0]?.payload || defaultTargets;
+  } else {
+    try {
+      targets = JSON.parse(await readFile(quarterTargetsPath, "utf8"));
+    } catch {
+      targets = defaultTargets;
+    }
   }
-  try {
-    return JSON.parse(await readFile(quarterTargetsPath, "utf8"));
-  } catch {
-    return defaultTargets;
+
+  // Auto-migration: if targets has old/outdated JAS_2026 configuration, update it
+  let needsSave = false;
+  if (
+    !targets.JAS_2026 ||
+    !targets.JAS_2026.ytm ||
+    targets.JAS_2026.ytm.some(t => t.employee === "Atul Sharma" || t.id === "ytm_t7" || (t.channelName === "CTET Testbook" && t.viewsTarget === 13000000))
+  ) {
+    targets.JAS_2026 = defaultTargets.JAS_2026;
+    needsSave = true;
   }
+
+  if (needsSave) {
+    await saveQuarterTargets(targets);
+  }
+
+  return targets;
 }
 
 async function saveQuarterTargets(targets) {
