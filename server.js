@@ -3139,11 +3139,7 @@ async function connectedChannelEntries(viewer = null) {
     profiles = await migrateLegacyToken();
   }
 
-  if (teamAuthEnabled() && viewer) {
-    if (!isAuditAdmin(viewer)) {
-      profiles = profiles.filter(p => p.userEmail === viewer.email);
-    }
-  }
+  // Share all connected channels globally with all logged-in users
 
   const removedIds = await readRemovedChannelIds();
   const removedSet = new Set(removedIds);
