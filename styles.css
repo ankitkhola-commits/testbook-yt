@@ -178,6 +178,25 @@ button {
   background: var(--red-dark);
 }
 
+.apply-button {
+  min-height: 40px;
+  padding: 0 16px;
+  color: #fff;
+  background: var(--green);
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: 0.18s ease;
+  margin-top: auto;
+}
+
+.apply-button:hover {
+  background: #126538;
+}
+
 .sidebar-nav {
   display: grid;
   gap: 7px;

@@ -230,14 +230,76 @@ document.querySelectorAll("[data-view-tab]").forEach((button) => {
 });
 
 rangeSelect.addEventListener("change", (event) => {
-  state.activeRange = event.target.value;
-  loadDashboard();
+  const val = event.target.value;
+  state.activeRange = val;
+  const isAd = (state.isAuditAdmin === undefined || state.isAuditAdmin === true);
+  
+  if (isAd) {
+    setupAdminCustomFilters(isAd);
+    if (val !== "selectMonth" && val !== "custom") {
+      loadDashboard();
+    }
+  } else {
+    loadDashboard();
+  }
 });
 
-if (monthSelect) {
-  monthSelect.value = state.selectedMonth;
-  monthSelect.addEventListener("change", (event) => {
-    state.selectedMonth = event.target.value || currentMonthValue();
+const monthSelectInput = document.querySelector("#monthSelectInput");
+const customStartDateInput = document.querySelector("#customStartDateInput");
+const customEndDateInput = document.querySelector("#customEndDateInput");
+const compareModeSelect = document.querySelector("#compareModeSelect");
+const applyCustomRangeBtn = document.querySelector("#applyCustomRangeBtn");
+
+if (monthSelectInput) {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  monthSelectInput.value = `${yyyy}-${mm}`;
+  state.selectedMonth = monthSelectInput.value;
+  
+  monthSelectInput.addEventListener("change", (e) => {
+    state.selectedMonth = e.target.value;
+  });
+}
+
+if (customStartDateInput) {
+  customStartDateInput.addEventListener("change", (e) => {
+    state.selectedStartDate = e.target.value;
+  });
+}
+
+if (customEndDateInput) {
+  customEndDateInput.addEventListener("change", (e) => {
+    state.selectedEndDate = e.target.value;
+  });
+}
+
+if (compareModeSelect) {
+  compareModeSelect.addEventListener("change", (e) => {
+    state.compareMode = e.target.value;
+    if (state.activeRange !== "selectMonth" && state.activeRange !== "custom") {
+      loadDashboard();
+    }
+  });
+}
+
+if (applyCustomRangeBtn) {
+  applyCustomRangeBtn.addEventListener("click", () => {
+    if (state.activeRange === "selectMonth") {
+      if (!state.selectedMonth) {
+        alert("Please select a month first.");
+        return;
+      }
+    } else if (state.activeRange === "custom") {
+      if (!state.selectedStartDate || !state.selectedEndDate) {
+        alert("Please select both start and end dates.");
+        return;
+      }
+      if (new Date(state.selectedStartDate) > new Date(state.selectedEndDate)) {
+        alert("Start date cannot be after end date.");
+        return;
+      }
+    }
     loadDashboard();
   });
 }
@@ -469,8 +531,11 @@ async function loadDashboard(options = {}) {
     setLoading();
     const channelQuery = state.selectedChannelId ? `&channelId=${encodeURIComponent(state.selectedChannelId)}` : "";
     const monthQuery = state.activeRange === "selectMonth" ? `&month=${encodeURIComponent(state.selectedMonth)}` : "";
+    const customStartQuery = state.activeRange === "custom" && state.selectedStartDate ? `&startDate=${encodeURIComponent(state.selectedStartDate)}` : "";
+    const customEndQuery = state.activeRange === "custom" && state.selectedEndDate ? `&endDate=${encodeURIComponent(state.selectedEndDate)}` : "";
+    const compareModeQuery = state.compareMode ? `&compareMode=${encodeURIComponent(state.compareMode)}` : "";
     const forceQuery = options.force ? "&force=1" : "";
-    const report = await api(`/api/dashboard?range=${state.activeRange}${monthQuery}${channelQuery}${forceQuery}`);
+    const report = await api(`/api/dashboard?range=${state.activeRange}${monthQuery}${customStartQuery}${customEndQuery}${compareModeQuery}${channelQuery}${forceQuery}`);
     if (progressBar) progressBar.stop(true, "Dashboard Loaded! (100%)", "Dashboard Load Failed!");
     state.report = report;
     state.channels = report.channels;
@@ -1301,6 +1366,14 @@ function rangeLabel() {
   if (state.activeRange === "selectMonth") {
     return new Date(`${state.selectedMonth}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", year: "numeric" });
   }
+  if (state.activeRange === "custom") {
+    if (state.report && state.report.dates) {
+      const start = new Date(`${state.report.dates.startDate}T00:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+      const end = new Date(`${state.report.dates.endDate}T00:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+      return `${start} to ${end}`;
+    }
+    return "Custom Date Range";
+  }
   if (state.report && state.report.dates) {
     return new Date(`${state.report.dates.startDate}T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", year: "numeric" });
   }
@@ -1349,6 +1422,52 @@ function showAccessOnly(status, message) {
   document.querySelector("#accessMessage").textContent = message;
 }
 
+function setupAdminCustomFilters(isAd) {
+  const rangeSelect = document.querySelector("#rangeSelect");
+  const adminCustomFilters = document.querySelector("#adminCustomFilters");
+  const monthPickerWrap = document.querySelector("#monthPickerWrap");
+  const datePickerWrapStart = document.querySelector("#datePickerWrapStart");
+  const datePickerWrapEnd = document.querySelector("#datePickerWrapEnd");
+
+  if (!rangeSelect || !adminCustomFilters) return;
+
+  if (isAd) {
+    if (!rangeSelect.querySelector('option[value="selectMonth"]')) {
+      const optMonth = document.createElement("option");
+      optMonth.value = "selectMonth";
+      optMonth.textContent = "Custom Month";
+      rangeSelect.appendChild(optMonth);
+    }
+    if (!rangeSelect.querySelector('option[value="custom"]')) {
+      const optCustom = document.createElement("option");
+      optCustom.value = "custom";
+      optCustom.textContent = "Custom Date Range";
+      rangeSelect.appendChild(optCustom);
+    }
+
+    const val = rangeSelect.value;
+    if (val === "selectMonth") {
+      adminCustomFilters.style.display = "flex";
+      monthPickerWrap.style.display = "grid";
+      datePickerWrapStart.style.display = "none";
+      datePickerWrapEnd.style.display = "none";
+    } else if (val === "custom") {
+      adminCustomFilters.style.display = "flex";
+      monthPickerWrap.style.display = "none";
+      datePickerWrapStart.style.display = "grid";
+      datePickerWrapEnd.style.display = "grid";
+    } else {
+      adminCustomFilters.style.display = "flex";
+      monthPickerWrap.style.display = "none";
+      datePickerWrapStart.style.display = "none";
+      datePickerWrapEnd.style.display = "none";
+    }
+  } else {
+    adminCustomFilters.style.display = "none";
+    rangeSelect.querySelectorAll('option[value="selectMonth"], option[value="custom"]').forEach(opt => opt.remove());
+  }
+}
+
 function showDashboard() {
   accessScreen.hidden = true;
   setupScreen.hidden = true;
@@ -1358,6 +1477,8 @@ function showDashboard() {
   if (!isAd && (state.activeView === "seo" || state.activeView === "ytm")) {
     state.activeView = "dashboard";
   }
+  
+  setupAdminCustomFilters(isAd);
   
   document.querySelectorAll('[data-view-tab="seo"], [data-view-tab="ytm"]').forEach(btn => {
     btn.style.display = isAd ? "" : "none";

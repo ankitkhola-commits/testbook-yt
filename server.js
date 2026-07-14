@@ -441,15 +441,18 @@ app.get("/api/dashboard", async (req, res, next) => {
     const channels = [{ id: "all-in-one", name: "All in One", handle: "@all-in-one" }, ...publicChannels(entries)];
     const range = String(req.query.range || "month");
     const month = String(req.query.month || "");
+    const startDate = String(req.query.startDate || "");
+    const endDate = String(req.query.endDate || "");
+    const compareMode = String(req.query.compareMode || "");
     const requestedChannelId = String(req.query.channelId || "");
     const activeChannelId = channels.some((channel) => channel.id === requestedChannelId) ? requestedChannelId : channels[0]?.id;
     const selectedEntries = activeChannelId === "all-in-one"
       ? entries
       : entries.filter((entry) => entry.channel.id === activeChannelId);
-    const dates = dateWindow(range, month);
-    const compareDates = comparisonWindow(dates, range);
+    const dates = dateWindow(range, month, startDate, endDate);
+    const compareDates = comparisonWindow(dates, range, compareMode);
     const payload = await cached(
-      makeCacheKey("dashboard", activeChannelId, range, month, dates.startDate, dates.endDate, selectedEntries.map((entry) => entry.channel.id).sort()),
+      makeCacheKey("dashboard", activeChannelId, range, month, startDate, endDate, compareMode, dates.startDate, dates.endDate, selectedEntries.map((entry) => entry.channel.id).sort()),
       ttl.dashboard,
       async () => {
         const [channelReports, comparisonReports] = await Promise.all([
@@ -4559,12 +4562,15 @@ function normalizeResearchFormat(value) {
   return "Video";
 }
 
-function dateWindow(range, monthValue = "") {
+function dateWindow(range, monthValue = "", customStart = "", customEnd = "") {
   const today = new Date();
   const end = new Date(today);
   end.setDate(end.getDate() - 1);
   let start = new Date(end);
-  if (range === "selectMonth" && /^\d{4}-\d{2}$/.test(monthValue)) {
+  if (range === "custom" && /^\d{4}-\d{2}-\d{2}$/.test(customStart) && /^\d{4}-\d{2}-\d{2}$/.test(customEnd)) {
+    start = new Date(`${customStart}T00:00:00Z`);
+    end.setTime(new Date(`${customEnd}T00:00:00Z`).getTime());
+  } else if (range === "selectMonth" && /^\d{4}-\d{2}$/.test(monthValue)) {
     const [year, month] = monthValue.split("-").map(Number);
     start = new Date(Date.UTC(year, month - 1, 1));
     const monthEnd = new Date(Date.UTC(year, month, 0));
@@ -4593,9 +4599,16 @@ function shiftIsoDate(dateText, days) {
   return date.toISOString().slice(0, 10);
 }
 
-function comparisonWindow(dates, range) {
+function comparisonWindow(dates, range, compareMode = "") {
   const start = new Date(`${dates.startDate}T00:00:00Z`);
   const end = new Date(`${dates.endDate}T00:00:00Z`);
+  if (compareMode === "yoy") {
+    const previousStart = new Date(start);
+    previousStart.setUTCFullYear(previousStart.getUTCFullYear() - 1);
+    const previousEnd = new Date(end);
+    previousEnd.setUTCFullYear(previousEnd.getUTCFullYear() - 1);
+    return { startDate: isoDate(previousStart), endDate: isoDate(previousEnd), days: { startDate: isoDate(previousStart), endDate: isoDate(previousEnd) } };
+  }
   if (range === "selectMonth" || range === "prevMonth") {
     const previousStart = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() - 1, 1));
     const previousEnd = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 0));
