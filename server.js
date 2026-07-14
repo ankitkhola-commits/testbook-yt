@@ -4582,7 +4582,8 @@ function dateWindow(range, monthValue = "", customStart = "", customEnd = "") {
     start = new Date(end);
     start.setDate(1);
   } else {
-    start.setDate(end.getDate() - Number(range || 7) + 1);
+    const days = isNaN(Number(range)) ? 28 : Number(range);
+    start.setDate(end.getDate() - days + 1);
   }
   return { startDate: isoDate(start), endDate: isoDate(end), days: { startDate: isoDate(start), endDate: isoDate(end) } };
 }

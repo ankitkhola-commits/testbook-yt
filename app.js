@@ -247,7 +247,6 @@ rangeSelect.addEventListener("change", (event) => {
 const monthSelectInput = document.querySelector("#monthSelectInput");
 const customStartDateInput = document.querySelector("#customStartDateInput");
 const customEndDateInput = document.querySelector("#customEndDateInput");
-const compareModeSelect = document.querySelector("#compareModeSelect");
 const applyCustomRangeBtn = document.querySelector("#applyCustomRangeBtn");
 
 if (monthSelectInput) {
@@ -263,25 +262,27 @@ if (monthSelectInput) {
 }
 
 if (customStartDateInput) {
+  const d = new Date();
+  d.setDate(d.getDate() - 29);
+  customStartDateInput.value = d.toISOString().slice(0, 10);
+  state.selectedStartDate = customStartDateInput.value;
+
   customStartDateInput.addEventListener("change", (e) => {
     state.selectedStartDate = e.target.value;
   });
 }
 
 if (customEndDateInput) {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  customEndDateInput.value = d.toISOString().slice(0, 10);
+  state.selectedEndDate = customEndDateInput.value;
+
   customEndDateInput.addEventListener("change", (e) => {
     state.selectedEndDate = e.target.value;
   });
 }
 
-if (compareModeSelect) {
-  compareModeSelect.addEventListener("change", (e) => {
-    state.compareMode = e.target.value;
-    if (state.activeRange !== "selectMonth" && state.activeRange !== "custom") {
-      loadDashboard();
-    }
-  });
-}
 
 if (applyCustomRangeBtn) {
   applyCustomRangeBtn.addEventListener("click", () => {
@@ -1457,7 +1458,7 @@ function setupAdminCustomFilters(isAd) {
       datePickerWrapStart.style.display = "grid";
       datePickerWrapEnd.style.display = "grid";
     } else {
-      adminCustomFilters.style.display = "flex";
+      adminCustomFilters.style.display = "none";
       monthPickerWrap.style.display = "none";
       datePickerWrapStart.style.display = "none";
       datePickerWrapEnd.style.display = "none";
