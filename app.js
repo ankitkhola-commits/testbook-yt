@@ -11,7 +11,7 @@ const formats = {
   live: { label: "Live", color: "#0f9f96" },
 };
 
-const competitorCategories = ["Testbook", "Teaching", "UGC NET", "CGL", "Odisha", "Bengali", "Marathi", "MPSC", "AE JE", "Bihar", "Banking", "Railways", "UPSC", "Punjab", "Telugu", "Tamil", "JAIIB CAIIB"];
+const competitorCategories = ["Testbook", "Teaching", "UGC NET", "CGL", "Odisha", "OPSC", "Bengali", "Marathi", "MPSC", "AE JE", "Bihar", "Banking", "Railways", "UPSC", "Punjab", "Telugu", "Tamil", "JAIIB CAIIB"];
 const competitorAutoRefreshMs = 24 * 60 * 60 * 1000; // once a day
 let competitorAutoRefreshTimer = null;
 const activeProgressBars = {};
@@ -79,7 +79,8 @@ const ytmMappings = {
   "Raubnish": [
     "Odisha Testbook",
     "Odisha Teaching by Testbook",
-    "UPSC PrepLab"
+    "UPSC PrepLab",
+    "Sambhab IAS"
   ],
   "Narendra/Amit": [
     "UGC NET Testbook",

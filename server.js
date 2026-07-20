@@ -121,6 +121,13 @@ const competitorCategoryMap = {
     { group: "VEDANG CLASSES", ids: ["UCZ1foSst2Enawd6dAg3gbuw"] },
     { group: "OPSC WALLAH", ids: ["UCaqI6pFUCixOMebRPmLbRUg"] },
   ],
+  OPSC: [
+    { group: "Sambhab IAS", ids: ["UCGPGCM8cSM868l5JjHhQpQQ"] },
+    { group: "OPSC Adda247", ids: ["UCqMsNs-Q8FNFXw-H65DsgWw"] },
+    { group: "OPSC Wallah", ids: ["UCaqI6pFUCixOMebRPmLbRUg"] },
+    { group: "OPSC StudyIQ", ids: ["UC9k0oRCpGfdlFEgHzcHgWqg"] },
+    { group: "Ray Academy IAS", ids: ["UCgNqhpVJ4-e_GsCz4OVs73Q"] }
+  ],
   Bengali: [
     { group: "Testbook", ids: ["UCSzinFg4bwJktBgvmWKNP6Q", "UC1pQayM4quYlDZbrhD6VEUg"] },
     { group: "Adda247 Bengali", ids: ["UC0bd1IAfOijSGAZQYhpEypg", "UCZUvmnlLmB18VlbkiRGYM0A"] },
@@ -560,7 +567,15 @@ const defaultTargets = {
         "employee": "Raubnish",
         "channelId": "UCUIaneuBNuiTdMQIyfOvUFA",
         "channelName": "Odisha Teaching by Testbook",
-        "viewsTarget": 3000000,
+        "viewsTarget": 6000000,
+        "subsTarget": 15000
+      },
+      {
+        "id": "ytm_t_sambhab",
+        "employee": "Raubnish",
+        "channelId": "UCGPGCM8cSM868l5JjHhQpQQ",
+        "channelName": "Sambhab IAS",
+        "viewsTarget": 1500000,
         "subsTarget": 15000
       },
       {
@@ -771,7 +786,7 @@ const defaultTargets = {
         "employee": "Aditya",
         "channelId": "UCUIaneuBNuiTdMQIyfOvUFA",
         "channelName": "Odisha Teaching by Testbook",
-        "searchViewsTarget": 480000
+        "searchViewsTarget": 660522
       },
       {
         "id": "seo_t17",
@@ -852,8 +867,16 @@ const defaultTargets = {
         "employee": "Raubnish",
         "channelId": "UCUIaneuBNuiTdMQIyfOvUFA",
         "channelName": "Odisha Teaching by Testbook",
-        "viewsTarget": 1000000,
+        "viewsTarget": 6000000,
         "subsTarget": 25000
+      },
+      {
+        "id": "ytm_t41_raubnish_sambhab",
+        "employee": "Raubnish",
+        "channelId": "UCGPGCM8cSM868l5JjHhQpQQ",
+        "channelName": "Sambhab IAS",
+        "viewsTarget": 1500000,
+        "subsTarget": 15000
       },
       {
         "id": "ytm_t27_amit_narendra_combined",
@@ -1078,7 +1101,7 @@ const defaultTargets = {
         "employee": "Aditya",
         "channelId": "UCUIaneuBNuiTdMQIyfOvUFA",
         "channelName": "Odisha Teaching by Testbook",
-        "searchViewsTarget": 110087
+        "searchViewsTarget": 660522
       },
       {
         "id": "seo_t34_aditya_odisha",
@@ -1117,9 +1140,13 @@ async function readQuarterTargets() {
   if (
     !targets.JAS_2026 ||
     !targets.JAS_2026.ytm ||
+    !targets.JAS_2026.ytm.some(t => t.id === "ytm_t41_raubnish_sambhab") ||
     targets.JAS_2026.ytm.some(t => t.employee === "Atul Sharma" || t.id === "ytm_t7" || (t.channelName === "CTET Testbook" && t.viewsTarget === 13000000))
   ) {
     targets.JAS_2026 = defaultTargets.JAS_2026;
+    if (targets.AMJ_2026 && targets.AMJ_2026.ytm && !targets.AMJ_2026.ytm.some(t => t.id === "ytm_t_sambhab")) {
+      targets.AMJ_2026 = defaultTargets.AMJ_2026;
+    }
     needsSave = true;
   }
 
@@ -1304,6 +1331,10 @@ app.get("/api/targets", async (req, res, next) => {
     let elapsedDays = 0;
     if (hasStarted) {
       elapsedDays = allDays.size;
+      if (allDays.size > 0) {
+        const sortedDays = Array.from(allDays).sort();
+        endDate = sortedDays[sortedDays.length - 1];
+      }
     }
 
     const ytmResults = targetYtmFiltered.map(t => {
@@ -1694,7 +1725,9 @@ const ytmMappings = {
   "Raubnish": [
     "Odisha Testbook",
     "Odisha Teaching by Testbook",
-    "UPSC PrepLab"
+    "UPSC PrepLab",
+    "Sambhab IAS",
+    "UCGPGCM8cSM868l5JjHhQpQQ"
   ],
   "Narendra/Amit": [
     "UGC NET Testbook",
