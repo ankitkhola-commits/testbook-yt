@@ -108,6 +108,7 @@
           <button class="side-nav-button" type="button" data-view-tab="research">Research</button>
           <button class="side-nav-button" type="button" data-view-tab="seo">SEO Audit</button>
           <button class="side-nav-button" type="button" data-view-tab="ytm">YTM Audit</button>
+          <button class="side-nav-button" type="button" data-view-tab="keywords">Rank Tracker</button>
         </nav>
 
         <button class="connect-button" id="connectChannelButton" data-sidebar-view="dashboard">
@@ -456,7 +457,96 @@
             <div id="ytmResults" class="ytm-results"></div>
           </article>
 
+          <!-- Rankings Panel -->
+          <article class="panel page-panel rankings-panel is-hidden" data-view="keywords">
+            <div class="panel-header rankings-header" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; width: 100%;">
+              <div>
+                <p class="eyebrow" id="keywordsLastUpdated" style="margin: 0 0 4px 0;">Last scanned: Never</p>
+                <h2 style="margin: 0;">YouTube Search Rank Tracker</h2>
+              </div>
+              <button class="connect-button" type="button" id="keywordsRefreshButton" style="padding: 8px 16px; font-size: 13px; margin: 0; width: auto; height: 38px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;">Refresh rankings</button>
+            </div>
 
+            <div id="keywordsProgressBarContainer" class="progress-bar-container is-hidden">
+              <div class="progress-bar-label" id="keywordsProgressBarLabel">Scanning keyword rankings... (0%)</div>
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="keywordsProgressBarFill" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- Person / YTM filter row -->
+            <div class="section-row" style="margin-bottom: 12px; margin-top: 8px;">
+              <div class="section-label" style="font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase;">Select Manager / Person</div>
+            </div>
+            <div id="keywordsYtmFilters" class="research-filter-row" style="margin-bottom: 24px; display: flex; gap: 8px; flex-wrap: wrap;"></div>
+
+            <!-- Rank & Intent filters -->
+            <div style="display: flex; justify-content: space-start; align-items: center; gap: 16px; margin-bottom: 20px; border-bottom: 1px solid var(--line); padding-bottom: 16px;">
+              <div id="keywordsRankSubFilters" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="filter-chip active" type="button" data-rank-filter="all">All Keywords</button>
+                <button class="filter-chip" type="button" data-rank-filter="top3">Top 3 (Dominating)</button>
+                <button class="filter-chip" type="button" data-rank-filter="page1">Page 1 (Rank 4-10)</button>
+                <button class="filter-chip" type="button" data-rank-filter="opportunity">Opportunities (Rank 11-20)</button>
+              </div>
+            </div>
+
+            <!-- Manager Keywords Content Container -->
+            <div id="keywordsManagerContainer" style="display: flex; flex-direction: column; gap: 20px;">
+              <!-- Add manual keyword form -->
+              <div class="manual-keyword-form" style="background: var(--surface); border: 1px solid var(--line); padding: 12px 16px; border-radius: 8px; display: flex; gap: 12px; align-items: flex-end; width: 100%; box-sizing: border-box;">
+                <div class="select-wrap" style="flex: 1; margin: 0; display: flex; flex-direction: column; gap: 4px; min-width: 160px;">
+                  <label for="manualKeywordChannelSelect" style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 600;">Target Channel</label>
+                  <select id="manualKeywordChannelSelect" style="background: #fff; color: var(--ink); border: 1px solid var(--line); padding: 8px 12px; border-radius: 6px; font-size: 14px; font-weight: 500; width: 100%; outline: none; height: 38px; box-sizing: border-box;"></select>
+                </div>
+                <div class="input-wrap" style="flex: 2; display: flex; flex-direction: column; gap: 4px; min-width: 250px;">
+                  <label for="manualKeywordInput" style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 600;">Add Custom Keyword</label>
+                  <input type="text" id="manualKeywordInput" placeholder="e.g. ssc cgl 2026 classes" style="background: #fff; color: var(--ink); border: 1px solid var(--line); padding: 8px 12px; border-radius: 6px; font-size: 14px; outline: none; width: 100%; height: 38px; box-sizing: border-box;">
+                </div>
+                <button class="connect-button" type="button" id="addManualKeywordButton" style="margin: 0; padding: 0 20px; height: 38px; font-size: 14px; font-weight: 600; flex: 0 0 auto; width: auto; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; white-space: nowrap;">Track Keyword</button>
+              </div>
+
+              <!-- Manual Keywords section -->
+              <section id="manualKeywordsSection" style="display: flex; flex-direction: column; gap: 12px;">
+                <div class="section-row">
+                  <div class="section-label" style="font-size: 16px; font-weight: 700;">Manual Tracked Keywords</div>
+                </div>
+                <div id="manualKeywordsTableContainer"></div>
+              </section>
+
+              <!-- Automated Keywords section -->
+              <section id="automatedKeywordsSection" style="display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--line); padding-top: 24px;">
+                <div class="section-row">
+                  <div class="section-label" style="font-size: 16px; font-weight: 700;">Top Organic Search Keywords</div>
+                </div>
+                <div id="automatedKeywordsTableContainer"></div>
+              </section>
+            </div>
+
+            <!-- Admin Keywords Content Container -->
+            <div id="keywordsAdminContainer" class="is-hidden" style="display: flex; flex-direction: column; gap: 20px;">
+              <!-- Add admin keyword form -->
+              <div class="manual-keyword-form" style="background: var(--surface); border: 1px solid var(--line); padding: 12px 16px; border-radius: 8px; display: flex; gap: 12px; align-items: flex-end; width: 100%; box-sizing: border-box;">
+                <div class="input-wrap" style="flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 250px;">
+                  <label for="adminKeywordInput" style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 600;">Track Cross-Channel Keyword (Max 30)</label>
+                  <input type="text" id="adminKeywordInput" placeholder="e.g. current affairs today" style="background: #fff; color: var(--ink); border: 1px solid var(--line); padding: 8px 12px; border-radius: 6px; font-size: 14px; outline: none; width: 100%; height: 38px; box-sizing: border-box;">
+                </div>
+                <button class="connect-button" type="button" id="addAdminKeywordButton" style="margin: 0; padding: 0 20px; height: 38px; font-size: 14px; font-weight: 600; flex: 0 0 auto; width: auto; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; white-space: nowrap;">Track Keyword</button>
+              </div>
+
+              <!-- Admin Keywords section -->
+              <section style="display: flex; flex-direction: column; gap: 12px;">
+                <div class="section-row">
+                  <div class="section-label" style="font-size: 16px; font-weight: 700;">Admin Tracked Cross-Channel Keywords</div>
+                </div>
+                <div id="adminKeywordsTableContainer"></div>
+              </section>
+            </div>
+
+            <!-- Bottom Export CSV Row -->
+            <div style="display: flex; justify-content: flex-end; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line);">
+              <button class="connect-button" type="button" id="keywordsExportCsvButton" style="margin: 0; padding: 6px 12px; font-size: 12px; background: #fff; color: var(--ink); border: 1px solid var(--line); width: auto; height: auto; display: inline-flex; align-items: center; justify-content: center;">Export CSV</button>
+            </div>
+          </article>
 
           <article class="panel page-panel targets-panel is-hidden" data-view="targets">
             <div class="panel-header targets-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 20px;">

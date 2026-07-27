@@ -227,6 +227,7 @@ document.querySelectorAll("[data-view-tab]").forEach((button) => {
     if (state.activeView === "seo") renderSeoAuditView();
     if (state.activeView === "ytm") renderYtmAuditView();
     if (state.activeView === "targets") loadTargets();
+    if (state.activeView === "keywords") loadKeywords();
   });
 });
 
@@ -1083,7 +1084,9 @@ function applyView() {
           ? "YTM Audit"
           : state.activeView === "targets"
             ? "Target Tracker"
-            : "Research";
+            : state.activeView === "keywords"
+              ? "Rank Tracker"
+              : "Research";
 }
 
 function renderResearchView() {
@@ -2567,67 +2570,87 @@ document.addEventListener("click", async (event) => {
 });
 
 
+function truncateVideoTitle(title, limit = 60) {
+  if (!title) return "";
+  if (title.length <= limit) return title;
+  return title.substring(0, limit) + "...";
+}
+
 // Keywords View Controllers
 async function loadKeywords(options = {}) {
-  const channelFilters = document.querySelector("#keywordsChannelFilters");
   const automatedContainer = document.querySelector("#automatedKeywordsTableContainer");
   const manualContainer = document.querySelector("#manualKeywordsTableContainer");
   
-  if (!state.channels || !state.channels.length) {
-    if (channelFilters) channelFilters.innerHTML = "";
-    if (automatedContainer) automatedContainer.innerHTML = emptyCard("No connected channels found.");
-    if (manualContainer) manualContainer.innerHTML = "";
-    return;
+  const isAdminUser = (state.isAuditAdmin === undefined || state.isAuditAdmin === true);
+  const ytmList = [];
+  if (isAdminUser) {
+    ytmList.push("Admin");
+  }
+  ytmList.push("Saijal", "Mohit", "Vinayak", "Aditya", "Vivek", "Govardhan");
+  
+  if (!state.selectedKeywordsYtm) {
+    state.selectedKeywordsYtm = ytmList[0];
   }
 
-  const publicChs = state.channels.filter(c => c.id !== "all-in-one");
-  if (!publicChs.length) {
-    if (automatedContainer) automatedContainer.innerHTML = emptyCard("No public channels connected.");
-    return;
-  }
-  if (!state.selectedKeywordsChannelId || !publicChs.some(c => c.id === state.selectedKeywordsChannelId)) {
-    if (state.selectedChannelId && publicChs.some(c => c.id === state.selectedChannelId)) {
-      state.selectedKeywordsChannelId = state.selectedChannelId;
-    } else {
-      state.selectedKeywordsChannelId = publicChs[0].id;
+  renderKeywordsYtmFilters(ytmList);
+
+  const managerContainerEl = document.querySelector("#keywordsManagerContainer");
+  const adminContainerEl = document.querySelector("#keywordsAdminContainer");
+
+  if (state.selectedKeywordsYtm === "Admin") {
+    if (managerContainerEl) managerContainerEl.classList.add("is-hidden");
+    if (adminContainerEl) adminContainerEl.classList.remove("is-hidden");
+    await loadAdminKeywords(options);
+  } else {
+    if (adminContainerEl) adminContainerEl.classList.add("is-hidden");
+    if (managerContainerEl) managerContainerEl.classList.remove("is-hidden");
+    
+    try {
+      if (!options.force) {
+        automatedContainer.innerHTML = emptyCard("Loading rankings...");
+        manualContainer.innerHTML = emptyCard("Loading rankings...");
+      }
+      const data = await api("/api/keywords/rankings?ytm=" + encodeURIComponent(state.selectedKeywordsYtm));
+      state.keywordRankings = data;
+      renderKeywordsView();
+    } catch (err) {
+      automatedContainer.innerHTML = emptyCard(err.message || "Failed to load keyword rankings.");
+      manualContainer.innerHTML = "";
     }
-  }
-
-  renderKeywordsChannelFilters(publicChs);
-
-  try {
-    if (!options.force) {
-      automatedContainer.innerHTML = emptyCard("Loading rankings...");
-      manualContainer.innerHTML = emptyCard("Loading rankings...");
-    }
-    const data = await api("/api/keywords/rankings?channelId=" + encodeURIComponent(state.selectedKeywordsChannelId));
-    state.keywordRankings = data;
-    renderKeywordsView();
-  } catch (err) {
-    automatedContainer.innerHTML = emptyCard(err.message || "Failed to load keyword rankings.");
-    manualContainer.innerHTML = "";
   }
 }
 
-function renderKeywordsChannelFilters(channels) {
-  const container = document.querySelector("#keywordsChannelFilters");
+function renderKeywordsYtmFilters(ytmList) {
+  const container = document.querySelector("#keywordsYtmFilters");
   if (!container) return;
   
-  container.innerHTML = channels.map(channel => {
-    const isActive = state.selectedKeywordsChannelId === channel.id;
-    return `<button class="filter-chip ${isActive ? "active" : ""}" type="button" data-keywords-channel-id="${escapeHtml(channel.id)}">${escapeHtml(channel.name)}</button>`;
+  container.innerHTML = ytmList.map(ytm => {
+    const isActive = state.selectedKeywordsYtm === ytm;
+    return `<button class="filter-chip ${isActive ? "active" : ""}" type="button" data-keywords-ytm="${escapeHtml(ytm)}">${escapeHtml(ytm)}</button>`;
   }).join("");
 
-  container.querySelectorAll("[data-keywords-channel-id]").forEach(btn => {
+  container.querySelectorAll("[data-keywords-ytm]").forEach(btn => {
     btn.addEventListener("click", () => {
-      state.selectedKeywordsChannelId = btn.dataset.keywordsChannelId;
+      state.selectedKeywordsYtm = btn.dataset.keywordsYtm;
       loadKeywords();
     });
   });
 }
 
+function matchRankFilter(rank, filter) {
+  if (filter === "all" || !filter) return true;
+  if (rank === "quota_exceeded" || rank === null || rank === undefined) return false;
+  const r = Number(rank);
+  if (isNaN(r)) return false;
+  
+  if (filter === "top3") return r >= 1 && r <= 3;
+  if (filter === "page1") return r >= 4 && r <= 10;
+  if (filter === "opportunity") return r >= 11 && r <= 20;
+  return true;
+}
+
 function renderKeywordsView() {
-  const data = state.keywordRankings || { rankings: { automated: [], manual: [] }, manualKeywords: [], lastUpdated: null };
+  const data = state.keywordRankings || { rankings: { automated: [], manual: [] }, manualKeywords: [], lastUpdated: null, channels: [] };
   
   const lastUpdatedEl = document.querySelector("#keywordsLastUpdated");
   if (lastUpdatedEl) {
@@ -2638,51 +2661,65 @@ function renderKeywordsView() {
     }
   }
 
+  // Populate channel dropdown
+  const chSelect = document.querySelector("#manualKeywordChannelSelect");
+  if (chSelect) {
+    const channels = data.channels || [];
+    chSelect.innerHTML = channels.map(ch => {
+      return `<option value="${escapeHtml(ch.id)}">${escapeHtml(ch.name)}</option>`;
+    }).join("");
+    if (!channels.length) {
+      chSelect.innerHTML = `<option value="">No connected channels</option>`;
+    }
+  }
+
+  const filterVal = state.keywordsRankFilter || "all";
+  const autoFiltered = (data.rankings?.automated || []).filter(r => matchRankFilter(r.currentRank, filterVal));
+  const manualFiltered = (data.rankings?.manual || []).filter(r => matchRankFilter(r.currentRank, filterVal));
+
   renderKeywordTable(
     document.querySelector("#automatedKeywordsTableContainer"),
-    data.rankings?.automated || [],
+    autoFiltered,
     "automated"
   );
 
   renderKeywordTable(
     document.querySelector("#manualKeywordsTableContainer"),
-    data.rankings?.manual || [],
+    manualFiltered,
     "manual"
   );
 
   const trackBtn = document.querySelector("#addManualKeywordButton");
   const trackInput = document.querySelector("#manualKeywordInput");
+  const chSelectEl = document.querySelector("#manualKeywordChannelSelect");
   const currentManualCount = (data.manualKeywords || []).length;
-  if (trackBtn && trackInput) {
+  if (trackBtn && trackInput && chSelectEl) {
     if (currentManualCount >= 50) {
       trackBtn.disabled = true;
       trackInput.disabled = true;
+      chSelectEl.disabled = true;
       trackInput.placeholder = "Limit of 50 keywords reached.";
     } else {
       trackBtn.disabled = false;
       trackInput.disabled = false;
+      chSelectEl.disabled = false;
       trackInput.placeholder = "e.g. ssc cgl 2026 classes";
     }
   }
 
-  // Dynamically swap order of sections if manual keywords are added
+  // Static layout: manual keywords section is always on top of automated
   const autoSec = document.querySelector("#automatedKeywordsSection");
   const manualSec = document.querySelector("#manualKeywordsSection");
   if (autoSec && manualSec) {
-    if (currentManualCount > 0) {
-      manualSec.style.order = "1";
-      autoSec.style.order = "2";
-      manualSec.style.borderTop = "none";
-      manualSec.style.paddingTop = "0";
-      autoSec.style.borderTop = "1px solid var(--line)";
-      autoSec.style.paddingTop = "24px";
-    } else {
-      autoSec.style.order = "1";
-      manualSec.style.order = "2";
+    manualSec.style.order = "1";
+    autoSec.style.order = "2";
+    manualSec.classList.toggle("is-hidden", currentManualCount === 0);
+    if (currentManualCount === 0) {
       autoSec.style.borderTop = "none";
       autoSec.style.paddingTop = "0";
-      manualSec.style.borderTop = "1px solid var(--line)";
-      manualSec.style.paddingTop = "24px";
+    } else {
+      autoSec.style.borderTop = "1px solid var(--line)";
+      autoSec.style.paddingTop = "24px";
     }
   }
 }
@@ -2692,8 +2729,8 @@ function renderKeywordTable(container, list, type) {
   if (!list || !list.length) {
     container.innerHTML = emptyCard(
       type === "automated" 
-        ? "No search keywords found. Run a refresh to scan your channel's traffic data."
-        : "No custom keywords tracked yet. Type a keyword above and click Track Keyword."
+        ? "No search keywords found. Run a refresh to scan your channels' traffic data."
+        : "No custom keywords tracked yet. Select a target channel, type a keyword above, and click Track Keyword."
     );
     return;
   }
@@ -2705,6 +2742,7 @@ function renderKeywordTable(container, list, type) {
       <div class="keywords-row keywords-head ${type}-row">
         <span>Rank & Trend</span>
         <span>Keyword</span>
+        <span>Channel</span>
         ${isAutomated ? "<span>Views (7d)</span>" : ""}
         <span>Best Ranking Video</span>
         <span>Search Page</span>
@@ -2719,7 +2757,7 @@ function renderKeywordTable(container, list, type) {
           const videoUrl = "https://www.youtube.com/watch?v=" + row.videoId;
           videoHtml = `
             <div class="keywords-video-cell">
-              <strong title="${escapeHtml(row.videoTitle)}">${escapeHtml(row.videoTitle)}</strong>
+              <strong title="${escapeHtml(row.videoTitle)}">${escapeHtml(truncateVideoTitle(row.videoTitle))}</strong>
               <a href="${videoUrl}" target="_blank" rel="noreferrer" style="font-size: 11px; color: var(--accent); text-decoration: none;">Watch video</a>
             </div>
           `;
@@ -2730,16 +2768,17 @@ function renderKeywordTable(container, list, type) {
         const rankFontSize = isQuota ? "11px" : "14px";
         return `
           <div class="keywords-row ${type}-row">
-            <div class="rank-badge-container">
+            <div class="rank-badge-container rank-badge-clickable" style="cursor: pointer;" data-keyword="${escapeHtml(row.keyword)}" data-history-json="${escapeHtml(JSON.stringify(row.history || []))}">
               <strong style="font-size: ${rankFontSize}; white-space: nowrap;">${rankText}</strong>
               ${trendHtml}
             </div>
             <strong>${escapeHtml(row.keyword)}</strong>
-            ${isAutomated ? `<span>${Number(row.views || 0).toLocaleString()}</span>` : ""}
+            <strong style="color: var(--accent);">${escapeHtml(row.channelName || "")}</strong>
+            ${isAutomated ? `<strong style="font-weight: 700;">${Number(row.views || 0).toLocaleString()}</strong>` : ""}
             ${videoHtml}
             <a class="link-chip" href="${searchUrl}" target="_blank" rel="noreferrer" style="text-align: center; border-radius: 6px;">YouTube</a>
             ${!isAutomated ? `
-              <button class="keywords-delete-btn" type="button" data-delete-keyword="${escapeHtml(row.keyword)}">Delete</button>
+              <button class="keywords-delete-btn" type="button" data-delete-keyword="${escapeHtml(row.keyword)}" data-channel-id="${escapeHtml(row.channelId)}">Delete</button>
             ` : ""}
           </div>
         `;
@@ -2747,23 +2786,28 @@ function renderKeywordTable(container, list, type) {
     </div>
   `;
 
+  attachRankBadgeClickListeners(container);
+
   if (!isAutomated) {
     container.querySelectorAll("[data-delete-keyword]").forEach(btn => {
       btn.addEventListener("click", async () => {
         const kw = btn.dataset.deleteKeyword;
+        const chId = btn.dataset.channelId;
         if (confirm(`Remove keyword "${kw}" from manual tracking?`)) {
           try {
             btn.disabled = true;
             btn.textContent = "Deleting...";
-            const updated = await api("/api/keywords/manual", {
+            await api("/api/keywords/manual", {
               method: "DELETE",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                channelId: state.selectedKeywordsChannelId,
+                channelId: chId,
                 keyword: kw
               })
             });
-            state.keywordRankings = updated;
+            // Reload rankings for current YTM
+            const data = await api("/api/keywords/rankings?ytm=" + encodeURIComponent(state.selectedKeywordsYtm));
+            state.keywordRankings = data;
             renderKeywordsView();
           } catch (err) {
             alert(err.message || "Failed to delete keyword.");
@@ -2798,23 +2842,30 @@ function getTrendBadgeHtml(curr, prev) {
 
 async function addManualKeyword() {
   const input = document.querySelector("#manualKeywordInput");
+  const chSelect = document.querySelector("#manualKeywordChannelSelect");
   const keyword = (input?.value || "").trim();
-  if (!keyword) return;
+  const channelId = chSelect?.value;
+
+  if (!keyword || !channelId) return;
 
   const btn = document.querySelector("#addManualKeywordButton");
   try {
     if (btn) btn.disabled = true;
     if (input) input.disabled = true;
+    if (chSelect) chSelect.disabled = true;
     
-    const updated = await api("/api/keywords/manual", {
+    await api("/api/keywords/manual", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        channelId: state.selectedKeywordsChannelId,
+        channelId: channelId,
         keyword: keyword
       })
     });
-    state.keywordRankings = updated;
+    
+    // Reload rankings
+    const data = await api("/api/keywords/rankings?ytm=" + encodeURIComponent(state.selectedKeywordsYtm));
+    state.keywordRankings = data;
     renderKeywordsView();
     if (input) input.value = "";
   } catch (err) {
@@ -2822,6 +2873,7 @@ async function addManualKeyword() {
   } finally {
     if (btn) btn.disabled = false;
     if (input) input.disabled = false;
+    if (chSelect) chSelect.disabled = false;
     if (input) input.focus();
   }
 }
@@ -2841,14 +2893,14 @@ async function refreshKeywordRankings() {
       progress += 10;
       if (progress > 90) progress = 90;
       if (progressBarFill) progressBarFill.style.width = progress + "%";
-      if (progressBarLabel) progressBarLabel.textContent = `Scanning keyword rankings... (${progress}%)`;
-    }, 800);
+      if (progressBarLabel) progressBarLabel.textContent = `Scanning all channels' keyword rankings... (${progress}%)`;
+    }, 1000);
 
     const updated = await api("/api/keywords/refresh", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        channelId: state.selectedKeywordsChannelId
+        ytm: state.selectedKeywordsYtm
       })
     });
     
@@ -2870,9 +2922,175 @@ async function refreshKeywordRankings() {
   }
 }
 
+function attachRankBadgeClickListeners(container) {
+  if (!container) return;
+  container.querySelectorAll(".rank-badge-clickable").forEach(badge => {
+    badge.addEventListener("click", () => {
+      const kw = badge.dataset.keyword;
+      const history = JSON.parse(badge.dataset.historyJson || "[]");
+      showRankHistoryDialog(kw, history);
+    });
+  });
+}
+
+function showRankHistoryDialog(keyword, history = []) {
+  document.querySelector("#rankHistoryDialog")?.remove();
+
+  const dialog = document.createElement("dialog");
+  dialog.id = "rankHistoryDialog";
+  dialog.style.padding = "24px";
+  dialog.style.borderRadius = "12px";
+  dialog.style.border = "1px solid var(--line)";
+  dialog.style.background = "#fff";
+  dialog.style.boxShadow = "0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)";
+  dialog.style.maxWidth = "450px";
+  dialog.style.width = "90%";
+  dialog.style.outline = "none";
+
+  const titleHtml = `<h3 style="margin-top: 0; margin-bottom: 16px; font-size: 16px; font-weight: 700;">Ranking History: <span style="color: var(--accent);">${escapeHtml(keyword)}</span></h3>`;
+  
+  let contentHtml = "";
+  if (!history || !history.length) {
+    contentHtml = `<p style="color: var(--muted); font-size: 13px; margin-bottom: 20px;">No historical ranking data available for this keyword.</p>`;
+  } else {
+    const sortedHistory = [...history].sort((a, b) => new Date(b.date) - new Date(a.date));
+    contentHtml = `
+      <div style="max-height: 250px; overflow-y: auto; margin-bottom: 20px; border: 1px solid var(--line); border-radius: 6px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+          <thead>
+            <tr style="background: var(--surface); border-bottom: 1px solid var(--line);">
+              <th style="padding: 10px 12px; font-weight: 600; color: var(--muted);">Date</th>
+              <th style="padding: 10px 12px; font-weight: 600; color: var(--muted);">Position</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sortedHistory.map(h => {
+              const rankVal = h.rank === "quota_exceeded" ? "Quota Reached" : (h.rank ? `#${h.rank}` : "50+");
+              return `
+                <tr style="border-bottom: 1px solid var(--line);">
+                  <td style="padding: 10px 12px;">${escapeHtml(h.date)}</td>
+                  <td style="padding: 10px 12px; font-weight: 700;">${rankVal}</td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  dialog.innerHTML = `
+    ${titleHtml}
+    ${contentHtml}
+    <div style="display: flex; justify-content: flex-end; gap: 8px;">
+      <button class="connect-button" type="button" id="closeRankHistoryBtn" style="margin: 0; padding: 8px 16px; font-size: 13px; background: var(--line); color: var(--ink); border: none;">Close</button>
+    </div>
+  `;
+
+  document.body.appendChild(dialog);
+  dialog.showModal();
+
+  dialog.querySelector("#closeRankHistoryBtn")?.addEventListener("click", () => {
+    dialog.close();
+    dialog.remove();
+  });
+  
+  dialog.addEventListener("click", (e) => {
+    const rect = dialog.getBoundingClientRect();
+    const isInDialog = (rect.top <= e.clientY && e.clientY <= rect.top + rect.height &&
+      rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
+    if (!isInDialog) {
+      dialog.close();
+      dialog.remove();
+    }
+  });
+}
+
+function exportKeywordsToCsv() {
+  let list = [];
+  let filename = "youtube_rankings.csv";
+  
+  const filterVal = state.keywordsRankFilter || "all";
+
+  if (state.selectedKeywordsYtm === "Admin") {
+    filename = `admin_cross_channel_rankings_${filterVal}.csv`;
+    const data = state.adminKeywordRankings || { rankings: [] };
+    list = (data.rankings || []).filter(r => matchRankFilter(r.currentRank, filterVal));
+  } else {
+    filename = `${state.selectedKeywordsYtm}_rankings_${filterVal}.csv`;
+    const data = state.keywordRankings || { rankings: { automated: [], manual: [] } };
+    const autoFiltered = (data.rankings?.automated || []).filter(r => matchRankFilter(r.currentRank, filterVal));
+    const manualFiltered = (data.rankings?.manual || []).filter(r => matchRankFilter(r.currentRank, filterVal));
+    list = [...manualFiltered, ...autoFiltered];
+  }
+
+  if (!list.length) {
+    alert("No keywords available to export with the current filters.");
+    return;
+  }
+
+  const csvHeaders = ["Keyword", "Channel", "Current Rank", "Previous Rank", "Views (7d)", "Video Title", "Video URL"];
+  const csvRows = list.map(r => {
+    const rankText = r.currentRank === "quota_exceeded" ? "Quota Reached" : (r.currentRank || "50+");
+    const prevRankText = r.previousRank === "quota_exceeded" ? "Quota Reached" : (r.previousRank || "-");
+    const viewsVal = r.views || "-";
+    const videoUrl = r.videoId ? `https://www.youtube.com/watch?v=${r.videoId}` : "";
+    
+    return [
+      r.keyword,
+      r.channelName || "",
+      rankText,
+      prevRankText,
+      viewsVal,
+      r.videoTitle || "",
+      videoUrl
+    ].map(val => `"${String(val || "").replace(/"/g, '""')}"`).join(",");
+  });
+
+  const csvContent = [csvHeaders.join(","), ...csvRows].join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function attachKeywordsRankFilterListeners() {
+  document.querySelectorAll("[data-rank-filter]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("[data-rank-filter]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      
+      state.keywordsRankFilter = btn.dataset.rankFilter;
+      
+      if (state.selectedKeywordsYtm === "Admin") {
+        renderAdminKeywordsView();
+      } else {
+        renderKeywordsView();
+      }
+    });
+  });
+  
+  document.querySelector("#keywordsExportCsvButton")?.addEventListener("click", () => {
+    exportKeywordsToCsv();
+  });
+}
+
+// Run rank filter setup once
+attachKeywordsRankFilterListeners();
+
 // Attach event listeners for Keywords panel
 document.querySelector("#keywordsRefreshButton")?.addEventListener("click", () => {
-  refreshKeywordRankings();
+  if (state.selectedKeywordsYtm === "Admin") {
+    refreshAdminKeywordRankings();
+  } else {
+    refreshKeywordRankings();
+  }
 });
 
 document.querySelector("#addManualKeywordButton")?.addEventListener("click", () => {
@@ -3258,4 +3476,237 @@ document.querySelector("#addNewTargetRowBtn")?.addEventListener("click", () => {
 document.querySelector("#saveTargetsEditorBtn")?.addEventListener("click", () => {
   saveEditorTargets();
 });
+
+// Admin Cross-Channel Keywords Controller
+async function loadAdminKeywords(options = {}) {
+  const container = document.querySelector("#adminKeywordsTableContainer");
+  if (!container) return;
+
+  try {
+    if (!options.force && !state.adminKeywordRankings) {
+      container.innerHTML = emptyCard("Loading admin rankings...");
+    }
+    
+    if (options.force || !state.adminKeywordRankings) {
+      const data = await api("/api/admin/keywords/rankings");
+      state.adminKeywordRankings = data;
+    }
+    
+    renderAdminKeywordsView();
+  } catch (err) {
+    console.error("Failed to load admin keywords:", err);
+    container.innerHTML = emptyCard("Error: " + err.message);
+  }
+}
+
+function renderAdminKeywordsView() {
+  const data = state.adminKeywordRankings || { rankings: [], lastUpdated: null };
+  const lastUpdatedEl = document.querySelector("#keywordsLastUpdated");
+  if (lastUpdatedEl) {
+    if (data.lastUpdated) {
+      lastUpdatedEl.textContent = "Last scanned: " + new Date(data.lastUpdated).toLocaleString();
+    } else {
+      lastUpdatedEl.textContent = "Not scanned yet";
+    }
+  }
+
+  const container = document.querySelector("#adminKeywordsTableContainer");
+  if (!container) return;
+
+  const filterVal = state.keywordsRankFilter || "all";
+  const list = (data.rankings || []).filter(r => matchRankFilter(r.currentRank, filterVal));
+  
+  if (!list.length) {
+    container.innerHTML = emptyCard("No admin keywords match the current filter. Enter a keyword above to start tracking.");
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="keywords-table">
+      <div class="keywords-row keywords-head manual-row">
+        <span>Rank & Trend</span>
+        <span>Keyword</span>
+        <span>Winning Channel</span>
+        <span>Best Ranking Video</span>
+        <span>Search Page</span>
+        <span>Action</span>
+      </div>
+      ${list.map(row => {
+        const trendHtml = getTrendBadgeHtml(row.currentRank, row.previousRank);
+        const searchUrl = "https://www.youtube.com/results?search_query=" + encodeURIComponent(row.keyword);
+        
+        let videoHtml = `<span style="color: var(--muted); font-size: 12px;">Not in Top 50</span>`;
+        if (row.videoId) {
+          const videoUrl = "https://www.youtube.com/watch?v=" + row.videoId;
+          videoHtml = `
+            <div class="keywords-video-cell">
+              <strong title="${escapeHtml(row.videoTitle)}">${escapeHtml(truncateVideoTitle(row.videoTitle))}</strong>
+              <a href="${videoUrl}" target="_blank" rel="noreferrer" style="font-size: 11px; color: var(--accent); text-decoration: none;">Watch video</a>
+            </div>
+          `;
+        }
+
+        const isQuota = row.currentRank === "quota_exceeded";
+        const rankText = isQuota ? "Quota Reached" : (row.currentRank ? `#${row.currentRank}` : "50+");
+        const rankFontSize = isQuota ? "11px" : "14px";
+        
+        const channelNameText = row.channelName ? escapeHtml(row.channelName) : `<span style="color: var(--muted);">-</span>`;
+
+        return `
+          <div class="keywords-row manual-row">
+            <div class="rank-badge-container rank-badge-clickable" style="cursor: pointer;" data-keyword="${escapeHtml(row.keyword)}" data-history-json="${escapeHtml(JSON.stringify(row.history || []))}">
+              <strong style="font-size: ${rankFontSize}; white-space: nowrap;">${rankText}</strong>
+              ${trendHtml}
+            </div>
+            <strong>${escapeHtml(row.keyword)}</strong>
+            <strong style="color: var(--accent);">${channelNameText}</strong>
+            ${videoHtml}
+            <a class="link-chip" href="${searchUrl}" target="_blank" rel="noreferrer" style="text-align: center; border-radius: 6px;">YouTube</a>
+            <button class="keywords-delete-btn" type="button" data-delete-admin-keyword="${escapeHtml(row.keyword)}">Delete</button>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+
+  attachRankBadgeClickListeners(container);
+
+  // Attach delete button listeners
+  container.querySelectorAll("[data-delete-admin-keyword]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const kw = btn.dataset.deleteAdminKeyword;
+      if (confirm(`Remove admin keyword "${kw}" from tracking?`)) {
+        try {
+          btn.disabled = true;
+          btn.textContent = "Deleting...";
+          const updated = await api("/api/admin/keywords/track", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ keyword: kw })
+          });
+          state.adminKeywordRankings = updated;
+          renderAdminKeywordsView();
+        } catch (err) {
+          alert(err.message || "Failed to delete admin keyword.");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Delete";
+        }
+      }
+    });
+  });
+  
+  // Track input disabled check
+  const trackBtn = document.querySelector("#addAdminKeywordButton");
+  const trackInput = document.querySelector("#adminKeywordInput");
+  if (trackBtn && trackInput) {
+    if (list.length >= 30) {
+      trackBtn.disabled = true;
+      trackInput.disabled = true;
+      trackInput.placeholder = "Limit of 30 admin keywords reached.";
+    } else {
+      trackBtn.disabled = false;
+      trackInput.disabled = false;
+      trackInput.placeholder = "e.g. current affairs today";
+    }
+  }
+}
+
+async function addAdminKeyword() {
+  const input = document.querySelector("#adminKeywordInput");
+  const keyword = (input?.value || "").trim();
+  if (!keyword) return;
+
+  const btn = document.querySelector("#addAdminKeywordButton");
+  const progressBarContainer = document.querySelector("#keywordsProgressBarContainer");
+  const progressBarFill = document.querySelector("#keywordsProgressBarFill");
+  const progressBarLabel = document.querySelector("#keywordsProgressBarLabel");
+
+  try {
+    if (btn) btn.disabled = true;
+    if (input) input.disabled = true;
+    if (progressBarContainer) progressBarContainer.classList.remove("is-hidden");
+    if (progressBarFill) progressBarFill.style.width = "40%";
+    if (progressBarLabel) progressBarLabel.textContent = "Scanning keyword rank across channels... (40%)";
+
+    const updated = await api("/api/admin/keywords/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keyword })
+    });
+    
+    if (progressBarFill) progressBarFill.style.width = "100%";
+    if (progressBarLabel) progressBarLabel.textContent = "Scan complete! (100%)";
+    
+    state.adminKeywordRankings = updated;
+    renderAdminKeywordsView();
+    if (input) input.value = "";
+    
+    setTimeout(() => {
+      if (progressBarContainer) progressBarContainer.classList.add("is-hidden");
+    }, 1500);
+  } catch (err) {
+    alert(err.message || "Failed to add admin keyword.");
+    if (progressBarContainer) progressBarContainer.classList.add("is-hidden");
+  } finally {
+    if (btn) btn.disabled = false;
+    if (input) input.disabled = false;
+    if (input) input.focus();
+  }
+}
+
+async function refreshAdminKeywordRankings() {
+  const refreshBtn = document.querySelector("#keywordsRefreshButton");
+  const progressBarContainer = document.querySelector("#keywordsProgressBarContainer");
+  const progressBarFill = document.querySelector("#keywordsProgressBarFill");
+  const progressBarLabel = document.querySelector("#keywordsProgressBarLabel");
+
+  try {
+    if (refreshBtn) refreshBtn.disabled = true;
+    if (progressBarContainer) progressBarContainer.classList.remove("is-hidden");
+    
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 10;
+      if (progress > 90) progress = 90;
+      if (progressBarFill) progressBarFill.style.width = progress + "%";
+      if (progressBarLabel) progressBarLabel.textContent = `Scanning admin keyword rankings... (${progress}%)`;
+    }, 1000);
+
+    const updated = await api("/api/admin/keywords/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    });
+    
+    clearInterval(interval);
+    if (progressBarFill) progressBarFill.style.width = "100%";
+    if (progressBarLabel) progressBarLabel.textContent = "Scan complete! (100%)";
+    
+    state.adminKeywordRankings = updated;
+    renderAdminKeywordsView();
+    
+    setTimeout(() => {
+      if (progressBarContainer) progressBarContainer.classList.add("is-hidden");
+    }, 1500);
+  } catch (err) {
+    alert(err.message || "Failed to refresh admin keyword rankings.");
+    if (progressBarContainer) progressBarContainer.classList.add("is-hidden");
+  } finally {
+    if (refreshBtn) refreshBtn.disabled = false;
+  }
+}
+
+// Attach event listeners for Admin Keywords panel
+document.querySelector("#addAdminKeywordButton")?.addEventListener("click", () => {
+  addAdminKeyword();
+});
+
+document.querySelector("#adminKeywordInput")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    addAdminKeyword();
+  }
+});
+
+
+
 

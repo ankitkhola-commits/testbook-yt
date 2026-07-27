@@ -1425,28 +1425,129 @@ app.post("/api/targets/save", async (req, res, next) => {
   }
 });
 
+const rankTrackerYtmMap = {
+  "Saijal": [
+    "TET PRT Testbook",
+    "TGT PGT Testbook",
+    "CTET Testbook",
+    "UGC NET Testbook",
+    "Testbook NET JRF",
+    "Bihar Teaching Exams by Testbook"
+  ],
+  "Mohit": [
+    "Bihar Testbook",
+    "Testbook",
+    "Punjab"
+  ],
+  "Vinayak": [
+    "Banking",
+    "MPSC",
+    "Railway"
+  ],
+  "Aditya": [
+    "Bengali",
+    "Bengal",
+    "WBPSC",
+    "Marathi",
+    "Odisha Teaching",
+    "Odia Teaching",
+    "Odisha Testbook",
+    "Odisha",
+    "TET Factory"
+  ],
+  "Vivek": [
+    "AE JE",
+    "SSC",
+    "JAIIB"
+  ],
+  "Govardhan": [
+    "Tamil",
+    "Telugu"
+  ]
+};
+
+function channelMatchesYtm(channelName, ytmName) {
+  const keywords = rankTrackerYtmMap[ytmName] || [];
+  const lowerName = String(channelName || "").toLowerCase().trim();
+  
+  return keywords.some(kw => {
+    const lowerKw = String(kw || "").toLowerCase().trim();
+    if (lowerKw === "testbook") {
+      return lowerName === "testbook";
+    }
+    return lowerName.includes(lowerKw);
+  });
+}
+
+async function resolveChannelsForYtm(ytmName) {
+  const entries = await connectedChannelEntries();
+  return entries.filter(e => channelMatchesYtm(e.channel.name, ytmName));
+}
+
 app.get("/api/keywords/rankings", async (req, res, next) => {
   try {
-    const channelId = String(req.query.channelId || "");
-    if (!channelId) {
-      res.status(400).json({ error: "Missing channelId" });
-      return;
-    }
     const viewer = readViewerSession(req);
-    const entries = await connectedChannelEntries(viewer);
-    const entry = entries.find(e => e.channel.id === channelId);
-    if (!entry) {
-      res.status(403).json({ error: "Access denied or channel not connected." });
+    if (teamAuthEnabled() && !viewer) {
+      res.status(401).json({ error: "Unauthorized. Please log in first." });
       return;
     }
+    
+    const ytmName = String(req.query.ytm || "").trim();
+    if (!ytmName) {
+      res.status(400).json({ error: "Missing ytm parameter." });
+      return;
+    }
+
+    const channelEntries = await resolveChannelsForYtm(ytmName);
     const data = await readKeywordRankings();
-    const rankings = data[channelId] || {
-      channelId,
+
+    const result = {
+      ytm: ytmName,
       lastUpdated: null,
+      rankings: { automated: [], manual: [] },
       manualKeywords: [],
-      rankings: { automated: [], manual: [] }
+      channels: channelEntries.map(e => ({ id: e.channel.id, name: e.channel.name }))
     };
-    res.json(rankings);
+
+    let latestUpdated = 0;
+
+    for (const entry of channelEntries) {
+      const channelId = entry.channel.id;
+      const channelName = entry.channel.name;
+      const chData = data[channelId] || { rankings: { automated: [], manual: [] }, manualKeywords: [], lastUpdated: null };
+
+      if (chData.lastUpdated) {
+        const t = new Date(chData.lastUpdated).getTime();
+        if (t > latestUpdated) {
+          latestUpdated = t;
+          result.lastUpdated = chData.lastUpdated;
+        }
+      }
+
+      // Add channel identifier to rankings rows
+      const autoRows = (chData.rankings?.automated || []).map(r => ({
+        ...r,
+        channelId,
+        channelName
+      }));
+      const manualRows = (chData.rankings?.manual || []).map(r => ({
+        ...r,
+        channelId,
+        channelName
+      }));
+
+      result.rankings.automated.push(...autoRows);
+      result.rankings.manual.push(...manualRows);
+      
+      const manualKws = (chData.manualKeywords || []).map(kw => ({
+        keyword: kw,
+        channelId,
+        channelName
+      }));
+      result.manualKeywords.push(...manualKws);
+    }
+
+    res.json(result);
   } catch (error) {
     next(error);
   }
@@ -1455,8 +1556,13 @@ app.get("/api/keywords/rankings", async (req, res, next) => {
 app.post("/api/keywords/manual", async (req, res, next) => {
   try {
     const channelId = String(req.body.channelId || "");
-    const keyword = String(req.body.keyword || "").trim();
-    if (!channelId || !keyword) {
+    const input = String(req.body.keyword || "");
+    const keywordsToTrack = input
+      .split(",")
+      .map(k => k.trim())
+      .filter(k => k.length > 0);
+
+    if (!channelId || !keywordsToTrack.length) {
       res.status(400).json({ error: "Missing channelId or keyword" });
       return;
     }
@@ -1476,14 +1582,27 @@ app.post("/api/keywords/manual", async (req, res, next) => {
         rankings: { automated: [], manual: [] }
       };
     }
-    if ((data[channelId].manualKeywords || []).length >= 50) {
-      res.status(400).json({ error: "Maximum limit of 50 manual keywords reached." });
-      return;
-    }
-    if (!data[channelId].manualKeywords.includes(keyword)) {
-      data[channelId].manualKeywords.push(keyword);
+
+    const currentManuals = data[channelId].manualKeywords || [];
+
+    // Filter out already tracked ones
+    const newKeywords = keywordsToTrack.filter(
+      kw => !currentManuals.some(k => k.toLowerCase() === kw.toLowerCase())
+    );
+
+    if (newKeywords.length > 0) {
+      if (currentManuals.length + newKeywords.length > 50) {
+        res.status(400).json({ error: `Cannot track keywords. Limit of 50. Currently tracked: ${currentManuals.length}. You entered ${newKeywords.length} new keywords.` });
+        return;
+      }
+      
+      for (const kw of newKeywords) {
+        currentManuals.push(kw);
+      }
+      data[channelId].manualKeywords = currentManuals;
       await saveKeywordRankings(data);
     }
+    
     const updated = await refreshKeywordRankingsInternal(channelId);
     res.json(updated);
   } catch (error) {
@@ -1528,20 +1647,227 @@ app.delete("/api/keywords/manual", async (req, res, next) => {
 
 app.post("/api/keywords/refresh", async (req, res, next) => {
   try {
-    const channelId = String(req.body.channelId || "");
-    if (!channelId) {
-      res.status(400).json({ error: "Missing channelId" });
+    const ytmName = String(req.body.ytm || "").trim();
+    if (!ytmName) {
+      res.status(400).json({ error: "Missing ytm parameter." });
       return;
     }
     const viewer = readViewerSession(req);
-    const entries = await connectedChannelEntries(viewer);
-    const entry = entries.find(e => e.channel.id === channelId);
-    if (!entry) {
-      res.status(403).json({ error: "Access denied or channel not connected." });
+    const channelEntries = await resolveChannelsForYtm(ytmName);
+    if (!channelEntries.length) {
+      res.status(400).json({ error: "No connected channels found for this manager." });
       return;
     }
-    const updated = await refreshKeywordRankingsInternal(channelId);
-    res.json(updated);
+
+    // Refresh each channel in parallel using their respective auth client
+    await Promise.all(channelEntries.map(async (entry) => {
+      try {
+        await refreshKeywordRankingsInternal(entry.channel.id);
+      } catch (err) {
+        console.error(`Failed to refresh channel ${entry.channel.name}:`, err.message);
+      }
+    }));
+
+    // Read and return the updated data
+    const data = await readKeywordRankings();
+    const result = {
+      ytm: ytmName,
+      lastUpdated: null,
+      rankings: { automated: [], manual: [] },
+      manualKeywords: [],
+      channels: channelEntries.map(e => ({ id: e.channel.id, name: e.channel.name }))
+    };
+
+    let latestUpdated = 0;
+    for (const entry of channelEntries) {
+      const channelId = entry.channel.id;
+      const channelName = entry.channel.name;
+      const chData = data[channelId] || { rankings: { automated: [], manual: [] }, manualKeywords: [], lastUpdated: null };
+
+      if (chData.lastUpdated) {
+        const t = new Date(chData.lastUpdated).getTime();
+        if (t > latestUpdated) {
+          latestUpdated = t;
+          result.lastUpdated = chData.lastUpdated;
+        }
+      }
+
+      result.rankings.automated.push(...(chData.rankings?.automated || []).map(r => ({ ...r, channelId, channelName })));
+      result.rankings.manual.push(...(chData.rankings?.manual || []).map(r => ({ ...r, channelId, channelName })));
+      result.manualKeywords.push(...(chData.manualKeywords || []).map(kw => ({ keyword: kw, channelId, channelName })));
+    }
+
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/admin/keywords/rankings", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (!isAuditAdmin(viewer)) {
+      res.status(403).json({ error: "Forbidden. Admin access required." });
+      return;
+    }
+    const rankings = await readAdminKeywordRankings();
+    res.json(rankings);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/admin/keywords/track", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (!isAuditAdmin(viewer)) {
+      res.status(403).json({ error: "Forbidden. Admin access required." });
+      return;
+    }
+    const input = String(req.body.keyword || "");
+    const keywordsToTrack = input
+      .split(",")
+      .map(k => k.trim())
+      .filter(k => k.length > 0);
+
+    if (!keywordsToTrack.length) {
+      res.status(400).json({ error: "Keyword is required." });
+      return;
+    }
+
+    const data = await readAdminKeywordRankings();
+    const rankings = data.rankings || [];
+
+    // Filter out already tracked ones
+    const newKeywords = keywordsToTrack.filter(
+      kw => !rankings.some(r => r.keyword.toLowerCase() === kw.toLowerCase())
+    );
+
+    if (!newKeywords.length) {
+      res.status(400).json({ error: "All keywords are already tracked." });
+      return;
+    }
+
+    if (rankings.length + newKeywords.length > 30) {
+      res.status(400).json({ error: `Cannot track keywords. Maximum limit is 30. Currently tracked: ${rankings.length}. You entered ${newKeywords.length} new keywords.` });
+      return;
+    }
+
+    const entries = await connectedChannelEntries();
+    if (!entries.length) {
+      res.status(400).json({ error: "No channels connected. Connect a channel first." });
+      return;
+    }
+    const entry = entries[0];
+    const youtube = google.youtube({ version: "v3", auth: entry.auth });
+    const connectedChannels = entries.map(e => ({ id: e.channel.id, name: e.channel.name }));
+
+    // Scan each new keyword and add to rankings
+    for (const keyword of newKeywords) {
+      const scan = await fetchAdminKeywordRank(youtube, keyword, connectedChannels);
+      const newRow = {
+        keyword,
+        currentRank: scan.rank,
+        previousRank: null,
+        channelId: scan.channelId,
+        channelName: scan.channelName,
+        videoId: scan.videoId,
+        videoTitle: scan.videoTitle,
+        history: [
+          {
+            date: new Date().toISOString().split("T")[0],
+            rank: scan.rank,
+            channelId: scan.channelId
+          }
+        ]
+      };
+      rankings.push(newRow);
+    }
+
+    data.rankings = rankings;
+    await saveAdminKeywordRankings(data);
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/admin/keywords/track", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (!isAuditAdmin(viewer)) {
+      res.status(403).json({ error: "Forbidden. Admin access required." });
+      return;
+    }
+    const keyword = String(req.body.keyword || "").trim();
+    if (!keyword) {
+      res.status(400).json({ error: "Keyword is required." });
+      return;
+    }
+
+    const data = await readAdminKeywordRankings();
+    data.rankings = (data.rankings || []).filter(r => r.keyword.toLowerCase() !== keyword.toLowerCase());
+    await saveAdminKeywordRankings(data);
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/admin/keywords/refresh", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (!isAuditAdmin(viewer)) {
+      res.status(403).json({ error: "Forbidden. Admin access required." });
+      return;
+    }
+
+    const data = await readAdminKeywordRankings();
+    const rankings = data.rankings || [];
+    if (!rankings.length) {
+      res.json(data);
+      return;
+    }
+
+    const entries = await connectedChannelEntries();
+    if (!entries.length) {
+      res.status(400).json({ error: "No channels connected. Connect a channel first." });
+      return;
+    }
+    const entry = entries[0];
+    const youtube = google.youtube({ version: "v3", auth: entry.auth });
+    const connectedChannels = entries.map(e => ({ id: e.channel.id, name: e.channel.name }));
+
+    // Run scans sequentially with batch size of 5
+    const batchSize = 5;
+    for (let i = 0; i < rankings.length; i += batchSize) {
+      const chunk = rankings.slice(i, i + batchSize);
+      await Promise.all(chunk.map(async (row) => {
+        const scan = await fetchAdminKeywordRank(youtube, row.keyword, connectedChannels);
+        row.previousRank = row.currentRank;
+        row.currentRank = scan.rank;
+        row.channelId = scan.channelId;
+        row.channelName = scan.channelName;
+        row.videoId = scan.videoId;
+        row.videoTitle = scan.videoTitle;
+        
+        row.history = row.history || [];
+        const todayStr = new Date().toISOString().split("T")[0];
+        row.history = row.history.filter(h => h.date !== todayStr);
+        row.history.push({
+          date: todayStr,
+          rank: scan.rank,
+          channelId: scan.channelId
+        });
+        if (row.history.length > 7) {
+          row.history.shift();
+        }
+      }));
+    }
+
+    data.lastUpdated = new Date().toISOString();
+    await saveAdminKeywordRankings(data);
+    res.json(data);
   } catch (error) {
     next(error);
   }
@@ -2312,7 +2638,15 @@ async function saveCompetitorOutliers(outliers) {
   await writeFile(competitorOutliersPath, JSON.stringify(outliers, null, 2), "utf8");
 }
 
+function isExcluded(keyword) {
+  const lower = String(keyword || "").toLowerCase().trim();
+  if (!lower) return true;
+  const defaults = ["testbook", "supercoaching", "preplab", "super coaching", "sir", "mam"];
+  return defaults.some(term => lower.includes(term));
+}
+
 const keywordRankingsPath = path.join(dataDir, "keyword_rankings.json");
+
 
 async function readKeywordRankings() {
   if (sql) {
@@ -2339,6 +2673,35 @@ async function saveKeywordRankings(rankings) {
   }
   await mkdir(dataDir, { recursive: true });
   await writeFile(keywordRankingsPath, JSON.stringify(rankings, null, 2), "utf8");
+}
+
+const adminKeywordRankingsPath = path.join(dataDir, "admin_keyword_rankings.json");
+
+async function readAdminKeywordRankings() {
+  if (sql) {
+    await ensureStorage();
+    const rows = await sql`select payload from app_state where key = 'admin_keyword_rankings' limit 1`;
+    return rows[0]?.payload || { lastUpdated: null, rankings: [] };
+  }
+  try {
+    return JSON.parse(await readFile(adminKeywordRankingsPath, "utf8"));
+  } catch {
+    return { lastUpdated: null, rankings: [] };
+  }
+}
+
+async function saveAdminKeywordRankings(data) {
+  if (sql) {
+    await ensureStorage();
+    await sql`
+      insert into app_state (key, payload)
+      values ('admin_keyword_rankings', ${sql.json(data)})
+      on conflict (key) do update set payload = excluded.payload, updated_at = now()
+    `;
+    return;
+  }
+  await mkdir(dataDir, { recursive: true });
+  await writeFile(adminKeywordRankingsPath, JSON.stringify(data, null, 2), "utf8");
 }
 
 function uniqueCompetitorsList() {
@@ -3603,6 +3966,42 @@ function isBrandKeyword(keyword, channelTitle) {
   return brandTerms.some(term => lowerKeyword.includes(term));
 }
 
+async function fetchAdminKeywordRank(youtube, keyword, connectedChannels) {
+  try {
+    const res = await youtube.search.list({
+      part: ["snippet"],
+      q: keyword,
+      type: ["video"],
+      maxResults: 50,
+      regionCode: "IN",
+    });
+    const items = res.data.items || [];
+    let rank = null;
+    let videoId = null;
+    let videoTitle = "";
+    let channelId = null;
+    let channelName = "";
+
+    const channelIdsSet = new Set(connectedChannels.map(c => c.id));
+    for (let index = 0; index < items.length; index++) {
+      const itemChannelId = items[index].snippet?.channelId;
+      if (itemChannelId && channelIdsSet.has(itemChannelId)) {
+        rank = index + 1;
+        videoId = items[index].id?.videoId || null;
+        videoTitle = items[index].snippet?.title || "";
+        channelId = itemChannelId;
+        channelName = connectedChannels.find(c => c.id === itemChannelId)?.name || "";
+        break;
+      }
+    }
+    return { rank, videoId, videoTitle, channelId, channelName };
+  } catch (err) {
+    console.error(`Error scanning rank for admin keyword "${keyword}":`, err.message);
+    const isQuota = String(err.message || "").toLowerCase().includes("quota");
+    return { rank: isQuota ? "quota_exceeded" : null, videoId: null, videoTitle: "", channelId: null, channelName: "" };
+  }
+}
+
 async function fetchKeywordRank(youtube, keyword, targetChannelId) {
   try {
     const res = await youtube.search.list({
@@ -3656,12 +4055,11 @@ async function refreshKeywordRankingsInternal(channelId) {
     return [];
   });
   
-  const channelName = entry.channel.name || "";
   const filteredQueries = [];
   for (const row of rows) {
     const keyword = String(row[0] || "").trim();
     const views = Number(row[1] || 0);
-    if (keyword && !isBrandKeyword(keyword, channelName)) {
+    if (keyword && !isExcluded(keyword)) {
       filteredQueries.push({ keyword, views });
     }
   }
