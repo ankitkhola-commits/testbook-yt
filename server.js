@@ -1566,6 +1566,7 @@ app.get("/api/keywords/rankings", async (req, res, next) => {
 app.post("/api/keywords/manual", async (req, res, next) => {
   try {
     const ytmName = String(req.body.ytm || "").trim();
+    const channelIdParam = String(req.body.channelId || "").trim();
     const input = String(req.body.keyword || "");
     const keywordsToTrack = input
       .split(",")
@@ -1577,7 +1578,10 @@ app.post("/api/keywords/manual", async (req, res, next) => {
       return;
     }
 
-    const channelEntries = await resolveChannelsForYtm(ytmName);
+    let channelEntries = await resolveChannelsForYtm(ytmName);
+    if (channelIdParam) {
+      channelEntries = channelEntries.filter(e => e.channel.id === channelIdParam);
+    }
     if (!channelEntries.length) {
       res.status(400).json({ error: "No channels found for this manager." });
       return;
@@ -1681,13 +1685,17 @@ app.post("/api/keywords/manual", async (req, res, next) => {
 app.delete("/api/keywords/manual", async (req, res, next) => {
   try {
     const ytmName = String(req.body.ytm || "").trim();
+    const channelIdParam = String(req.body.channelId || "").trim();
     const keyword = String(req.body.keyword || "").trim();
     if (!ytmName || !keyword) {
       res.status(400).json({ error: "Missing ytm or keyword" });
       return;
     }
 
-    const channelEntries = await resolveChannelsForYtm(ytmName);
+    let channelEntries = await resolveChannelsForYtm(ytmName);
+    if (channelIdParam) {
+      channelEntries = channelEntries.filter(e => e.channel.id === channelIdParam);
+    }
     const data = await readKeywordRankings();
 
     for (const entry of channelEntries) {
@@ -1756,12 +1764,16 @@ app.delete("/api/keywords/manual", async (req, res, next) => {
 app.post("/api/keywords/refresh", async (req, res, next) => {
   try {
     const ytmName = String(req.body.ytm || "").trim();
+    const channelIdParam = String(req.body.channelId || "").trim();
     if (!ytmName) {
       res.status(400).json({ error: "Missing ytm parameter." });
       return;
     }
     const viewer = readViewerSession(req);
-    const channelEntries = await resolveChannelsForYtm(ytmName);
+    let channelEntries = await resolveChannelsForYtm(ytmName);
+    if (channelIdParam) {
+      channelEntries = channelEntries.filter(e => e.channel.id === channelIdParam);
+    }
     if (!channelEntries.length) {
       res.status(400).json({ error: "No connected channels found for this manager." });
       return;

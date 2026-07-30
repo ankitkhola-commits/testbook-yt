@@ -2606,14 +2606,17 @@ async function loadKeywords(options = {}) {
 
   const managerContainerEl = document.querySelector("#keywordsManagerContainer");
   const adminContainerEl = document.querySelector("#keywordsAdminContainer");
+  const channelSelectContainer = document.querySelector("#rankTrackerChannelSelectContainer");
 
   if (state.selectedKeywordsYtm === "Admin") {
     if (managerContainerEl) managerContainerEl.classList.add("is-hidden");
     if (adminContainerEl) adminContainerEl.classList.remove("is-hidden");
+    if (channelSelectContainer) channelSelectContainer.style.display = "none";
     await loadAdminKeywords(options);
   } else {
     if (adminContainerEl) adminContainerEl.classList.add("is-hidden");
     if (managerContainerEl) managerContainerEl.classList.remove("is-hidden");
+    if (channelSelectContainer) channelSelectContainer.style.display = "flex";
     
     try {
       if (!options.force) {
@@ -2622,6 +2625,28 @@ async function loadKeywords(options = {}) {
       }
       const data = await api("/api/keywords/rankings?ytm=" + encodeURIComponent(state.selectedKeywordsYtm));
       state.keywordRankings = data;
+
+      const select = document.querySelector("#rankTrackerChannelSelect");
+      if (select) {
+        const channels = data.channels || [];
+        select.innerHTML = channels.map(ch => `<option value="${escapeHtml(ch.id)}">${escapeHtml(ch.name)}</option>`).join("");
+        
+        if (channels.length > 0) {
+          const hasSelected = channels.some(ch => ch.id === state.rankTrackerSelectedChannelId);
+          if (!hasSelected) {
+            state.rankTrackerSelectedChannelId = channels[0].id;
+          }
+          select.value = state.rankTrackerSelectedChannelId;
+        } else {
+          state.rankTrackerSelectedChannelId = null;
+        }
+
+        select.onchange = (e) => {
+          state.rankTrackerSelectedChannelId = e.target.value;
+          renderKeywordsView();
+        };
+      }
+
       renderKeywordsView();
     } catch (err) {
       automatedContainer.innerHTML = emptyCard(err.message || "Failed to load keyword rankings.");
@@ -2672,8 +2697,13 @@ function renderKeywordsView() {
   }
 
   const filterVal = state.keywordsRankFilter || "all";
-  const autoFiltered = (data.rankings?.automated || []).filter(r => matchRankFilter(r.currentRank, filterVal));
-  const manualFiltered = (data.rankings?.manual || []).filter(r => matchRankFilter(r.currentRank, filterVal));
+  const chId = state.rankTrackerSelectedChannelId;
+  const autoFiltered = (data.rankings?.automated || [])
+    .filter(r => r.channelId === chId)
+    .filter(r => matchRankFilter(r.currentRank, filterVal));
+  const manualFiltered = (data.rankings?.manual || [])
+    .filter(r => r.channelId === chId)
+    .filter(r => matchRankFilter(r.currentRank, filterVal));
 
   renderKeywordTable(
     document.querySelector("#automatedKeywordsTableContainer"),
@@ -2689,7 +2719,7 @@ function renderKeywordsView() {
 
   const trackBtn = document.querySelector("#addManualKeywordButton");
   const trackInput = document.querySelector("#manualKeywordInput");
-  const currentManualCount = (data.manualKeywords || []).length;
+  const currentManualCount = (data.manualKeywords || []).filter(kw => kw.channelId === chId).length;
   if (trackBtn && trackInput) {
     if (currentManualCount >= 50) {
       trackBtn.disabled = true;
@@ -2796,6 +2826,7 @@ function renderKeywordTable(container, list, type) {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 ytm: state.selectedKeywordsYtm,
+                channelId: btn.dataset.channelId,
                 keyword: kw
               })
             });
@@ -2850,6 +2881,7 @@ async function addManualKeyword() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ytm: state.selectedKeywordsYtm,
+        channelId: state.rankTrackerSelectedChannelId,
         keyword: keyword
       })
     });
@@ -2883,14 +2915,15 @@ async function refreshKeywordRankings() {
       progress += 10;
       if (progress > 90) progress = 90;
       if (progressBarFill) progressBarFill.style.width = progress + "%";
-      if (progressBarLabel) progressBarLabel.textContent = `Scanning all channels' keyword rankings... (${progress}%)`;
+      if (progressBarLabel) progressBarLabel.textContent = `Scanning target channel's keyword rankings... (${progress}%)`;
     }, 1000);
 
     const updated = await api("/api/keywords/refresh", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ytm: state.selectedKeywordsYtm
+        ytm: state.selectedKeywordsYtm,
+        channelId: state.rankTrackerSelectedChannelId
       })
     });
     
