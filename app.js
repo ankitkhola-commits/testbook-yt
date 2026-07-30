@@ -225,9 +225,9 @@ document.querySelectorAll("[data-view-tab]").forEach((button) => {
     stopCompetitorAutoRefresh();
     if (state.activeView === "research") renderResearchView();
     if (state.activeView === "seo") renderSeoAuditView();
-    if (state.activeView === "ytm") renderYtmAuditView();
     if (state.activeView === "targets") loadTargets();
     if (state.activeView === "keywords") loadKeywords();
+    if (state.activeView === "comments") loadComments();
   });
 });
 
@@ -1086,7 +1086,9 @@ function applyView() {
             ? "Target Tracker"
             : state.activeView === "keywords"
               ? "Rank Tracker"
-              : "Research";
+              : state.activeView === "comments"
+                ? "Comments Moderator"
+                : "Research";
 }
 
 function renderResearchView() {
@@ -2465,6 +2467,7 @@ async function copyYtmForSheets(btn) {
 
 // Global click event handlers for comments drawers and reply actions
 document.addEventListener("click", async (event) => {
+  if (state.activeView !== "ytm") return;
   const toggleBtn = event.target.closest(".comments-toggle-btn");
   if (toggleBtn) {
     const drawerId = toggleBtn.dataset.drawerId;
@@ -2661,18 +2664,6 @@ function renderKeywordsView() {
     }
   }
 
-  // Populate channel dropdown
-  const chSelect = document.querySelector("#manualKeywordChannelSelect");
-  if (chSelect) {
-    const channels = data.channels || [];
-    chSelect.innerHTML = channels.map(ch => {
-      return `<option value="${escapeHtml(ch.id)}">${escapeHtml(ch.name)}</option>`;
-    }).join("");
-    if (!channels.length) {
-      chSelect.innerHTML = `<option value="">No connected channels</option>`;
-    }
-  }
-
   const filterVal = state.keywordsRankFilter || "all";
   const autoFiltered = (data.rankings?.automated || []).filter(r => matchRankFilter(r.currentRank, filterVal));
   const manualFiltered = (data.rankings?.manual || []).filter(r => matchRankFilter(r.currentRank, filterVal));
@@ -2691,18 +2682,15 @@ function renderKeywordsView() {
 
   const trackBtn = document.querySelector("#addManualKeywordButton");
   const trackInput = document.querySelector("#manualKeywordInput");
-  const chSelectEl = document.querySelector("#manualKeywordChannelSelect");
   const currentManualCount = (data.manualKeywords || []).length;
-  if (trackBtn && trackInput && chSelectEl) {
+  if (trackBtn && trackInput) {
     if (currentManualCount >= 50) {
       trackBtn.disabled = true;
       trackInput.disabled = true;
-      chSelectEl.disabled = true;
       trackInput.placeholder = "Limit of 50 keywords reached.";
     } else {
       trackBtn.disabled = false;
       trackInput.disabled = false;
-      chSelectEl.disabled = false;
       trackInput.placeholder = "e.g. ssc cgl 2026 classes";
     }
   }
@@ -2792,7 +2780,6 @@ function renderKeywordTable(container, list, type) {
     container.querySelectorAll("[data-delete-keyword]").forEach(btn => {
       btn.addEventListener("click", async () => {
         const kw = btn.dataset.deleteKeyword;
-        const chId = btn.dataset.channelId;
         if (confirm(`Remove keyword "${kw}" from manual tracking?`)) {
           try {
             btn.disabled = true;
@@ -2801,7 +2788,7 @@ function renderKeywordTable(container, list, type) {
               method: "DELETE",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                channelId: chId,
+                ytm: state.selectedKeywordsYtm,
                 keyword: kw
               })
             });
@@ -2842,23 +2829,20 @@ function getTrendBadgeHtml(curr, prev) {
 
 async function addManualKeyword() {
   const input = document.querySelector("#manualKeywordInput");
-  const chSelect = document.querySelector("#manualKeywordChannelSelect");
   const keyword = (input?.value || "").trim();
-  const channelId = chSelect?.value;
 
-  if (!keyword || !channelId) return;
+  if (!keyword) return;
 
   const btn = document.querySelector("#addManualKeywordButton");
   try {
     if (btn) btn.disabled = true;
     if (input) input.disabled = true;
-    if (chSelect) chSelect.disabled = true;
     
     await api("/api/keywords/manual", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        channelId: channelId,
+        ytm: state.selectedKeywordsYtm,
         keyword: keyword
       })
     });
@@ -2873,7 +2857,6 @@ async function addManualKeyword() {
   } finally {
     if (btn) btn.disabled = false;
     if (input) input.disabled = false;
-    if (chSelect) chSelect.disabled = false;
     if (input) input.focus();
   }
 }
@@ -3706,6 +3689,446 @@ document.querySelector("#adminKeywordInput")?.addEventListener("keydown", (e) =>
     addAdminKeyword();
   }
 });
+
+// Comments Moderator Controllers
+async function loadComments(options = {}) {
+  const container = document.querySelector("#commentsTableContainer");
+  if (!container) return;
+
+  try {
+    if (!options.force && !state.comments) {
+      container.innerHTML = emptyCard("Loading comments...");
+    }
+
+    const res = await api("/api/comments");
+    state.comments = res.comments || [];
+    state.commentSettings = res.settings || { customBlockedWords: [], autoDeleteNegative: false, totalDeletedCount: 0 };
+
+    renderCommentsView();
+  } catch (err) {
+    console.error("Failed to load comments:", err);
+    container.innerHTML = emptyCard("Error loading comments: " + err.message);
+  }
+}
+
+function renderCommentsView() {
+  const container = document.querySelector("#commentsTableContainer");
+  if (!container) return;
+
+  const comments = state.comments || [];
+  const settings = state.commentSettings || { customBlockedWords: [], autoDeleteNegative: false, totalDeletedCount: 0 };
+  const filter = state.commentsSentimentFilter || "all";
+  const manager = state.commentsManagerFilter || "All";
+
+  // Filter by manager first to show manager-specific stats
+  const managerComments = comments.filter(c => {
+    if (manager === "All") return true;
+    return getYtmName(c.channelName, c.channelId) === manager;
+  });
+
+  // Update summary stats based on selected manager
+  const negativeCount = managerComments.filter(c => c.sentiment === "negative").length;
+  document.querySelector("#commentsTotalFetched").textContent = managerComments.length;
+  document.querySelector("#commentsNegativeCount").textContent = negativeCount;
+
+  // Render blocked words tags
+  const tagsContainer = document.querySelector("#blockedWordsTagsContainer");
+  if (tagsContainer) {
+    const words = settings.customBlockedWords || [];
+    if (!words.length) {
+      tagsContainer.innerHTML = `<span style="font-size: 11px; color: var(--muted);">No custom blocked words added.</span>`;
+    } else {
+      tagsContainer.innerHTML = words.map(w => `
+        <span class="filter-chip" style="padding: 2px 8px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: default; background: var(--surface);">
+          ${escapeHtml(w)}
+          <span class="remove-word-btn" data-word="${escapeHtml(w)}" style="color: var(--muted); cursor: pointer; font-weight: 700; font-size: 10px;">×</span>
+        </span>
+      `).join("");
+      
+      // Bind tag remove listeners
+      tagsContainer.querySelectorAll(".remove-word-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          removeBlockedWord(btn.dataset.word);
+        });
+      });
+    }
+  }
+
+  // Filter by sentiment/content rules for display
+  const filteredComments = managerComments.filter(c => {
+    if (filter === "negative") return c.sentiment === "negative";
+    if (filter === "char100") return (c.text || "").length > 100;
+    if (filter === "link") {
+      const text = (c.text || "").toLowerCase();
+      return text.includes("link");
+    }
+    if (filter === "voice") {
+      const text = (c.text || "").toLowerCase();
+      const voiceWords = ["awaz", "awaaz", "voice", "awaj", "sound"];
+      return voiceWords.some(w => text.includes(w));
+    }
+    return true;
+  });
+
+  // Helper to highlight 'link' word (yellow) and voice issue words (pink)
+  function highlightCommentContent(text) {
+    let escaped = escapeHtml(text || "");
+    
+    // Highlight the word "link" (Yellow highlight)
+    const linkRegex = /\b(link)\b/gi;
+    escaped = escaped.replace(linkRegex, (match) => {
+      return `<mark style="background: #fef08a; padding: 2px 4px; border-radius: 4px; color: #854d0e; font-weight: 600;">${match}</mark>`;
+    });
+    
+    // Highlight Voice keywords (Pink highlight)
+    const voiceWords = ["awaz", "awaaz", "voice", "awaj", "sound"];
+    const voiceRegex = new RegExp(`\\b(${voiceWords.join("|")})\\b`, "gi");
+    escaped = escaped.replace(voiceRegex, (match) => {
+      return `<mark style="background: #fbcfe8; color: #9d174d; padding: 2px 4px; border-radius: 4px; font-weight: 600;">${match}</mark>`;
+    });
+    
+    return escaped;
+  }
+
+  // Toggle batch delete button
+  const batchBtn = document.querySelector("#deleteBatchNegativeCommentsBtn");
+  if (batchBtn) {
+    const hasNegatives = comments.some(c => c.sentiment === "negative");
+    batchBtn.style.display = hasNegatives ? "inline-flex" : "none";
+  }
+
+  if (!filteredComments.length) {
+    let emptyMsg = "No comments found on your channels.";
+    if (filter === "negative") emptyMsg = "No negative sentiment comments found.";
+    else if (filter === "char100") emptyMsg = "No comments found with more than 100 characters.";
+    else if (filter === "link") emptyMsg = "No comments found containing links.";
+    else if (filter === "voice") emptyMsg = "No comments found with voice/sound issues.";
+    container.innerHTML = emptyCard(emptyMsg);
+    return;
+  }
+
+  // Render table
+  container.innerHTML = `
+    <div class="keywords-table">
+      <div class="keywords-row keywords-head" style="grid-template-columns: 50px 140px 1fr 130px 130px 150px;">
+        <span>User</span>
+        <span>Author</span>
+        <span>Comment Text</span>
+        <span>Sentiment</span>
+        <span>Channel</span>
+        <span>Action</span>
+      </div>
+      ${filteredComments.map(row => {
+        const dateStr = new Date(row.publishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const videoUrl = "https://www.youtube.com/watch?v=" + row.videoId;
+        
+        let selectColor = "#16a34a"; // positive
+        if (row.sentiment === "negative") selectColor = "#dc2626";
+        else if (row.sentiment === "neutral") selectColor = "#4b5563";
+
+        return `
+          <div class="comment-item-wrapper" style="display: flex; flex-direction: column; border-bottom: 1px solid var(--line);">
+            <div class="keywords-row" style="grid-template-columns: 50px 140px 1fr 130px 130px 150px; align-items: center; padding: 12px 16px; border-bottom: none;">
+              <img src="${escapeHtml(row.authorAvatar)}" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line);" alt="" />
+              <div style="display: flex; flex-direction: column; gap: 2px;">
+                <strong>${escapeHtml(row.authorName)}</strong>
+                <span style="font-size: 10px; color: var(--muted);">${escapeHtml(dateStr)}</span>
+              </div>
+              <div style="font-size: 13px; line-height: 1.4; color: var(--ink); word-break: break-word;">
+                ${highlightCommentContent(row.text)}
+                <div style="margin-top: 4px;">
+                  <a href="${videoUrl}" target="_blank" rel="noreferrer" style="font-size: 11px; color: var(--accent); text-decoration: none;">Watch video</a>
+                </div>
+              </div>
+              <div>
+                <select class="sentiment-select" data-comment-id="${escapeHtml(row.id)}" style="background: #fff; color: ${selectColor}; border: 1px solid var(--line); padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; outline: none; width: 110px; cursor: pointer; text-transform: uppercase;">
+                  <option value="positive" ${row.sentiment === "positive" ? "selected" : ""} style="color: #16a34a; font-weight: 700;">Positive</option>
+                  <option value="neutral" ${row.sentiment === "neutral" ? "selected" : ""} style="color: #4b5563; font-weight: 700;">Neutral</option>
+                  <option value="negative" ${row.sentiment === "negative" ? "selected" : ""} style="color: #dc2626; font-weight: 700;">Negative</option>
+                </select>
+              </div>
+              <strong style="font-size: 12px; color: var(--muted);">${escapeHtml(row.channelName)}</strong>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <button class="keywords-delete-btn delete-comment-btn" type="button" data-comment-id="${escapeHtml(row.id)}" data-channel-id="${escapeHtml(row.channelId)}" style="margin: 0; padding: 6px 10px; font-size: 11px; background: #dc2626; color: #fff; border: none; height: auto;">Delete</button>
+                <button class="connect-button reply-comment-btn" type="button" data-comment-id="${escapeHtml(row.id)}" data-channel-id="${escapeHtml(row.channelId)}" data-author-name="${escapeHtml(row.authorName)}" data-comment-text="${escapeHtml(row.text)}" style="margin: 0; padding: 6px 10px; font-size: 11px; height: auto; background: var(--surface); color: var(--ink); border: 1px solid var(--line);">AI Reply</button>
+              </div>
+            </div>
+            
+            <!-- Inline Reply Assistant Box -->
+            <div class="reply-assistant-box" id="reply-box-${escapeHtml(row.id)}" style="display: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin: 0 16px 12px 16px; flex-direction: column; gap: 10px;">
+              <div style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 600;">Draft AI Response</div>
+              <textarea class="reply-text-input" id="reply-text-${escapeHtml(row.id)}" style="width: 100%; height: 80px; background: #fff; color: var(--ink); border: 1px solid var(--line); padding: 8px 12px; border-radius: 6px; font-size: 13px; outline: none; box-sizing: border-box; resize: vertical; line-height: 1.4;" placeholder="Drafting response..."></textarea>
+              <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; width: 100%;">
+                <button class="cancel-reply-btn" type="button" data-comment-id="${escapeHtml(row.id)}" style="background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Cancel</button>
+                <button class="regen-reply-btn" type="button" data-comment-id="${escapeHtml(row.id)}" data-author-name="${escapeHtml(row.authorName)}" data-comment-text="${escapeHtml(row.text)}" style="background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Regenerate</button>
+                <button class="send-reply-btn" type="button" data-comment-id="${escapeHtml(row.id)}" data-channel-id="${escapeHtml(row.channelId)}" style="background: var(--blue, #3c6ee8); color: #fff; border: none; border-radius: 6px; padding: 6px 16px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Post Reply</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+
+  // Bind individual delete listeners
+  container.querySelectorAll(".delete-comment-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      deleteComment(btn.dataset.commentId, btn.dataset.channelId);
+    });
+  });
+
+  // Bind sentiment override selection dropdowns
+  container.querySelectorAll(".sentiment-select").forEach(select => {
+    select.addEventListener("change", async (e) => {
+      const commentId = select.dataset.commentId;
+      const sentiment = e.target.value;
+      try {
+        await api(`/api/comments/${commentId}/sentiment`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sentiment })
+        });
+        const c = state.comments.find(item => item.id === commentId);
+        if (c) c.sentiment = sentiment;
+        renderCommentsView();
+      } catch (err) {
+        alert("Failed to update sentiment: " + err.message);
+      }
+    });
+  });
+
+  // Bind AI Reply Assistant Toggle
+  container.querySelectorAll(".reply-comment-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const commentId = btn.dataset.commentId;
+      const authorName = btn.dataset.authorName;
+      const commentText = btn.dataset.commentText;
+      const box = document.getElementById(`reply-box-${commentId}`);
+      const textInput = document.getElementById(`reply-text-${commentId}`);
+      
+      if (!box || !textInput) return;
+      
+      if (box.style.display === "flex") {
+        box.style.display = "none";
+        return;
+      }
+      
+      box.style.display = "flex";
+      textInput.value = "";
+      textInput.placeholder = "Generating draft reply with AI...";
+      
+      try {
+        const res = await api("/api/ytm/comment/draft", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ commentText, authorName })
+        });
+        textInput.value = res.draft || "";
+      } catch (err) {
+        textInput.placeholder = "Failed to generate draft. Please type manually.";
+        console.error(err);
+      }
+    });
+  });
+
+  // Bind Regenerate Reply Draft Button
+  container.querySelectorAll(".regen-reply-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const commentId = btn.dataset.commentId;
+      const authorName = btn.dataset.authorName;
+      const commentText = btn.dataset.commentText;
+      const textInput = document.getElementById(`reply-text-${commentId}`);
+      if (!textInput) return;
+      
+      textInput.value = "";
+      textInput.placeholder = "Generating new draft...";
+      
+      try {
+        const res = await api("/api/ytm/comment/draft", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ commentText, authorName })
+        });
+        textInput.value = res.draft || "";
+      } catch (err) {
+        textInput.placeholder = "Failed to generate draft.";
+        console.error(err);
+      }
+    });
+  });
+
+  // Bind Cancel Reply Box Button
+  container.querySelectorAll(".cancel-reply-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const commentId = btn.dataset.commentId;
+      const box = document.getElementById(`reply-box-${commentId}`);
+      if (box) box.style.display = "none";
+    });
+  });
+
+  // Bind Send/Post Comment Reply Button
+  container.querySelectorAll(".send-reply-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const commentId = btn.dataset.commentId;
+      const channelId = btn.dataset.channelId;
+      const textInput = document.getElementById(`reply-text-${commentId}`);
+      const box = document.getElementById(`reply-box-${commentId}`);
+      if (!textInput || !textInput.value.trim()) {
+        alert("Please enter reply text.");
+        return;
+      }
+      
+      const replyText = textInput.value.trim();
+      const originalText = btn.textContent;
+      try {
+        btn.disabled = true;
+        btn.textContent = "Posting...";
+        await api("/api/ytm/comment/reply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ channelId, parentId: commentId, replyText })
+        });
+        alert("Reply posted successfully!");
+        if (box) box.style.display = "none";
+      } catch (err) {
+        alert("Failed to post reply: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    });
+  });
+}
+
+async function deleteComment(commentId, channelId) {
+  if (!confirm("Are you sure you want to permanently delete this comment from YouTube?")) {
+    return;
+  }
+  try {
+    const btn = document.querySelector(`[data-comment-id="${commentId}"]`);
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Deleting...";
+    }
+    await api(`/api/comments/${commentId}?channelId=${channelId}`, { method: "DELETE" });
+    state.comments = (state.comments || []).filter(c => c.id !== commentId);
+    renderCommentsView();
+  } catch (err) {
+    alert("Failed to delete comment: " + err.message);
+    loadComments({ force: true });
+  }
+}
+
+async function deleteBatchNegativeComments() {
+  const negatives = (state.comments || []).filter(c => c.sentiment === "negative");
+  if (!negatives.length) return;
+
+  if (!confirm(`Are you sure you want to permanently delete all ${negatives.length} negative comments from YouTube?`)) {
+    return;
+  }
+
+  const btn = document.querySelector("#deleteBatchNegativeCommentsBtn");
+  const originalText = btn.textContent;
+  try {
+    btn.disabled = true;
+    btn.textContent = "Deleting all...";
+    const commentIds = negatives.map(c => c.id);
+    const res = await api("/api/comments/delete-batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ commentIds })
+    });
+    alert(`Successfully deleted ${res.count} comments.`);
+    loadComments({ force: true });
+  } catch (err) {
+    alert("Batch delete failed: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+async function addBlockedWord() {
+  const input = document.querySelector("#customBlockedWordInput");
+  const word = input?.value?.trim();
+  if (!word) return;
+
+  const settings = state.commentSettings || { customBlockedWords: [] };
+  const words = settings.customBlockedWords || [];
+  if (words.some(w => w.toLowerCase() === word.toLowerCase())) {
+    alert("Word is already blocked.");
+    return;
+  }
+
+  words.push(word);
+  try {
+    const updated = await api("/api/comments/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ customBlockedWords: words })
+    });
+    state.commentSettings = updated;
+    input.value = "";
+    if (state.comments) {
+      state.comments.forEach(c => {
+        if (c.text.toLowerCase().includes(word.toLowerCase())) {
+          c.sentiment = "negative";
+        }
+      });
+    }
+    renderCommentsView();
+  } catch (err) {
+    alert("Failed to add word: " + err.message);
+  }
+}
+
+async function removeBlockedWord(word) {
+  const settings = state.commentSettings || { customBlockedWords: [] };
+  const words = (settings.customBlockedWords || []).filter(w => w !== word);
+  try {
+    const updated = await api("/api/comments/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ customBlockedWords: words })
+    });
+    state.commentSettings = updated;
+    loadComments({ force: true });
+  } catch (err) {
+    alert("Failed to remove word: " + err.message);
+  }
+}
+
+function setupCommentsViewListeners() {
+  document.querySelector("#addBlockedWordButton")?.addEventListener("click", () => {
+    addBlockedWord();
+  });
+
+  document.querySelector("#customBlockedWordInput")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      addBlockedWord();
+    }
+  });
+
+  document.querySelector("#deleteBatchNegativeCommentsBtn")?.addEventListener("click", () => {
+    deleteBatchNegativeComments();
+  });
+
+  document.querySelector("#commentsManagerSelect")?.addEventListener("change", (e) => {
+    state.commentsManagerFilter = e.target.value;
+    renderCommentsView();
+  });
+
+  document.querySelectorAll("[data-sentiment-filter]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("[data-sentiment-filter]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.commentsSentimentFilter = btn.dataset.sentimentFilter;
+      renderCommentsView();
+    });
+  });
+}
+
+setTimeout(setupCommentsViewListeners, 1000);
 
 
 

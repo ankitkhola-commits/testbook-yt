@@ -105,10 +105,10 @@
           <button class="side-nav-button active" type="button" data-view-tab="dashboard">Dashboard</button>
           <button class="side-nav-button" type="button" data-view-tab="competitors">Competitors</button>
           <button class="side-nav-button" type="button" data-view-tab="targets">Target Tracker</button>
-          <button class="side-nav-button" type="button" data-view-tab="research">Research</button>
+          <button class="side-nav-button" type="button" data-view-tab="comments">Comment AI</button>
+          <button class="side-nav-button" type="button" data-view-tab="keywords">Rank AI</button>
+          <button class="side-nav-button" type="button" data-view-tab="research">Research AI</button>
           <button class="side-nav-button" type="button" data-view-tab="seo">SEO Audit</button>
-          <button class="side-nav-button" type="button" data-view-tab="ytm">YTM Audit</button>
-          <button class="side-nav-button" type="button" data-view-tab="keywords">Rank Tracker</button>
         </nav>
 
         <button class="connect-button" id="connectChannelButton" data-sidebar-view="dashboard">
@@ -415,47 +415,6 @@
             <div id="seoResults" class="seo-results"></div>
           </article>
 
-          <article class="panel page-panel ytm-panel" data-view="ytm">
-            <div class="panel-header ytm-header">
-              <div>
-                <p class="eyebrow">YTM Audit</p>
-                <h2>YouTube Manager Audit Dashboard</h2>
-              </div>
-            </div>
-            <div class="ytm-toolbar">
-              <div class="select-wrap">
-                <label for="ytmAuditTarget">Target YTM</label>
-                <select id="ytmAuditTarget">
-                  <option value="Nitin">Nitin</option>
-                  <option value="Atul Sharma">Atul Sharma</option>
-                  <option value="Shubham">Shubham</option>
-                  <option value="Raubnish">Raubnish</option>
-                  <option value="Amit">Amit</option>
-                  <option value="Abhinav">Abhinav</option>
-                  <option value="Shukendu">Shukendu</option>
-                  <option value="Ashish Tyagi">Ashish Tyagi</option>
-                  <option value="Lubna">Lubna</option>
-                  <option value="Vivek">Vivek</option>
-                </select>
-              </div>
-              <button class="connect-button ytm-run" type="button" id="ytmRunButton">Run YTM audit</button>
-              <label class="ytm-toggle-label">
-                <input type="checkbox" id="ytmSortLowestToggle" checked />
-                <span>Score lowest first</span>
-              </label>
-              <button class="ghost-button ytm-export-btn" type="button" id="ytmExportCsvButton" disabled>Export CSV</button>
-              <button class="ghost-button ytm-export-btn" type="button" id="ytmCopySheetsButton" disabled>Copy for Sheets</button>
-            </div>
-            <div id="ytmProgressBarContainer" class="progress-bar-container is-hidden">
-              <div class="progress-bar-label" id="ytmProgressBarLabel">Auditing manager channels... (0%)</div>
-              <div class="progress-bar-track">
-                <div class="progress-bar-fill" id="ytmProgressBarFill" style="width: 0%"></div>
-              </div>
-            </div>
-            <div id="ytmSummary" class="ytm-summary"></div>
-            <div id="ytmChannelFilters" class="ytm-channel-filters"></div>
-            <div id="ytmResults" class="ytm-results"></div>
-          </article>
 
           <!-- Rankings Panel -->
           <article class="panel page-panel rankings-panel is-hidden" data-view="keywords">
@@ -492,13 +451,8 @@
 
             <!-- Manager Keywords Content Container -->
             <div id="keywordsManagerContainer" style="display: flex; flex-direction: column; gap: 20px;">
-              <!-- Add manual keyword form -->
               <div class="manual-keyword-form" style="background: var(--surface); border: 1px solid var(--line); padding: 12px 16px; border-radius: 8px; display: flex; gap: 12px; align-items: flex-end; width: 100%; box-sizing: border-box;">
-                <div class="select-wrap" style="flex: 1; margin: 0; display: flex; flex-direction: column; gap: 4px; min-width: 160px;">
-                  <label for="manualKeywordChannelSelect" style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 600;">Target Channel</label>
-                  <select id="manualKeywordChannelSelect" style="background: #fff; color: var(--ink); border: 1px solid var(--line); padding: 8px 12px; border-radius: 6px; font-size: 14px; font-weight: 500; width: 100%; outline: none; height: 38px; box-sizing: border-box;"></select>
-                </div>
-                <div class="input-wrap" style="flex: 2; display: flex; flex-direction: column; gap: 4px; min-width: 250px;">
+                <div class="input-wrap" style="flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 250px;">
                   <label for="manualKeywordInput" style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 600;">Add Custom Keyword</label>
                   <input type="text" id="manualKeywordInput" placeholder="e.g. ssc cgl 2026 classes" style="background: #fff; color: var(--ink); border: 1px solid var(--line); padding: 8px 12px; border-radius: 6px; font-size: 14px; outline: none; width: 100%; height: 38px; box-sizing: border-box;">
                 </div>
@@ -545,6 +499,81 @@
             <!-- Bottom Export CSV Row -->
             <div style="display: flex; justify-content: flex-end; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line);">
               <button class="connect-button" type="button" id="keywordsExportCsvButton" style="margin: 0; padding: 6px 12px; font-size: 12px; background: #fff; color: var(--ink); border: 1px solid var(--line); width: auto; height: auto; display: inline-flex; align-items: center; justify-content: center;">Export CSV</button>
+            </div>
+          </article>
+
+          <!-- Comments Moderation Panel -->
+          <article class="panel page-panel comments-panel is-hidden" data-view="comments">
+            <div class="panel-header rankings-header" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; width: 100%; gap: 24px; flex-wrap: wrap;">
+              <div>
+                <p class="eyebrow" id="commentsModeratorSubtitle" style="margin: 0 0 4px 0;">Comments Audit & Sentiment Analysis</p>
+                <h2 style="margin: 0;">YouTube Comments Moderator</h2>
+              </div>
+              
+              <!-- Custom Blocked Words Header Section -->
+              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px; max-width: 480px;">
+                <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                  <span style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 600; white-space: nowrap;">Blocked Words:</span>
+                  <input type="text" id="customBlockedWordInput" placeholder="e.g. cheat" style="background: #fff; color: var(--ink); border: 1px solid var(--line); padding: 6px 12px; border-radius: 6px; font-size: 13px; outline: none; width: 160px; height: 32px; box-sizing: border-box;" />
+                  <button class="connect-button" type="button" id="addBlockedWordButton" style="margin: 0; padding: 0 12px; height: 32px; font-size: 12px; font-weight: 600; width: auto; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; white-space: nowrap; background: var(--blue, #3c6ee8); color: #fff;">Add</button>
+                </div>
+                <div id="blockedWordsTagsContainer" style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; max-height: 80px; overflow-y: auto; width: 100%;">
+                  <!-- Tags dynamic -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Dashboard Heuristics / Summary Row -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px;">
+              <div class="stat-card" style="background: var(--surface); border: 1px solid var(--line); padding: 16px; border-radius: 8px; text-align: center;">
+                <p class="eyebrow" style="margin: 0 0 8px 0; font-size: 11px;">Total Comments Fetched</p>
+                <strong id="commentsTotalFetched" style="font-size: 28px; font-weight: 700; color: var(--ink);">0</strong>
+              </div>
+              <div class="stat-card" style="background: var(--surface); border: 1px solid var(--line); padding: 16px; border-radius: 8px; text-align: center;">
+                <p class="eyebrow" style="margin: 0 0 8px 0; font-size: 11px;">Negative / Spam Flagged</p>
+                <strong id="commentsNegativeCount" style="font-size: 28px; font-weight: 700; color: #dc2626;">0</strong>
+              </div>
+            </div>
+
+            <!-- Full Width Layout: Comments Toolbar & Comments Table -->
+            <div style="display: flex; flex-direction: column; gap: 16px; width: 100%;">
+              
+              <!-- Toolbar: Manager Dropdown + Filter Chips + Delete All button -->
+              <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); padding: 12px 16px; border-radius: 8px;">
+                <div style="display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;">
+                  <div class="select-wrap" style="margin: 0;">
+                    <label for="commentsManagerSelect" style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 4px; display: block;">Target YTM</label>
+                    <select id="commentsManagerSelect" style="background: #fff; color: var(--ink); border: 1px solid var(--line); padding: 6px 12px; border-radius: 6px; font-weight: 500; font-size: 13px; height: 34px; outline: none; cursor: pointer; min-width: 140px;">
+                      <option value="All">All Managers</option>
+                      <option value="Nitin">Nitin</option>
+                      <option value="Shubham">Shubham</option>
+                      <option value="Raubnish">Raubnish</option>
+                      <option value="Narendra/Amit">Narendra/Amit</option>
+                      <option value="Abhinav">Abhinav</option>
+                      <option value="Shukendu">Shukendu</option>
+                      <option value="Ashish Tyagi">Ashish Tyagi</option>
+                      <option value="Lubna">Lubna</option>
+                      <option value="Vivek">Vivek</option>
+                      <option value="Govardhan">Govardhan</option>
+                    </select>
+                  </div>
+                  
+                  <div style="display: flex; gap: 8px; margin-bottom: 2px;" id="commentSentimentFilters">
+                    <button class="filter-chip active" type="button" data-sentiment-filter="all" style="height: 30px; line-height: 1; padding: 0 16px; border-radius: 20px; font-size: 13px;">All Comments</button>
+                    <button class="filter-chip" type="button" data-sentiment-filter="negative" style="height: 30px; line-height: 1; padding: 0 16px; border-radius: 20px; font-size: 13px;">Negative Only</button>
+                    <button class="filter-chip" type="button" data-sentiment-filter="char100" style="height: 30px; line-height: 1; padding: 0 16px; border-radius: 20px; font-size: 13px;">100+ Chars</button>
+                    <button class="filter-chip" type="button" data-sentiment-filter="link" style="height: 30px; line-height: 1; padding: 0 16px; border-radius: 20px; font-size: 13px;">Has Link</button>
+                    <button class="filter-chip" type="button" data-sentiment-filter="voice" style="height: 30px; line-height: 1; padding: 0 16px; border-radius: 20px; font-size: 13px;">Voice Issues</button>
+                  </div>
+                </div>
+                
+                <button class="connect-button" type="button" id="deleteBatchNegativeCommentsBtn" style="margin: 0; padding: 8px 16px; font-size: 12px; background: #dc2626; color: #fff; border: none; font-weight: 600; display: none; height: 34px; border-radius: 6px;">Delete All Negative</button>
+              </div>
+
+              <!-- Comments table/list container -->
+              <div id="commentsTableContainer" style="width: 100%;">
+                <!-- Table dynamically rendered -->
+              </div>
             </div>
           </article>
 

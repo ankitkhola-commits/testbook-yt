@@ -1555,56 +1555,114 @@ app.get("/api/keywords/rankings", async (req, res, next) => {
 
 app.post("/api/keywords/manual", async (req, res, next) => {
   try {
-    const channelId = String(req.body.channelId || "");
+    const ytmName = String(req.body.ytm || "").trim();
     const input = String(req.body.keyword || "");
     const keywordsToTrack = input
       .split(",")
       .map(k => k.trim())
       .filter(k => k.length > 0);
 
-    if (!channelId || !keywordsToTrack.length) {
-      res.status(400).json({ error: "Missing channelId or keyword" });
+    if (!ytmName || !keywordsToTrack.length) {
+      res.status(400).json({ error: "Missing ytm or keyword" });
       return;
     }
-    const viewer = readViewerSession(req);
-    const entries = await connectedChannelEntries(viewer);
-    const entry = entries.find(e => e.channel.id === channelId);
-    if (!entry) {
-      res.status(403).json({ error: "Access denied or channel not connected." });
+
+    const channelEntries = await resolveChannelsForYtm(ytmName);
+    if (!channelEntries.length) {
+      res.status(400).json({ error: "No channels found for this manager." });
       return;
     }
+
     const data = await readKeywordRankings();
-    if (!data[channelId]) {
-      data[channelId] = {
-        channelId,
-        lastUpdated: null,
-        manualKeywords: [],
-        rankings: { automated: [], manual: [] }
-      };
+
+    for (const entry of channelEntries) {
+      const channelId = entry.channel.id;
+      if (!data[channelId]) {
+        data[channelId] = {
+          channelId,
+          lastUpdated: null,
+          manualKeywords: [],
+          rankings: { automated: [], manual: [] }
+        };
+      }
+
+      const currentManuals = data[channelId].manualKeywords || [];
+
+      // Filter out already tracked ones
+      const newKeywords = keywordsToTrack.filter(
+        kw => !currentManuals.some(k => k.toLowerCase() === kw.toLowerCase())
+      );
+
+      if (newKeywords.length > 0) {
+        if (currentManuals.length + newKeywords.length > 50) {
+          continue; // Cap check per channel
+        }
+        
+        for (const kw of newKeywords) {
+          currentManuals.push(kw);
+        }
+        data[channelId].manualKeywords = currentManuals;
+      }
     }
 
-    const currentManuals = data[channelId].manualKeywords || [];
-
-    // Filter out already tracked ones
-    const newKeywords = keywordsToTrack.filter(
-      kw => !currentManuals.some(k => k.toLowerCase() === kw.toLowerCase())
-    );
-
-    if (newKeywords.length > 0) {
-      if (currentManuals.length + newKeywords.length > 50) {
-        res.status(400).json({ error: `Cannot track keywords. Limit of 50. Currently tracked: ${currentManuals.length}. You entered ${newKeywords.length} new keywords.` });
-        return;
-      }
-      
-      for (const kw of newKeywords) {
-        currentManuals.push(kw);
-      }
-      data[channelId].manualKeywords = currentManuals;
-      await saveKeywordRankings(data);
-    }
+    await saveKeywordRankings(data);
     
-    const updated = await refreshKeywordRankingsInternal(channelId);
-    res.json(updated);
+    // Refresh keywords for all mapped channels in parallel
+    await Promise.all(channelEntries.map(async (entry) => {
+      try {
+        await refreshKeywordRankingsInternal(entry.channel.id);
+      } catch (err) {
+        console.error(`Failed to refresh manual keywords for channel ${entry.channel.name}:`, err.message);
+      }
+    }));
+
+    // Retrieve fresh data and build aggregated result
+    const freshData = await readKeywordRankings();
+    const result = {
+      ytm: ytmName,
+      lastUpdated: null,
+      rankings: { automated: [], manual: [] },
+      manualKeywords: [],
+      channels: channelEntries.map(e => ({ id: e.channel.id, name: e.channel.name }))
+    };
+
+    let latestUpdated = 0;
+    for (const entry of channelEntries) {
+      const channelId = entry.channel.id;
+      const channelName = entry.channel.name;
+      const chData = freshData[channelId] || { rankings: { automated: [], manual: [] }, manualKeywords: [], lastUpdated: null };
+
+      if (chData.lastUpdated) {
+        const t = new Date(chData.lastUpdated).getTime();
+        if (t > latestUpdated) {
+          latestUpdated = t;
+          result.lastUpdated = chData.lastUpdated;
+        }
+      }
+
+      const autoRows = (chData.rankings?.automated || []).map(r => ({
+        ...r,
+        channelId,
+        channelName
+      }));
+      const manualRows = (chData.rankings?.manual || []).map(r => ({
+        ...r,
+        channelId,
+        channelName
+      }));
+
+      result.rankings.automated.push(...autoRows);
+      result.rankings.manual.push(...manualRows);
+
+      const manualKws = (chData.manualKeywords || []).map(kw => ({
+        keyword: kw,
+        channelId,
+        channelName
+      }));
+      result.manualKeywords.push(...manualKws);
+    }
+
+    res.json(result);
   } catch (error) {
     next(error);
   }
@@ -1612,34 +1670,74 @@ app.post("/api/keywords/manual", async (req, res, next) => {
 
 app.delete("/api/keywords/manual", async (req, res, next) => {
   try {
-    const channelId = String(req.body.channelId || "");
+    const ytmName = String(req.body.ytm || "").trim();
     const keyword = String(req.body.keyword || "").trim();
-    if (!channelId || !keyword) {
-      res.status(400).json({ error: "Missing channelId or keyword" });
+    if (!ytmName || !keyword) {
+      res.status(400).json({ error: "Missing ytm or keyword" });
       return;
     }
-    const viewer = readViewerSession(req);
-    const entries = await connectedChannelEntries(viewer);
-    const entry = entries.find(e => e.channel.id === channelId);
-    if (!entry) {
-      res.status(403).json({ error: "Access denied or channel not connected." });
-      return;
-    }
+
+    const channelEntries = await resolveChannelsForYtm(ytmName);
     const data = await readKeywordRankings();
-    if (data[channelId]) {
-      data[channelId].manualKeywords = (data[channelId].manualKeywords || []).filter(k => k !== keyword);
-      if (data[channelId].rankings && data[channelId].rankings.manual) {
-        data[channelId].rankings.manual = data[channelId].rankings.manual.filter(r => r.keyword !== keyword);
+
+    for (const entry of channelEntries) {
+      const channelId = entry.channel.id;
+      if (data[channelId]) {
+        data[channelId].manualKeywords = (data[channelId].manualKeywords || []).filter(k => k.toLowerCase() !== keyword.toLowerCase());
+        if (data[channelId].rankings && data[channelId].rankings.manual) {
+          data[channelId].rankings.manual = data[channelId].rankings.manual.filter(r => r.keyword.toLowerCase() !== keyword.toLowerCase());
+        }
       }
-      await saveKeywordRankings(data);
     }
-    const updated = data[channelId] || {
-      channelId,
+
+    await saveKeywordRankings(data);
+
+    // Return updated aggregated result
+    const result = {
+      ytm: ytmName,
       lastUpdated: null,
+      rankings: { automated: [], manual: [] },
       manualKeywords: [],
-      rankings: { automated: [], manual: [] }
+      channels: channelEntries.map(e => ({ id: e.channel.id, name: e.channel.name }))
     };
-    res.json(updated);
+
+    let latestUpdated = 0;
+    for (const entry of channelEntries) {
+      const channelId = entry.channel.id;
+      const channelName = entry.channel.name;
+      const chData = data[channelId] || { rankings: { automated: [], manual: [] }, manualKeywords: [], lastUpdated: null };
+
+      if (chData.lastUpdated) {
+        const t = new Date(chData.lastUpdated).getTime();
+        if (t > latestUpdated) {
+          latestUpdated = t;
+          result.lastUpdated = chData.lastUpdated;
+        }
+      }
+
+      const autoRows = (chData.rankings?.automated || []).map(r => ({
+        ...r,
+        channelId,
+        channelName
+      }));
+      const manualRows = (chData.rankings?.manual || []).map(r => ({
+        ...r,
+        channelId,
+        channelName
+      }));
+
+      result.rankings.automated.push(...autoRows);
+      result.rankings.manual.push(...manualRows);
+
+      const manualKws = (chData.manualKeywords || []).map(kw => ({
+        keyword: kw,
+        channelId,
+        channelName
+      }));
+      result.manualKeywords.push(...manualKws);
+    }
+
+    res.json(result);
   } catch (error) {
     next(error);
   }
@@ -1868,6 +1966,221 @@ app.post("/api/admin/keywords/refresh", async (req, res, next) => {
     data.lastUpdated = new Date().toISOString();
     await saveAdminKeywordRankings(data);
     res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+const commentOverridesPath = path.join(dataDir, "comment_sentiment_overrides.json");
+
+async function readCommentOverrides() {
+  try {
+    return JSON.parse(await readFile(commentOverridesPath, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+async function saveCommentOverrides(overrides) {
+  await mkdir(dataDir, { recursive: true });
+  await writeFile(commentOverridesPath, JSON.stringify(overrides, null, 2), "utf8");
+}
+
+app.get("/api/comments", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (teamAuthEnabled() && !viewer) {
+      res.status(401).json({ error: "Unauthorized. Please log in first." });
+      return;
+    }
+
+    const settings = await readCommentSettings();
+    const overrides = await readCommentOverrides();
+    const entries = await connectedChannelEntries(viewer);
+    
+    if (!entries.length) {
+      res.json({ comments: [], settings });
+      return;
+    }
+
+    const allComments = [];
+    
+    await Promise.all(entries.map(async (entry) => {
+      try {
+        const youtube = google.youtube({ version: "v3", auth: entry.auth });
+        const commentRes = await youtube.commentThreads.list({
+          part: ["snippet"],
+          allThreadsRelatedToChannelId: entry.channel.id,
+          maxResults: 50,
+          order: "time"
+        });
+
+        const items = commentRes.data.items || [];
+        for (const item of items) {
+          const comment = item.snippet?.topLevelComment;
+          if (!comment) continue;
+
+          const snippet = comment.snippet;
+          const text = snippet?.textOriginal || "";
+          
+          let sentiment = overrides[comment.id] || analyzeSentiment(text, settings.customBlockedWords);
+
+          allComments.push({
+            id: comment.id,
+            text,
+            authorName: snippet?.authorDisplayName || "Anonymous",
+            authorAvatar: snippet?.authorProfileImageUrl || "",
+            publishedAt: snippet?.publishedAt || new Date().toISOString(),
+            likeCount: snippet?.likeCount || 0,
+            videoId: snippet?.videoId || "",
+            channelId: entry.channel.id,
+            channelName: entry.channel.name,
+            sentiment
+          });
+        }
+      } catch (err) {
+        console.error(`Failed to fetch comments for channel ${entry.channel.name}:`, err.message);
+      }
+    }));
+
+    allComments.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+    res.json({ comments: allComments, settings });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/comments/:commentId/sentiment", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (teamAuthEnabled() && !viewer) {
+      res.status(401).json({ error: "Unauthorized. Please log in first." });
+      return;
+    }
+    const { commentId } = req.params;
+    const { sentiment } = req.body;
+    if (!["positive", "neutral", "negative"].includes(sentiment)) {
+      res.status(400).json({ error: "Invalid sentiment value." });
+      return;
+    }
+
+    const overrides = await readCommentOverrides();
+    overrides[commentId] = sentiment;
+    await saveCommentOverrides(overrides);
+
+    res.json({ success: true, commentId, sentiment });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/comments/settings", async (req, res, next) => {
+  try {
+    const settings = await readCommentSettings();
+    res.json(settings);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/comments/settings", async (req, res, next) => {
+  try {
+    const settings = await readCommentSettings();
+    if (req.body.customBlockedWords !== undefined) {
+      settings.customBlockedWords = Array.isArray(req.body.customBlockedWords) ? req.body.customBlockedWords : [];
+    }
+    if (req.body.autoDeleteNegative !== undefined) {
+      settings.autoDeleteNegative = Boolean(req.body.autoDeleteNegative);
+    }
+    await saveCommentSettings(settings);
+    res.json(settings);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/comments/:commentId", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (teamAuthEnabled() && !viewer) {
+      res.status(401).json({ error: "Unauthorized. Please log in first." });
+      return;
+    }
+    const { commentId } = req.params;
+    const channelId = req.query.channelId;
+
+    const entries = await connectedChannelEntries(viewer);
+    if (!entries.length) {
+      res.status(400).json({ error: "No channels connected." });
+      return;
+    }
+
+    let success = false;
+    
+    if (channelId) {
+      const entry = entries.find(e => e.channel.id === channelId);
+      if (entry) {
+        const youtube = google.youtube({ version: "v3", auth: entry.auth });
+        await youtube.comments.setModerationStatus({ id: commentId, moderationStatus: "rejected" });
+        success = true;
+      }
+    } else {
+      for (const entry of entries) {
+        try {
+          const youtube = google.youtube({ version: "v3", auth: entry.auth });
+          await youtube.comments.setModerationStatus({ id: commentId, moderationStatus: "rejected" });
+          success = true;
+          break;
+        } catch (e) {
+          // try next
+        }
+      }
+    }
+
+    if (success) {
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: "Comment not found or access denied." });
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/comments/delete-batch", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (teamAuthEnabled() && !viewer) {
+      res.status(401).json({ error: "Unauthorized. Please log in first." });
+      return;
+    }
+    const commentIds = req.body.commentIds || [];
+    if (!commentIds.length) {
+      res.status(400).json({ error: "No comment IDs provided." });
+      return;
+    }
+
+    const entries = await connectedChannelEntries(viewer);
+    if (!entries.length) {
+      res.status(400).json({ error: "No channels connected." });
+      return;
+    }
+
+    let deletedCount = 0;
+    await Promise.all(commentIds.map(async (cid) => {
+      for (const entry of entries) {
+        try {
+          const youtube = google.youtube({ version: "v3", auth: entry.auth });
+          await youtube.comments.setModerationStatus({ id: cid, moderationStatus: "rejected" });
+          deletedCount++;
+          break;
+        } catch (e) {
+          // next
+        }
+      }
+    }));
+
+    res.json({ success: true, count: deletedCount });
   } catch (error) {
     next(error);
   }
@@ -2583,7 +2896,7 @@ app.post("/api/seo/suggest", async (req, res, next) => {
         ].join("\n");
         
         const data = await fetchAnthropicJson({
-          model: "claude-sonnet-4-20250514",
+          model: "claude-sonnet-5",
           max_tokens: 1200,
           messages: [{ role: "user", content: prompt }],
         });
@@ -2673,6 +2986,82 @@ async function saveKeywordRankings(rankings) {
   }
   await mkdir(dataDir, { recursive: true });
   await writeFile(keywordRankingsPath, JSON.stringify(rankings, null, 2), "utf8");
+}
+
+const commentSettingsPath = path.join(dataDir, "comment_settings.json");
+
+async function readCommentSettings() {
+  if (sql) {
+    await ensureStorage();
+    const rows = await sql`select payload from app_state where key = 'comment_settings' limit 1`;
+    return rows[0]?.payload || { customBlockedWords: [], autoDeleteNegative: false, totalDeletedCount: 0 };
+  }
+  try {
+    return JSON.parse(await readFile(commentSettingsPath, "utf8"));
+  } catch {
+    return { customBlockedWords: [], autoDeleteNegative: false, totalDeletedCount: 0 };
+  }
+}
+
+async function saveCommentSettings(settings) {
+  if (sql) {
+    await ensureStorage();
+    await sql`
+      insert into app_state (key, payload)
+      values ('comment_settings', ${sql.json(settings)})
+      on conflict (key) do update set payload = excluded.payload, updated_at = now()
+    `;
+    return;
+  }
+  await mkdir(dataDir, { recursive: true });
+  await writeFile(commentSettingsPath, JSON.stringify(settings, null, 2), "utf8");
+}
+
+function analyzeSentiment(text, customBlockedWords = []) {
+  if (!text) return "neutral";
+  const lowerText = text.toLowerCase();
+  
+  if (customBlockedWords && customBlockedWords.length > 0) {
+    const matchedCustom = customBlockedWords.some(word => {
+      const w = String(word).trim().toLowerCase();
+      return w && lowerText.includes(w);
+    });
+    if (matchedCustom) return "negative";
+  }
+
+  if (lowerText.includes("t.me/") || lowerText.includes("telegram.me/") || lowerText.includes("whatsapp.com/") || lowerText.includes("sub4sub") || lowerText.includes("subscribe my channel")) {
+    return "negative";
+  }
+
+  // Check strict word boundaries for "hate" to avoid matching Hindi words like "padhate"
+  if (/\bhate\b/i.test(lowerText)) {
+    return "negative";
+  }
+
+  const negativeWords = [
+    "worst", "scam", "fake", "fraud", "waste of time", "time waste", "worst teacher", "loot", "useless", "nonsense", 
+    "bakwas", "bad teaching", "garbage", "trash", "scammer", "fool", "idiot", "cheat", "scammed", "stupid",
+    "bekar", "ghatiya", "faltu", "loot rahe", "paise waste", "chutiya", "chutiye", "bhadwe", "saala", "saale", 
+    "pagal", "gandu", "kamina", "harami", "bewakoof", "fraudster", "timepass", "paise kharab", 
+    "timekharab", "chor", "chori", "ganda", "bakwaas", "third class", "worst class", "bekaar"
+  ];
+
+  const matchCount = negativeWords.filter(word => lowerText.includes(word)).length;
+  if (matchCount > 0) {
+    return "negative";
+  }
+
+  const positiveWords = [
+    "best", "good", "great", "nice", "excellent", "super", "awesome", "perfect", "thank you", "thanks", 
+    "brilliant", "love", "helpful", "sir op", "mam op", "mast", "maza", "mazza", "very nice", "sundar", 
+    "helpful session", "amazing", "dhanyawad", "shukriya", "great session"
+  ];
+  const positiveMatch = positiveWords.some(word => lowerText.includes(word));
+  if (positiveMatch) {
+    return "positive";
+  }
+
+  return "neutral";
 }
 
 const adminKeywordRankingsPath = path.join(dataDir, "admin_keyword_rankings.json");
@@ -2932,7 +3321,7 @@ Requirements:
 5. Return only the reply text itself. No introductory or concluding remarks, no quotes.`;
 
     const data = await fetchAnthropicJson({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-5",
       max_tokens: 300,
       messages: [{ role: "user", content: prompt }],
     });
@@ -3038,7 +3427,7 @@ Each item must be: {"title":"...","format":"Shorts|Video|Live","strategy":"one c
 Provide highly engaging, clickable (but not clickbait) titles tailored to educational content/exams.`;
 
     const data = await fetchAnthropicJson({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-5",
       max_tokens: 900,
       messages: [{ role: "user", content: prompt }],
     });
@@ -3198,7 +3587,7 @@ async function claudeSeoMetadataAudit(video) {
   ].join("\n");
   
   const data = await fetchAnthropicJson({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-5",
     max_tokens: 400,
     messages: [{ role: "user", content: prompt }],
   });
@@ -3538,21 +3927,13 @@ async function connectedChannelEntries(viewer = null) {
     profiles = await migrateLegacyToken();
   }
 
-  // Share all connected channels globally with all logged-in users
-
   const removedIds = await readRemovedChannelIds();
   const removedSet = new Set(removedIds);
 
   const entries = [];
   for (const profile of profiles) {
     const auth = makeProfileAuth(profile);
-    let channels = profile.channels || [];
-    try {
-      channels = await listOwnedChannels(auth);
-      await updateProfileChannels(profile.id, channels);
-    } catch {
-      // Keep last-known channels visible if a token refresh fails; API calls will surface errors later.
-    }
+    const channels = profile.channels || [];
     for (const channel of channels) {
       if (!removedSet.has(channel.id)) {
         entries.push({ auth, profileId: profile.id, channel: { ...channel, profileId: profile.id } });
@@ -3966,35 +4347,131 @@ function isBrandKeyword(keyword, channelTitle) {
   return brandTerms.some(term => lowerKeyword.includes(term));
 }
 
-async function fetchAdminKeywordRank(youtube, keyword, connectedChannels) {
-  try {
-    const res = await youtube.search.list({
-      part: ["snippet"],
-      q: keyword,
-      type: ["video"],
-      maxResults: 50,
-      regionCode: "IN",
-    });
-    const items = res.data.items || [];
-    let rank = null;
-    let videoId = null;
-    let videoTitle = "";
-    let channelId = null;
-    let channelName = "";
-
-    const channelIdsSet = new Set(connectedChannels.map(c => c.id));
-    for (let index = 0; index < items.length; index++) {
-      const itemChannelId = items[index].snippet?.channelId;
-      if (itemChannelId && channelIdsSet.has(itemChannelId)) {
-        rank = index + 1;
-        videoId = items[index].id?.videoId || null;
-        videoTitle = items[index].snippet?.title || "";
-        channelId = itemChannelId;
-        channelName = connectedChannels.find(c => c.id === itemChannelId)?.name || "";
+async function scrapeYoutubeSearch(keyword) {
+  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(keyword)}`;
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+      'Accept-Language': 'en-US,en;q=0.9'
+    }
+  });
+  if (!res.ok) {
+    throw new Error(`Scraper request failed with status: ${res.status}`);
+  }
+  const html = await res.text();
+  
+  const marker = 'var ytInitialData = ';
+  let startIdx = html.indexOf(marker);
+  if (startIdx === -1) {
+    const marker2 = 'window["ytInitialData"] = ';
+    startIdx = html.indexOf(marker2);
+  }
+  
+  if (startIdx === -1) {
+    throw new Error("Could not find ytInitialData in HTML");
+  }
+  
+  const offset = html.indexOf('{', startIdx);
+  let braceCount = 0;
+  let endIdx = -1;
+  for (let i = offset; i < html.length; i++) {
+    if (html[i] === '{') braceCount++;
+    if (html[i] === '}') {
+      braceCount--;
+      if (braceCount === 0) {
+        endIdx = i;
         break;
       }
     }
-    return { rank, videoId, videoTitle, channelId, channelName };
+  }
+  
+  if (endIdx === -1) {
+    throw new Error("Could not find matching closing brace in JSON");
+  }
+  
+  const jsonStr = html.substring(offset, endIdx + 1);
+  const data = JSON.parse(jsonStr);
+  
+  const contents = data.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents;
+  if (!contents) {
+    throw new Error("Could not find sectionListRenderer structures");
+  }
+  
+  const itemSection = contents.find(c => c.itemSectionRenderer);
+  const items = itemSection?.itemSectionRenderer?.contents || [];
+  
+  const parsedVideos = [];
+  for (const item of items) {
+    const video = item.videoRenderer;
+    if (video) {
+      parsedVideos.push({
+        videoId: video.videoId,
+        title: video.title?.runs?.[0]?.text || "",
+        channelName: video.ownerText?.runs?.[0]?.text || "",
+        channelId: video.ownerText?.runs?.[0]?.navigationEndpoint?.browseEndpoint?.browseId || ""
+      });
+    }
+  }
+  return parsedVideos;
+}
+
+async function fetchAdminKeywordRank(youtube, keyword, connectedChannels) {
+  try {
+    try {
+      console.log(`[Scraper] Attempting rank scrape for admin keyword "${keyword}"...`);
+      const items = await scrapeYoutubeSearch(keyword);
+      console.log(`[Scraper] Successfully parsed ${items.length} items for "${keyword}".`);
+      
+      let rank = null;
+      let videoId = null;
+      let videoTitle = "";
+      let channelId = null;
+      let channelName = "";
+
+      const channelIdsSet = new Set(connectedChannels.map(c => c.id));
+      for (let index = 0; index < items.length; index++) {
+        const itemChannelId = items[index].channelId;
+        if (itemChannelId && channelIdsSet.has(itemChannelId)) {
+          rank = index + 1;
+          videoId = items[index].videoId || null;
+          videoTitle = items[index].title || "";
+          channelId = itemChannelId;
+          channelName = connectedChannels.find(c => c.id === itemChannelId)?.name || "";
+          break;
+        }
+      }
+      return { rank, videoId, videoTitle, channelId, channelName };
+    } catch (scrapeErr) {
+      console.warn(`[Scraper] Scrape failed for "${keyword}". Falling back to official API... Reason:`, scrapeErr.message);
+      
+      const res = await youtube.search.list({
+        part: ["snippet"],
+        q: keyword,
+        type: ["video"],
+        maxResults: 50,
+        regionCode: "IN",
+      });
+      const items = res.data.items || [];
+      let rank = null;
+      let videoId = null;
+      let videoTitle = "";
+      let channelId = null;
+      let channelName = "";
+
+      const channelIdsSet = new Set(connectedChannels.map(c => c.id));
+      for (let index = 0; index < items.length; index++) {
+        const itemChannelId = items[index].snippet?.channelId;
+        if (itemChannelId && channelIdsSet.has(itemChannelId)) {
+          rank = index + 1;
+          videoId = items[index].id?.videoId || null;
+          videoTitle = items[index].snippet?.title || "";
+          channelId = itemChannelId;
+          channelName = connectedChannels.find(c => c.id === itemChannelId)?.name || "";
+          break;
+        }
+      }
+      return { rank, videoId, videoTitle, channelId, channelName };
+    }
   } catch (err) {
     console.error(`Error scanning rank for admin keyword "${keyword}":`, err.message);
     const isQuota = String(err.message || "").toLowerCase().includes("quota");
@@ -4004,27 +4481,49 @@ async function fetchAdminKeywordRank(youtube, keyword, connectedChannels) {
 
 async function fetchKeywordRank(youtube, keyword, targetChannelId) {
   try {
-    const res = await youtube.search.list({
-      part: ["snippet"],
-      q: keyword,
-      type: ["video"],
-      maxResults: 50,
-      regionCode: "IN",
-    });
-    const items = res.data.items || [];
-    let rank = null;
-    let videoId = null;
-    let videoTitle = "";
-    
-    for (let index = 0; index < items.length; index++) {
-      if (items[index].snippet?.channelId === targetChannelId) {
-        rank = index + 1;
-        videoId = items[index].id?.videoId || null;
-        videoTitle = items[index].snippet?.title || "";
-        break;
+    try {
+      console.log(`[Scraper] Attempting rank scrape for manager keyword "${keyword}"...`);
+      const items = await scrapeYoutubeSearch(keyword);
+      console.log(`[Scraper] Successfully parsed ${items.length} items for "${keyword}".`);
+      
+      let rank = null;
+      let videoId = null;
+      let videoTitle = "";
+      
+      for (let index = 0; index < items.length; index++) {
+        if (items[index].channelId === targetChannelId) {
+          rank = index + 1;
+          videoId = items[index].videoId || null;
+          videoTitle = items[index].title || "";
+          break;
+        }
       }
+      return { rank, videoId, videoTitle };
+    } catch (scrapeErr) {
+      console.warn(`[Scraper] Scrape failed for "${keyword}". Falling back to official API... Reason:`, scrapeErr.message);
+      
+      const res = await youtube.search.list({
+        part: ["snippet"],
+        q: keyword,
+        type: ["video"],
+        maxResults: 50,
+        regionCode: "IN",
+      });
+      const items = res.data.items || [];
+      let rank = null;
+      let videoId = null;
+      let videoTitle = "";
+      
+      for (let index = 0; index < items.length; index++) {
+        if (items[index].snippet?.channelId === targetChannelId) {
+          rank = index + 1;
+          videoId = items[index].id?.videoId || null;
+          videoTitle = items[index].snippet?.title || "";
+          break;
+        }
+      }
+      return { rank, videoId, videoTitle };
     }
-    return { rank, videoId, videoTitle };
   } catch (err) {
     console.error(`Error scanning rank for keyword "${keyword}":`, err.message);
     const isQuota = String(err.message || "").toLowerCase().includes("quota");
@@ -4927,7 +5426,7 @@ async function suggestTopicsFromResearch(keyword, range, items) {
   ].join("\n");
 
   const data = await fetchAnthropicJson({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-5",
     max_tokens: 900,
     messages: [{ role: "user", content: prompt }],
   });
