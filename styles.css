@@ -829,11 +829,12 @@ input {
 .publish-row {
   display: grid;
   grid-template-columns:
-    minmax(112px, 1.35fr)
-    minmax(92px, 0.88fr)
-    repeat(3, minmax(42px, 0.48fr))
-    minmax(52px, 0.52fr)
-    minmax(74px, 0.72fr);
+    minmax(112px, 1.1fr)
+    minmax(92px, 0.8fr)
+    minmax(92px, 0.8fr)
+    repeat(3, minmax(42px, 0.45fr))
+    minmax(52px, 0.5fr)
+    minmax(74px, 0.65fr);
   align-items: center;
   min-width: 690px;
   border-bottom: 1px solid #eef1f5;

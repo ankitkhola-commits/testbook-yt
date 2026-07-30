@@ -1475,6 +1475,16 @@ function channelMatchesYtm(channelName, ytmName) {
     if (lowerKw === "testbook") {
       return lowerName === "testbook";
     }
+    if (lowerKw === "ssc") {
+      // General SSC channels belong to Vivek, regional ones belong to other managers
+      return lowerName.includes("ssc") && 
+             !lowerName.includes("marathi") && 
+             !lowerName.includes("bengali") && 
+             !lowerName.includes("bihar") && 
+             !lowerName.includes("odisha") &&
+             !lowerName.includes("tamil") &&
+             !lowerName.includes("telugu");
+    }
     return lowerName.includes(lowerKw);
   });
 }
@@ -1936,31 +1946,27 @@ app.post("/api/admin/keywords/refresh", async (req, res, next) => {
     const youtube = google.youtube({ version: "v3", auth: entry.auth });
     const connectedChannels = entries.map(e => ({ id: e.channel.id, name: e.channel.name }));
 
-    // Run scans sequentially with batch size of 5
-    const batchSize = 5;
-    for (let i = 0; i < rankings.length; i += batchSize) {
-      const chunk = rankings.slice(i, i + batchSize);
-      await Promise.all(chunk.map(async (row) => {
-        const scan = await fetchAdminKeywordRank(youtube, row.keyword, connectedChannels);
-        row.previousRank = row.currentRank;
-        row.currentRank = scan.rank;
-        row.channelId = scan.channelId;
-        row.channelName = scan.channelName;
-        row.videoId = scan.videoId;
-        row.videoTitle = scan.videoTitle;
-        
-        row.history = row.history || [];
-        const todayStr = new Date().toISOString().split("T")[0];
-        row.history = row.history.filter(h => h.date !== todayStr);
-        row.history.push({
-          date: todayStr,
-          rank: scan.rank,
-          channelId: scan.channelId
-        });
-        if (row.history.length > 7) {
-          row.history.shift();
-        }
-      }));
+    // Run scans sequentially to prevent rate limits
+    for (const row of rankings) {
+      const scan = await fetchAdminKeywordRank(youtube, row.keyword, connectedChannels);
+      row.previousRank = row.currentRank;
+      row.currentRank = scan.rank;
+      row.channelId = scan.channelId;
+      row.channelName = scan.channelName;
+      row.videoId = scan.videoId;
+      row.videoTitle = scan.videoTitle;
+      
+      row.history = row.history || [];
+      const todayStr = new Date().toISOString().split("T")[0];
+      row.history = row.history.filter(h => h.date !== todayStr);
+      row.history.push({
+        date: todayStr,
+        rank: scan.rank,
+        channelId: scan.channelId
+      });
+      if (row.history.length > 7) {
+        row.history.shift();
+      }
     }
 
     data.lastUpdated = new Date().toISOString();
@@ -1974,6 +1980,15 @@ app.post("/api/admin/keywords/refresh", async (req, res, next) => {
 const commentOverridesPath = path.join(dataDir, "comment_sentiment_overrides.json");
 
 async function readCommentOverrides() {
+  if (sql) {
+    try {
+      const rows = await sql`select payload from app_state where key = 'comment_sentiment_overrides' limit 1`;
+      return rows.length ? rows[0].payload : {};
+    } catch (err) {
+      console.error("Failed to read comment overrides from db:", err.message);
+      return {};
+    }
+  }
   try {
     return JSON.parse(await readFile(commentOverridesPath, "utf8"));
   } catch {
@@ -1982,6 +1997,18 @@ async function readCommentOverrides() {
 }
 
 async function saveCommentOverrides(overrides) {
+  if (sql) {
+    try {
+      await sql`
+        insert into app_state (key, payload)
+        values ('comment_sentiment_overrides', ${sql.json(overrides)})
+        on conflict (key) do update set payload = excluded.payload
+      `;
+      return;
+    } catch (err) {
+      console.error("Failed to save comment overrides to db:", err.message);
+    }
+  }
   await mkdir(dataDir, { recursive: true });
   await writeFile(commentOverridesPath, JSON.stringify(overrides, null, 2), "utf8");
 }
@@ -2023,7 +2050,15 @@ app.get("/api/comments", async (req, res, next) => {
           const snippet = comment.snippet;
           const text = snippet?.textOriginal || "";
           
-          let sentiment = overrides[comment.id] || analyzeSentiment(text, settings.customBlockedWords);
+          const isOwner = snippet?.authorChannelId?.value === entry.channel.id;
+          let sentiment = overrides[comment.id];
+          if (!sentiment) {
+            if (isOwner) {
+              sentiment = "neutral";
+            } else {
+              sentiment = analyzeSentiment(text, settings.customBlockedWords);
+            }
+          }
 
           allComments.push({
             id: comment.id,
@@ -2364,7 +2399,6 @@ const ytmMappings = {
   "Raubnish": [
     "Odisha Testbook",
     "Odisha Teaching by Testbook",
-    "UPSC PrepLab",
     "Sambhab IAS",
     "UCGPGCM8cSM868l5JjHhQpQQ"
   ],
@@ -4348,6 +4382,10 @@ function isBrandKeyword(keyword, channelTitle) {
 }
 
 async function scrapeYoutubeSearch(keyword) {
+  // Add a small randomized delay to avoid YouTube scraper blocking/rate limiting
+  const delayMs = 500 + Math.floor(Math.random() * 1000);
+  await new Promise(r => setTimeout(r, delayMs));
+
   const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(keyword)}`;
   const res = await fetch(url, {
     headers: {
@@ -4580,10 +4618,8 @@ async function refreshKeywordRankingsInternal(channelId) {
     manual: []
   };
   
-  const batchSize = 5;
-  for (let idx = 0; idx < allKeywords.length; idx += batchSize) {
-    const chunk = allKeywords.slice(idx, idx + batchSize);
-    await Promise.all(chunk.map(async (item) => {
+    // Run scans sequentially to prevent rate limits
+    for (const item of allKeywords) {
       const { rank, videoId, videoTitle } = await fetchKeywordRank(youtube, item.keyword, channelId);
       
       const prevData = data[channelId]?.rankings?.[item.type]?.find(r => r.keyword === item.keyword);
@@ -4610,8 +4646,7 @@ async function refreshKeywordRankingsInternal(channelId) {
       };
       
       results[item.type].push(record);
-    }));
-  }
+    }
   
   results.automated.sort((a, b) => (b.views || 0) - (a.views || 0));
   

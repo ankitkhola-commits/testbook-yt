@@ -79,7 +79,6 @@ const ytmMappings = {
   "Raubnish": [
     "Odisha Testbook",
     "Odisha Teaching by Testbook",
-    "UPSC PrepLab",
     "Sambhab IAS"
   ],
   "Narendra/Amit": [
@@ -689,23 +688,31 @@ function renderUploadTable(series) {
     <div class="publish-row publish-head">
       <span>Date</span>
       <span>Organic views</span>
+      <span>Subscribers</span>
       <span>Videos</span>
       <span>Shorts</span>
       <span>Live</span>
       <span>Total</span>
       <span>Shares</span>
     </div>
-    ${visibleSeries.map((day) => `
-      <div class="publish-row">
-        <strong>${escapeHtml(day.label)}</strong>
-        <span class="organic-cell">${Number(day.organicViews || 0).toLocaleString()}</span>
-        <span>${formatKnownCount(day.uploads.videos, day.uploadsKnown !== false)}</span>
-        <span>${formatKnownCount(day.uploads.shorts, day.uploadsKnown !== false)}</span>
-        <span>${formatKnownCount(day.uploads.live, day.uploadsKnown !== false)}</span>
-        <b>${formatKnownCount(day.uploads.total, day.uploadsKnown !== false)}</b>
-        <span>${Number(day.shares || 0).toLocaleString()}</span>
-      </div>
-    `).join("") || `<div class="publish-row empty-row"><strong>No organic/search data in this range yet.</strong></div>`}
+    ${visibleSeries.map((day) => {
+      const subVal = Number(day.subscribers || 0);
+      const subText = (subVal >= 0 ? "+" : "") + subVal.toLocaleString();
+      const subColor = subVal >= 0 ? "var(--accent)" : "#dc2626";
+      
+      return `
+        <div class="publish-row">
+          <strong>${escapeHtml(day.label)}</strong>
+          <span class="organic-cell">${Number(day.organicViews || 0).toLocaleString()}</span>
+          <span style="color: ${subColor}; font-weight: 500;">${subText}</span>
+          <span>${formatKnownCount(day.uploads.videos, day.uploadsKnown !== false)}</span>
+          <span>${formatKnownCount(day.uploads.shorts, day.uploadsKnown !== false)}</span>
+          <span>${formatKnownCount(day.uploads.live, day.uploadsKnown !== false)}</span>
+          <b>${formatKnownCount(day.uploads.total, day.uploadsKnown !== false)}</b>
+          <span>${Number(day.shares || 0).toLocaleString()}</span>
+        </div>
+      `;
+    }).join("") || `<div class="publish-row empty-row"><strong>No organic/search data in this range yet.</strong></div>`}
   `;
 }
 
@@ -3830,8 +3837,8 @@ function renderCommentsView() {
           <div class="comment-item-wrapper" style="display: flex; flex-direction: column; border-bottom: 1px solid var(--line);">
             <div class="keywords-row" style="grid-template-columns: 50px 140px 1fr 130px 130px 150px; align-items: center; padding: 12px 16px; border-bottom: none;">
               <img src="${escapeHtml(row.authorAvatar)}" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line);" alt="" />
-              <div style="display: flex; flex-direction: column; gap: 2px;">
-                <strong>${escapeHtml(row.authorName)}</strong>
+              <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
+                <strong style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; display: block;" title="${escapeHtml(row.authorName)}">${escapeHtml(row.authorName)}</strong>
                 <span style="font-size: 10px; color: var(--muted);">${escapeHtml(dateStr)}</span>
               </div>
               <div style="font-size: 13px; line-height: 1.4; color: var(--ink); word-break: break-word;">
