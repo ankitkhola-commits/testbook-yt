@@ -8,5 +8,11 @@
     { "source": "/styles.css", "destination": "/api" },
     { "source": "/assets/(.*)", "destination": "/api" },
     { "source": "/", "destination": "/api" }
+  ],
+  "crons": [
+    {
+      "path": "/api/scheduler/trigger",
+      "schedule": "30 5,11 * * *"
+    }
   ]
 }

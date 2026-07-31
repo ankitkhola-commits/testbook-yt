@@ -27,7 +27,7 @@ let storageReadyPromise;
 const responseCache = new Map();
 const inFlightRequests = new Map();
 const ttl = {
-  dashboard: 4 * 60 * 60 * 1000,
+  dashboard: 12 * 60 * 60 * 1000,
   uploads: 30 * 60 * 1000,
   videoDetails: 60 * 60 * 1000,
   publicChannels: 24 * 60 * 60 * 1000,
@@ -441,6 +441,50 @@ app.delete("/api/channels/:channelId", async (req, res, next) => {
   }
 });
 
+async function refreshDashboardCacheInternal(activeChannelId, range, force = false) {
+  const entries = await connectedChannelEntries();
+  const channels = [{ id: "all-in-one", name: "All in One", handle: "@all-in-one" }, ...publicChannels(entries)];
+  const selectedEntries = activeChannelId === "all-in-one"
+    ? entries
+    : entries.filter((entry) => entry.channel.id === activeChannelId);
+  
+  const dates = dateWindow(range, "", "", "");
+  const compareDates = comparisonWindow(dates, range, "");
+
+  const cacheKey = makeCacheKey("dashboard", activeChannelId, range, "", "", "", "", dates.startDate, dates.endDate, selectedEntries.map((entry) => entry.channel.id).sort());
+
+  return cached(
+    cacheKey,
+    ttl.dashboard,
+    async () => {
+      const [channelReports, comparisonReports] = await Promise.all([
+        Promise.all(selectedEntries.map((entry) => cachedChannelReport(entry.auth, entry.channel, dates, { force }))),
+        Promise.all(selectedEntries.map((entry) => cachedChannelReport(entry.auth, entry.channel, compareDates, { force }))),
+      ]);
+      const merged = mergeReports(channelReports, dates.days);
+      const comparison = mergeReports(comparisonReports, compareDates.days);
+      return {
+        range,
+        dates,
+        comparisonDates: compareDates,
+        channels,
+        connectedCount: entries.length,
+        selectedChannelId: activeChannelId,
+        isAllInOne: activeChannelId === "all-in-one",
+        title: activeChannelId === "all-in-one" ? "All in One" : (selectedEntries[0]?.channel.name || "Channel analytics"),
+        totals: merged.totals,
+        comparisonTotals: comparison.totals,
+        series: merged.series,
+        topContent: merged.topContent,
+        competitors: [],
+        insights: buildLiveInsights([], merged),
+        allInOne: activeChannelId === "all-in-one" ? buildAllInOneDashboard(selectedEntries, channelReports, dates) : null,
+      };
+    },
+    { force }
+  );
+}
+
 app.get("/api/dashboard", async (req, res, next) => {
   try {
     const viewer = readViewerSession(req);
@@ -453,41 +497,50 @@ app.get("/api/dashboard", async (req, res, next) => {
     const compareMode = String(req.query.compareMode || "");
     const requestedChannelId = String(req.query.channelId || "");
     const activeChannelId = channels.some((channel) => channel.id === requestedChannelId) ? requestedChannelId : channels[0]?.id;
-    const selectedEntries = activeChannelId === "all-in-one"
-      ? entries
-      : entries.filter((entry) => entry.channel.id === activeChannelId);
-    const dates = dateWindow(range, month, startDate, endDate);
-    const compareDates = comparisonWindow(dates, range, compareMode);
-    const payload = await cached(
-      makeCacheKey("dashboard", activeChannelId, range, month, startDate, endDate, compareMode, dates.startDate, dates.endDate, selectedEntries.map((entry) => entry.channel.id).sort()),
-      ttl.dashboard,
-      async () => {
-        const [channelReports, comparisonReports] = await Promise.all([
-          Promise.all(selectedEntries.map((entry) => cachedChannelReport(entry.auth, entry.channel, dates))),
-          Promise.all(selectedEntries.map((entry) => cachedChannelReport(entry.auth, entry.channel, compareDates))),
-        ]);
-        const merged = mergeReports(channelReports, dates.days);
-        const comparison = mergeReports(comparisonReports, compareDates.days);
-        return {
-          range,
-          dates,
-          comparisonDates: compareDates,
-          channels,
-          connectedCount: entries.length,
-          selectedChannelId: activeChannelId,
-          isAllInOne: activeChannelId === "all-in-one",
-          title: activeChannelId === "all-in-one" ? "All in One" : (selectedEntries[0]?.channel.name || "Channel analytics"),
-          totals: merged.totals,
-          comparisonTotals: comparison.totals,
-          series: merged.series,
-          topContent: merged.topContent,
-          competitors: [],
-          insights: buildLiveInsights([], merged),
-          allInOne: activeChannelId === "all-in-one" ? buildAllInOneDashboard(selectedEntries, channelReports, dates) : null,
-        };
-      },
-      { force: req.query.force === "1" }
-    );
+    const force = req.query.force === "1";
+
+    // If it's a custom query, run it on the fly (since it's ad-hoc)
+    if (month || startDate || endDate || compareMode) {
+      const selectedEntries = activeChannelId === "all-in-one"
+        ? entries
+        : entries.filter((entry) => entry.channel.id === activeChannelId);
+      const dates = dateWindow(range, month, startDate, endDate);
+      const compareDates = comparisonWindow(dates, range, compareMode);
+      const payload = await cached(
+        makeCacheKey("dashboard", activeChannelId, range, month, startDate, endDate, compareMode, dates.startDate, dates.endDate, selectedEntries.map((entry) => entry.channel.id).sort()),
+        ttl.dashboard,
+        async () => {
+          const [channelReports, comparisonReports] = await Promise.all([
+            Promise.all(selectedEntries.map((entry) => cachedChannelReport(entry.auth, entry.channel, dates, { force }))),
+            Promise.all(selectedEntries.map((entry) => cachedChannelReport(entry.auth, entry.channel, compareDates, { force }))),
+          ]);
+          const merged = mergeReports(channelReports, dates.days);
+          const comparison = mergeReports(comparisonReports, compareDates.days);
+          return {
+            range,
+            dates,
+            comparisonDates: compareDates,
+            channels,
+            connectedCount: entries.length,
+            selectedChannelId: activeChannelId,
+            isAllInOne: activeChannelId === "all-in-one",
+            title: activeChannelId === "all-in-one" ? "All in One" : (selectedEntries[0]?.channel.name || "Channel analytics"),
+            totals: merged.totals,
+            comparisonTotals: comparison.totals,
+            series: merged.series,
+            topContent: merged.topContent,
+            competitors: [],
+            insights: buildLiveInsights([], merged),
+            allInOne: activeChannelId === "all-in-one" ? buildAllInOneDashboard(selectedEntries, channelReports, dates) : null,
+          };
+        },
+        { force }
+      );
+      return res.json(payload);
+    }
+
+    // Otherwise use the standard cached/pre-cached runner!
+    const payload = await refreshDashboardCacheInternal(activeChannelId, range, force);
     res.json(payload);
   } catch (error) {
     next(error);
@@ -1516,7 +1569,7 @@ app.get("/api/keywords/rankings", async (req, res, next) => {
       lastUpdated: null,
       rankings: { automated: [], manual: [] },
       manualKeywords: [],
-      channels: channelEntries.map(e => ({ id: e.channel.id, name: e.channel.name }))
+      channels: []
     };
 
     let latestUpdated = 0;
@@ -1525,6 +1578,12 @@ app.get("/api/keywords/rankings", async (req, res, next) => {
       const channelId = entry.channel.id;
       const channelName = entry.channel.name;
       const chData = data[channelId] || { rankings: { automated: [], manual: [] }, manualKeywords: [], lastUpdated: null };
+
+      result.channels.push({
+        id: channelId,
+        name: channelName,
+        lastUpdated: chData.lastUpdated
+      });
 
       if (chData.lastUpdated) {
         const t = new Date(chData.lastUpdated).getTime();
@@ -1779,6 +1838,18 @@ app.post("/api/keywords/refresh", async (req, res, next) => {
       return;
     }
 
+    // Cooldown check: 30 minutes limit for manual refresh per channel
+    const data = await readKeywordRankings();
+    if (channelIdParam && data[channelIdParam]?.lastUpdated) {
+      const last = new Date(data[channelIdParam].lastUpdated).getTime();
+      const elapsedMin = (Date.now() - last) / (60 * 1000);
+      if (elapsedMin < 30) {
+        const remaining = Math.ceil(30 - elapsedMin);
+        res.status(400).json({ error: `Rankings for this channel were refreshed recently. Please wait ${remaining} more minute(s) before refreshing again.` });
+        return;
+      }
+    }
+
     // Refresh each channel in parallel using their respective auth client
     await Promise.all(channelEntries.map(async (entry) => {
       try {
@@ -1789,20 +1860,26 @@ app.post("/api/keywords/refresh", async (req, res, next) => {
     }));
 
     // Read and return the updated data
-    const data = await readKeywordRankings();
+    const freshData = await readKeywordRankings();
     const result = {
       ytm: ytmName,
       lastUpdated: null,
       rankings: { automated: [], manual: [] },
       manualKeywords: [],
-      channels: channelEntries.map(e => ({ id: e.channel.id, name: e.channel.name }))
+      channels: []
     };
 
     let latestUpdated = 0;
     for (const entry of channelEntries) {
       const channelId = entry.channel.id;
       const channelName = entry.channel.name;
-      const chData = data[channelId] || { rankings: { automated: [], manual: [] }, manualKeywords: [], lastUpdated: null };
+      const chData = freshData[channelId] || { rankings: { automated: [], manual: [] }, manualKeywords: [], lastUpdated: null };
+
+      result.channels.push({
+        id: channelId,
+        name: channelName,
+        lastUpdated: chData.lastUpdated
+      });
 
       if (chData.lastUpdated) {
         const t = new Date(chData.lastUpdated).getTime();
@@ -3698,6 +3775,18 @@ async function claudeSeoMetadataAudit(video) {
   return cleanedGaps;
 }
 
+app.get("/api/scheduler/trigger", async (req, res, next) => {
+  try {
+    // Run the scheduler task asynchronously in the background
+    refreshAllConnectedChannelsDashboardData().catch(err => {
+      console.error("[Webhook Trigger] Background refresh failed:", err);
+    });
+    res.json({ success: true, message: "Dashboard twice-daily pre-cache refresh triggered in the background." });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.use((error, _req, res, _next) => {
   console.error(error);
   let message = error?.response?.data?.error?.message || error?.message || "Unknown server error";
@@ -3740,10 +3829,81 @@ function startKeywordScheduler() {
   }, 60 * 60 * 1000);
 }
 
+let isBackgroundRefreshingData = false;
+async function refreshAllConnectedChannelsDashboardData() {
+  if (isBackgroundRefreshingData) {
+    console.log("[Scheduler] Background refresh already in progress. Skipping.");
+    return;
+  }
+  isBackgroundRefreshingData = true;
+  console.log("[Scheduler] Starting pre-cache refresh for all dashboard channels and ranges...");
+  try {
+    const entries = await connectedChannelEntries();
+    if (!entries.length) {
+      console.log("[Scheduler] No connected channels to refresh.");
+      isBackgroundRefreshingData = false;
+      return;
+    }
+
+    const ranges = ["month", "28", "7", "prevMonth"];
+    const channelIds = ["all-in-one", ...entries.map(e => e.channel.id)];
+
+    for (const range of ranges) {
+      for (const channelId of channelIds) {
+        try {
+          console.log(`[Scheduler] Pre-caching dashboard: channel=${channelId}, range=${range}...`);
+          await refreshDashboardCacheInternal(channelId, range, true);
+        } catch (err) {
+          console.error(`[Scheduler] Failed to pre-cache channel=${channelId}, range=${range}:`, err.message);
+        }
+      }
+    }
+
+    // Trigger outliers/competitors scan
+    console.log("[Scheduler] Starting pre-cache refresh for competitor outliers scan...");
+    try {
+      await runOutliersScanInternal();
+      console.log("[Scheduler] Competitor outliers scan complete and cached.");
+    } catch (err) {
+      console.error("[Scheduler] Failed competitor outliers scan pre-cache:", err.message);
+    }
+
+    console.log("[Scheduler] Pre-cache refresh complete!");
+  } catch (err) {
+    console.error("[Scheduler] Pre-caching helper failed:", err.message);
+  } finally {
+    isBackgroundRefreshingData = false;
+  }
+}
+
+let lastSchedulerRefreshHour = "";
+function startTwiceDailyScheduler() {
+  console.log("[Scheduler] Initializing twice-daily pre-cache refresh scheduler...");
+  setInterval(async () => {
+    try {
+      const options = { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false };
+      const formatter = new Intl.DateTimeFormat('en-US', options);
+      const hourInIST = parseInt(formatter.format(new Date()), 10);
+      
+      // Trigger at 11 AM (hour 11) and 5 PM (hour 17) IST
+      if (hourInIST === 11 || hourInIST === 17) {
+        const hourKey = new Date().toDateString() + "_" + hourInIST;
+        if (lastSchedulerRefreshHour === hourKey) return;
+        lastSchedulerRefreshHour = hourKey;
+        
+        await refreshAllConnectedChannelsDashboardData();
+      }
+    } catch (err) {
+      console.error("[Scheduler] Error in twice daily scheduler:", err);
+    }
+  }, 10 * 60 * 1000); // Check every 10 minutes
+}
+
 if (isDirectRun) {
   app.listen(port, () => {
     console.log(`YouTube dashboard running at http://localhost:${port}`);
     startKeywordScheduler();
+    startTwiceDailyScheduler();
   });
 }
 
@@ -4323,11 +4483,12 @@ async function channelReport(auth, channel, dates) {
   };
 }
 
-async function cachedChannelReport(auth, channel, dates) {
+async function cachedChannelReport(auth, channel, dates, options = {}) {
   return cached(
     makeCacheKey("channel-report", channel.id, dates.startDate, dates.endDate),
     ttl.dashboard,
-    () => channelReport(auth, channel, dates)
+    () => channelReport(auth, channel, dates),
+    options
   );
 }
 

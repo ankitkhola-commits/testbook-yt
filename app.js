@@ -2696,6 +2696,39 @@ function renderKeywordsView() {
     }
   }
 
+  // Cooldown check for refresh rankings button (30 minutes per channel)
+  const selectedChannelId = state.rankTrackerSelectedChannelId;
+  const selectChan = (data.channels || []).find(c => c.id === selectedChannelId);
+  const refreshBtn = document.querySelector("#keywordsRefreshButton");
+  
+  if (state.selectedKeywordsYtm !== "Admin" && selectChan && selectChan.lastUpdated) {
+    const last = new Date(selectChan.lastUpdated).getTime();
+    const elapsedMin = (Date.now() - last) / (60 * 1000);
+    if (elapsedMin < 30) {
+      const remaining = Math.ceil(30 - elapsedMin);
+      if (refreshBtn) {
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = `Refresh (Cooldown: ${remaining}m)`;
+        refreshBtn.style.opacity = "0.6";
+        refreshBtn.style.cursor = "not-allowed";
+      }
+    } else {
+      if (refreshBtn) {
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = "Refresh rankings";
+        refreshBtn.style.opacity = "1";
+        refreshBtn.style.cursor = "pointer";
+      }
+    }
+  } else {
+    if (refreshBtn) {
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = "Refresh rankings";
+      refreshBtn.style.opacity = "1";
+      refreshBtn.style.cursor = "pointer";
+    }
+  }
+
   const filterVal = state.keywordsRankFilter || "all";
   const chId = state.rankTrackerSelectedChannelId;
   const autoFiltered = (data.rankings?.automated || [])
