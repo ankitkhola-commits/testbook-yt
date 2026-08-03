@@ -4555,15 +4555,17 @@ function isBrandKeyword(keyword, channelTitle) {
 }
 
 async function scrapeYoutubeSearch(keyword) {
-  // Add a small randomized delay to avoid YouTube scraper blocking/rate limiting
+  // Add a small randomized delay to avoid YouTube scraper rate limiting
   const delayMs = 500 + Math.floor(Math.random() * 1000);
   await new Promise(r => setTimeout(r, delayMs));
 
-  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(keyword)}`;
+  // gl=IN biases results towards India, hl=en sets host language to English.
+  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(keyword)}&gl=IN&hl=en`;
   const res = await fetch(url, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
-      'Accept-Language': 'en-US,en;q=0.9'
+      'Accept-Language': 'en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7,hi-IN;q=0.6,hi;q=0.5',
+      'Cookie': 'PREF=gl=IN&hl=en'
     }
   });
   if (!res.ok) {

@@ -323,9 +323,7 @@ document.querySelector("#researchRunButton")?.addEventListener("click", () => {
   loadResearch({ force: true });
 });
 
-document.querySelector("#suggestTopicsButton")?.addEventListener("click", () => {
-  suggestResearchTopics();
-});
+
 
 document.querySelector("#channelForm").addEventListener("submit", (event) => {
   event.preventDefault();
@@ -1104,7 +1102,6 @@ function renderResearchView() {
   renderResearchFilters();
   renderResearchSummary();
   renderResearchResults();
-  renderResearchIdeas();
 }
 
 function renderResearchFilters() {
@@ -1180,25 +1177,6 @@ function renderResearchResults() {
   `;
 }
 
-function renderResearchIdeas() {
-  const container = document.querySelector("#researchIdeas");
-  if (!container) return;
-  if (!state.researchIdeas.length) {
-    container.innerHTML = emptyCard("Run research first, then click Suggest topics to turn the winning videos into 5 publishable ideas.");
-    return;
-  }
-  container.innerHTML = state.researchIdeas.map((idea, index) => `
-    <article class="idea-card">
-      <div class="idea-topline">
-        <b>${index + 1}</b>
-        <mark class="channel-tag ${ideaFormatClass(idea.format)}">${escapeHtml(idea.format)}</mark>
-      </div>
-      <strong>${escapeHtml(idea.title)}</strong>
-      <p>${escapeHtml(idea.reason)}</p>
-    </article>
-  `).join("");
-}
-
 async function loadResearch(options = {}) {
   const keyword = (state.researchKeyword || "").trim();
   if (!keyword) {
@@ -1211,9 +1189,7 @@ async function loadResearch(options = {}) {
     return;
   }
   const requestId = ++state.researchRequestId;
-  state.researchIdeas = [];
   document.querySelector("#researchResults").innerHTML = emptyCard("Loading top videos...");
-  document.querySelector("#researchIdeas").innerHTML = emptyCard("Topic ideas will appear here after analysis.");
   
   const researchSteps = [
     { time: 0, text: "Searching YouTube for videos matching keyword..." },
@@ -1237,39 +1213,6 @@ async function loadResearch(options = {}) {
     if (requestId !== state.researchRequestId) return;
     document.querySelector("#researchResults").innerHTML = emptyCard(error.message);
     if (progressBar) progressBar.stop(false, "Research Failed!");
-  }
-}
-
-async function suggestResearchTopics() {
-  if (!state.researchResults.length) {
-    document.querySelector("#researchIdeas").innerHTML = emptyCard("Run research first.");
-    return;
-  }
-  document.querySelector("#researchIdeas").innerHTML = emptyCard("Asking Claude for topic ideas...");
-  
-  const suggestSteps = [
-    { time: 0, text: "Sending top video details to AI..." },
-    { time: 3, text: "Analyzing search outliers..." },
-    { time: 7, text: "Generating topic ideas and formatting recommendations..." }
-  ];
-  const progressBar = startProgressBar("researchProgressBarContainer", "researchProgressBarFill", "researchProgressBarLabel", suggestSteps);
-
-  try {
-    const data = await api("/api/research/suggest", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        keyword: state.researchKeyword,
-        range: state.researchRange,
-        items: state.researchResults.slice(0, 20),
-      }),
-    });
-    state.researchIdeas = data.ideas || [];
-    renderResearchIdeas();
-    if (progressBar) progressBar.stop(true, "Suggestions Complete! (100%)", "Suggestions Failed!");
-  } catch (error) {
-    document.querySelector("#researchIdeas").innerHTML = emptyCard(error.message);
-    if (progressBar) progressBar.stop(false, "Suggestions Failed!");
   }
 }
 
@@ -2374,8 +2317,7 @@ function renderYtmAuditResults() {
                     </div>
                     <div class="comment-reply-box">
                       <textarea placeholder="Write a reply..." id="reply-text-${comment.id}"></textarea>
-                      <div class="comment-reply-actions">
-                        <button type="button" class="ghost-button draft-reply-btn" data-comment-id="${comment.id}" data-comment-text="${escapeHtml(comment.text)}" data-video-title="${escapeHtml(video.title)}" data-author-name="${escapeHtml(comment.authorName)}">✨ AI Draft</button>
+                      <div class="comment-reply-actions" style="justify-content: flex-end;">
                         <button type="button" class="connect-button send-reply-btn" data-channel-id="${video.channelId}" data-parent-id="${comment.id}" data-comment-id="${comment.id}">Send Reply</button>
                       </div>
                     </div>
@@ -2485,33 +2427,7 @@ document.addEventListener("click", async (event) => {
     return;
   }
   
-  const draftBtn = event.target.closest(".draft-reply-btn");
-  if (draftBtn) {
-    const commentId = draftBtn.dataset.commentId;
-    const commentText = draftBtn.dataset.commentText;
-    const videoTitle = draftBtn.dataset.videoTitle;
-    const authorName = draftBtn.dataset.authorName;
-    const textarea = document.getElementById(`reply-text-${commentId}`);
-    if (textarea) {
-      draftBtn.disabled = true;
-      const originalText = draftBtn.innerHTML;
-      draftBtn.innerHTML = "Drafting...";
-      try {
-        const response = await api("/api/ytm/comment/draft", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ commentText, videoTitle, authorName }),
-        });
-        textarea.value = response.draft;
-      } catch (err) {
-        alert("Failed to draft reply: " + err.message);
-      } finally {
-        draftBtn.disabled = false;
-        draftBtn.innerHTML = originalText;
-      }
-    }
-    return;
-  }
+
   
   const sendBtn = event.target.closest(".send-reply-btn");
   if (sendBtn) {
@@ -3923,17 +3839,16 @@ function renderCommentsView() {
               <strong style="font-size: 12px; color: var(--muted);">${escapeHtml(row.channelName)}</strong>
               <div style="display: flex; gap: 8px; align-items: center;">
                 <button class="keywords-delete-btn delete-comment-btn" type="button" data-comment-id="${escapeHtml(row.id)}" data-channel-id="${escapeHtml(row.channelId)}" style="margin: 0; padding: 6px 10px; font-size: 11px; background: #dc2626; color: #fff; border: none; height: auto;">Delete</button>
-                <button class="connect-button reply-comment-btn" type="button" data-comment-id="${escapeHtml(row.id)}" data-channel-id="${escapeHtml(row.channelId)}" data-author-name="${escapeHtml(row.authorName)}" data-comment-text="${escapeHtml(row.text)}" style="margin: 0; padding: 6px 10px; font-size: 11px; height: auto; background: var(--surface); color: var(--ink); border: 1px solid var(--line);">AI Reply</button>
+                <button class="connect-button reply-comment-btn" type="button" data-comment-id="${escapeHtml(row.id)}" data-channel-id="${escapeHtml(row.channelId)}" data-author-name="${escapeHtml(row.authorName)}" data-comment-text="${escapeHtml(row.text)}" style="margin: 0; padding: 6px 10px; font-size: 11px; height: auto; background: var(--surface); color: var(--ink); border: 1px solid var(--line);">Reply</button>
               </div>
             </div>
             
-            <!-- Inline Reply Assistant Box -->
+            <!-- Inline Reply Box -->
             <div class="reply-assistant-box" id="reply-box-${escapeHtml(row.id)}" style="display: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin: 0 16px 12px 16px; flex-direction: column; gap: 10px;">
-              <div style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 600;">Draft AI Response</div>
-              <textarea class="reply-text-input" id="reply-text-${escapeHtml(row.id)}" style="width: 100%; height: 80px; background: #fff; color: var(--ink); border: 1px solid var(--line); padding: 8px 12px; border-radius: 6px; font-size: 13px; outline: none; box-sizing: border-box; resize: vertical; line-height: 1.4;" placeholder="Drafting response..."></textarea>
+              <div style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 600;">Reply to Comment</div>
+              <textarea class="reply-text-input" id="reply-text-${escapeHtml(row.id)}" style="width: 100%; height: 80px; background: #fff; color: var(--ink); border: 1px solid var(--line); padding: 8px 12px; border-radius: 6px; font-size: 13px; outline: none; box-sizing: border-box; resize: vertical; line-height: 1.4;" placeholder="Write a reply..."></textarea>
               <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; width: 100%;">
                 <button class="cancel-reply-btn" type="button" data-comment-id="${escapeHtml(row.id)}" style="background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Cancel</button>
-                <button class="regen-reply-btn" type="button" data-comment-id="${escapeHtml(row.id)}" data-author-name="${escapeHtml(row.authorName)}" data-comment-text="${escapeHtml(row.text)}" style="background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Regenerate</button>
                 <button class="send-reply-btn" type="button" data-comment-id="${escapeHtml(row.id)}" data-channel-id="${escapeHtml(row.channelId)}" style="background: var(--blue, #3c6ee8); color: #fff; border: none; border-radius: 6px; padding: 6px 16px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Post Reply</button>
               </div>
             </div>
@@ -3970,12 +3885,10 @@ function renderCommentsView() {
     });
   });
 
-  // Bind AI Reply Assistant Toggle
+  // Bind Reply Toggle
   container.querySelectorAll(".reply-comment-btn").forEach(btn => {
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", () => {
       const commentId = btn.dataset.commentId;
-      const authorName = btn.dataset.authorName;
-      const commentText = btn.dataset.commentText;
       const box = document.getElementById(`reply-box-${commentId}`);
       const textInput = document.getElementById(`reply-text-${commentId}`);
       
@@ -3988,45 +3901,8 @@ function renderCommentsView() {
       
       box.style.display = "flex";
       textInput.value = "";
-      textInput.placeholder = "Generating draft reply with AI...";
-      
-      try {
-        const res = await api("/api/ytm/comment/draft", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ commentText, authorName })
-        });
-        textInput.value = res.draft || "";
-      } catch (err) {
-        textInput.placeholder = "Failed to generate draft. Please type manually.";
-        console.error(err);
-      }
-    });
-  });
-
-  // Bind Regenerate Reply Draft Button
-  container.querySelectorAll(".regen-reply-btn").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const commentId = btn.dataset.commentId;
-      const authorName = btn.dataset.authorName;
-      const commentText = btn.dataset.commentText;
-      const textInput = document.getElementById(`reply-text-${commentId}`);
-      if (!textInput) return;
-      
-      textInput.value = "";
-      textInput.placeholder = "Generating new draft...";
-      
-      try {
-        const res = await api("/api/ytm/comment/draft", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ commentText, authorName })
-        });
-        textInput.value = res.draft || "";
-      } catch (err) {
-        textInput.placeholder = "Failed to generate draft.";
-        console.error(err);
-      }
+      textInput.placeholder = "Write a reply...";
+      textInput.focus();
     });
   });
 
