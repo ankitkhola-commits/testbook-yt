@@ -224,6 +224,7 @@ document.querySelectorAll("[data-view-tab]").forEach((button) => {
     stopCompetitorAutoRefresh();
     if (state.activeView === "research") renderResearchView();
     if (state.activeView === "seo") renderSeoAuditView();
+    if (state.activeView === "live-automator") loadLiveAutomator();
     if (state.activeView === "targets") loadTargets();
     if (state.activeView === "keywords") loadKeywords();
     if (state.activeView === "comments") loadComments();
@@ -429,6 +430,7 @@ document.querySelector("#researchFilterRow")?.addEventListener("click", (event) 
 document.querySelector("#seoRunButton")?.addEventListener("click", () => {
   loadSeoAudit({ force: true });
 });
+
 
 document.querySelector("#seoSortLowestToggle")?.addEventListener("change", (event) => {
   state.seoSortLowestFirst = event.target.checked;
@@ -1085,15 +1087,17 @@ function applyView() {
       ? "Competitors"
       : state.activeView === "seo"
         ? "SEO Audit"
-        : state.activeView === "ytm"
-          ? "YTM Audit"
-          : state.activeView === "targets"
-            ? "Target Tracker"
-            : state.activeView === "keywords"
-              ? "Rank Tracker"
-              : state.activeView === "comments"
-                ? "Comments Moderator"
-                : "Research";
+        : state.activeView === "live-automator"
+          ? "Live Automator"
+          : state.activeView === "ytm"
+            ? "YTM Audit"
+            : state.activeView === "targets"
+              ? "Target Tracker"
+              : state.activeView === "keywords"
+                ? "Rank Tracker"
+                : state.activeView === "comments"
+                  ? "Comments Moderator"
+                  : "Research";
 }
 
 function renderResearchView() {
@@ -1978,6 +1982,8 @@ async function showSeoSuggestions(videoId, channelId, title) {
     reasonText.textContent = error.message;
   }
 }
+
+
 
 function exportSeoToCsv() {
   const filtered = filteredSeoResults();
@@ -4078,6 +4084,269 @@ function setupCommentsViewListeners() {
 }
 
 setTimeout(setupCommentsViewListeners, 1000);
+
+state.liveAutomatorSelectedChannel = "";
+state.liveAutomatorStreams = [];
+state.liveAutomatorTasks = [];
+
+function populateLiveAutomatorChannels() {
+  const select = document.querySelector("#liveAutomatorChannelSelect");
+  if (select && state.channels) {
+    const publicChs = state.channels.filter(c => c.id !== "all-in-one");
+    select.innerHTML = publicChs.map(c => `
+      <option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>
+    `).join("");
+    
+    if (!state.liveAutomatorSelectedChannel && publicChs.length) {
+      state.liveAutomatorSelectedChannel = publicChs[0].id;
+    }
+    
+    if (state.liveAutomatorSelectedChannel) {
+      select.value = state.liveAutomatorSelectedChannel;
+    }
+  }
+}
+
+async function loadLiveAutomator(options = {}) {
+  populateLiveAutomatorChannels();
+  
+  const select = document.querySelector("#liveAutomatorChannelSelect");
+  const channelId = select ? select.value : state.liveAutomatorSelectedChannel;
+  if (!channelId) {
+    document.querySelector("#liveAutomatorStreamsList").innerHTML = emptyCard("Please connect a channel first.");
+    document.querySelector("#liveAutomatorTasksList").innerHTML = emptyCard("Please connect a channel first.");
+    return;
+  }
+
+  state.liveAutomatorSelectedChannel = channelId;
+
+  if (!options.force && state.liveAutomatorStreams.length && state.liveAutomatorStreamsChannelId === channelId) {
+    renderLiveAutomatorView();
+    return;
+  }
+
+  document.querySelector("#liveAutomatorStreamsList").innerHTML = emptyCard("Fetching streams...");
+  document.querySelector("#liveAutomatorTasksList").innerHTML = emptyCard("Fetching automation tasks...");
+
+  const steps = [
+    { time: 0, text: "Searching channel for live/upcoming broadcasts..." },
+    { time: 2, text: "Retrieving active tasks..." },
+    { time: 4, text: "Rendering live automator dashboard..." }
+  ];
+  const progressBar = startProgressBar("liveAutomatorProgressBarContainer", "liveAutomatorProgressBarFill", "liveAutomatorProgressBarLabel", steps);
+
+  try {
+    const [streamsRes, tasksRes] = await Promise.all([
+      api(`/api/live-automator/streams?channelId=${encodeURIComponent(channelId)}`),
+      api(`/api/live-automator/tasks?channelId=${encodeURIComponent(channelId)}`)
+    ]);
+
+    if (progressBar) progressBar.stop(true, "Dashboard Loaded!");
+    state.liveAutomatorStreams = streamsRes.streams || [];
+    state.liveAutomatorTasks = tasksRes.tasks || [];
+    state.liveAutomatorStreamsChannelId = channelId;
+    renderLiveAutomatorView();
+  } catch (error) {
+    if (progressBar) progressBar.stop(false, "Load Failed!");
+    document.querySelector("#liveAutomatorStreamsList").innerHTML = emptyCard(error.message);
+    document.querySelector("#liveAutomatorTasksList").innerHTML = emptyCard(error.message);
+  }
+}
+
+function renderLiveAutomatorView() {
+  renderLiveAutomatorStreams();
+  renderLiveAutomatorTasks();
+}
+
+function renderLiveAutomatorStreams() {
+  const container = document.querySelector("#liveAutomatorStreamsList");
+  if (!container) return;
+
+  if (!state.liveAutomatorStreams || !state.liveAutomatorStreams.length) {
+    container.innerHTML = emptyCard("No upcoming live streams found.");
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      ${state.liveAutomatorStreams.map(stream => {
+        const hasTask = state.liveAutomatorTasks.some(t => t.videoId === stream.id && t.status === "pending");
+        const statusBadge = `<span style="background: #2563eb; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase;">Upcoming</span>`;
+        const dateToUse = stream.scheduledStartTime || stream.publishedAt;
+        const dateStr = new Date(dateToUse).toLocaleDateString(undefined, { 
+          month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+        });
+        return `
+          <div style="display: flex; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 6px; align-items: center;">
+            <img src="${escapeHtml(stream.thumbnail)}" style="width: 80px; height: 60px; border-radius: 4px; object-fit: cover;" alt="" />
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(stream.title)}">
+                ${escapeHtml(stream.title)}
+              </div>
+              <div style="margin-top: 4px; display: flex; gap: 8px; align-items: center;">
+                ${statusBadge}
+                <span style="font-size: 11px; color: var(--muted);" title="Scheduled Start Time">Start: ${escapeHtml(dateStr)}</span>
+              </div>
+            </div>
+            <div>
+              <button class="connect-button automator-opt-btn" type="button" data-video-id="${escapeHtml(stream.id)}" data-video-title="${escapeHtml(stream.title)}" data-scheduled-start-time="${escapeHtml(stream.scheduledStartTime || "")}" style="margin: 0; padding: 6px 12px; font-size: 12px; height: auto; width: auto; background: ${hasTask ? "#059669" : ""}">
+                ${hasTask ? "Edit Comment" : "Add Comment"}
+              </button>
+            </div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+
+  // Bind edit/add listeners
+  container.querySelectorAll(".automator-opt-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      openLiveAutomatorDialog(btn.dataset.videoId, btn.dataset.videoTitle, btn.dataset.scheduledStartTime);
+    });
+  });
+}
+
+function renderLiveAutomatorTasks() {
+  const container = document.querySelector("#liveAutomatorTasksList");
+  if (!container) return;
+
+  if (!state.liveAutomatorTasks || !state.liveAutomatorTasks.length) {
+    container.innerHTML = emptyCard("No comment automations saved for this channel.");
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      ${state.liveAutomatorTasks.map(task => {
+        let statusColor = "#d97706"; // pending: amber
+        if (task.status === "posted") statusColor = "#059669"; // green
+        if (task.status === "failed") statusColor = "#dc2626"; // red
+        
+        return `
+          <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 6px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <strong style="font-size: 12px; text-transform: uppercase; color: ${statusColor}; font-weight: 700;">${task.status}</strong>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <a href="https://www.youtube.com/watch?v=${escapeHtml(task.videoId)}" target="_blank" class="ghost-button" style="margin: 0; padding: 2px 6px; font-size: 11px; height: auto; width: auto; color: var(--ink); border: 1px solid var(--line); background: var(--surface); text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">View Video</a>
+                <button class="ghost-button automator-delete-btn" type="button" data-video-id="${escapeHtml(task.videoId)}" style="margin: 0; padding: 2px 6px; font-size: 11px; height: auto; width: auto; color: #dc2626; border: 1px solid #fecaca; background: #fef2f2;">Delete</button>
+              </div>
+            </div>
+            <div style="font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              ${escapeHtml(task.videoTitle)}
+            </div>
+            <div style="font-size: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 8px; font-family: monospace; white-space: pre-wrap; word-break: break-all;">${escapeHtml(task.commentText)}</div>
+            ${task.error ? `<div style="font-size: 11px; color: #dc2626; font-weight: 600;">Error: ${escapeHtml(task.error)}</div>` : ""}
+            ${task.postedAt ? `<div style="font-size: 11px; color: var(--muted);">Posted at: ${new Date(task.postedAt).toLocaleString()}</div>` : ""}
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+
+  // Bind delete listeners
+  container.querySelectorAll(".automator-delete-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      deleteLiveAutomatorTask(btn.dataset.videoId);
+    });
+  });
+}
+
+let activeAutomatorVideoId = "";
+let activeAutomatorVideoTitle = "";
+let activeAutomatorScheduledStartTime = "";
+
+function openLiveAutomatorDialog(videoId, videoTitle, scheduledStartTime) {
+  activeAutomatorVideoId = videoId;
+  activeAutomatorVideoTitle = videoTitle;
+  activeAutomatorScheduledStartTime = scheduledStartTime || "";
+
+  const dialog = document.getElementById("liveAutomatorDialog");
+  const titleEl = document.getElementById("liveAutomatorDialogStreamTitle");
+  const commentArea = document.getElementById("liveAutomatorCommentText");
+
+  if (!dialog || !titleEl || !commentArea) return;
+
+  titleEl.textContent = `Automate Comment: ${truncateTitle(videoTitle, 35)}`;
+  
+  // Fill existing text if any
+  const existing = state.liveAutomatorTasks.find(t => t.videoId === videoId);
+  commentArea.value = existing ? existing.commentText : "";
+
+  dialog.showModal();
+}
+
+async function saveLiveAutomatorTask() {
+  const commentText = document.getElementById("liveAutomatorCommentText").value.trim();
+  if (!commentText) {
+    alert("Please enter comment text.");
+    return;
+  }
+
+  const btn = document.getElementById("liveAutomatorSaveBtn");
+  const origText = btn.textContent;
+  btn.textContent = "Saving...";
+  btn.disabled = true;
+
+  try {
+    await api("/api/live-automator/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        channelId: state.liveAutomatorSelectedChannel,
+        videoId: activeAutomatorVideoId,
+        videoTitle: activeAutomatorVideoTitle,
+        commentText,
+        scheduledStartTime: activeAutomatorScheduledStartTime
+      })
+    });
+
+    document.getElementById("liveAutomatorDialog").close();
+    await loadLiveAutomator({ force: true });
+  } catch (err) {
+    alert("Failed to save automation: " + err.message);
+  } finally {
+    btn.textContent = origText;
+    btn.disabled = false;
+  }
+}
+
+async function deleteLiveAutomatorTask(videoId) {
+  if (!confirm("Are you sure you want to delete this comment automation?")) return;
+
+  try {
+    await api("/api/live-automator/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ videoId })
+    });
+    await loadLiveAutomator({ force: true });
+  } catch (err) {
+    alert("Failed to delete automation: " + err.message);
+  }
+}
+
+function setupLiveAutomatorListeners() {
+  document.getElementById("liveAutomatorLoadButton")?.addEventListener("click", () => {
+    loadLiveAutomator({ force: true });
+  });
+
+  document.getElementById("liveAutomatorChannelSelect")?.addEventListener("change", (e) => {
+    state.liveAutomatorSelectedChannel = e.target.value;
+    loadLiveAutomator({ force: true });
+  });
+
+  document.getElementById("liveAutomatorCancelBtn")?.addEventListener("click", () => {
+    document.getElementById("liveAutomatorDialog")?.close();
+  });
+
+  document.getElementById("liveAutomatorSaveBtn")?.addEventListener("click", () => {
+    saveLiveAutomatorTask();
+  });
+}
+
+// Initialize listeners
+setTimeout(setupLiveAutomatorListeners, 1000);
 
 
 

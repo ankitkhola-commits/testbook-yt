@@ -3493,6 +3493,276 @@ app.post("/api/ytm/comment/reply", async (req, res, next) => {
   }
 });
 
+const liveCommentTasksPath = path.join(dataDir, "live_comment_tasks.json");
+
+async function readLiveCommentTasks() {
+  if (sql) {
+    await ensureStorage();
+    const rows = await sql`select payload from app_state where key = 'live_comment_tasks' limit 1`;
+    return rows[0]?.payload || [];
+  }
+  try {
+    return JSON.parse(await readFile(liveCommentTasksPath, "utf8"));
+  } catch {
+    return [];
+  }
+}
+
+async function saveLiveCommentTasks(data) {
+  if (sql) {
+    await ensureStorage();
+    await sql`
+      insert into app_state (key, payload)
+      values ('live_comment_tasks', ${sql.json(data)})
+      on conflict (key) do update set payload = excluded.payload
+    `;
+    return;
+  }
+  try {
+    await mkdir(dataDir, { recursive: true });
+    await writeFile(liveCommentTasksPath, JSON.stringify(data, null, 2), "utf8");
+  } catch (err) {
+    console.error("Failed to save live comment tasks:", err);
+  }
+}
+
+async function checkLiveCommentTasks() {
+  try {
+    const tasks = await readLiveCommentTasks();
+    const pendingTasks = tasks.filter(t => t.status === "pending");
+    if (!pendingTasks.length) return;
+
+    const now = Date.now();
+    const tasksToCheck = pendingTasks.filter(t => {
+      if (!t.scheduledStartTime) return true;
+      const startTime = new Date(t.scheduledStartTime).getTime();
+      // Start checking 5 minutes before scheduled start time
+      return now >= (startTime - 5 * 60 * 1000);
+    });
+
+    if (!tasksToCheck.length) return;
+
+    console.log(`[Live Automator] Checking status for ${tasksToCheck.length} active stream tasks...`);
+
+    const videoIds = tasksToCheck.map(t => t.videoId);
+    const entries = await connectedChannelEntries();
+    if (!entries.length) {
+      console.warn("[Live Automator] No connected channels found to check task status.");
+      return;
+    }
+    
+    const auth = entries[0].auth;
+    const youtube = google.youtube({ version: "v3", auth });
+
+    const videoRes = await youtube.videos.list({
+      part: ["snippet"],
+      id: videoIds
+    });
+
+    const items = videoRes.data.items || [];
+    
+    for (const task of tasksToCheck) {
+      const videoInfo = items.find(item => item.id === task.videoId);
+      
+      if (!videoInfo) {
+        console.warn(`[Live Automator] Video ${task.videoId} not found on YouTube. Marking task as failed.`);
+        task.status = "failed";
+        task.error = "Video not found or deleted";
+        continue;
+      }
+
+      const liveStatus = videoInfo.snippet?.liveBroadcastContent;
+      
+      console.log(`[Live Automator] Video ${task.videoId} status is currently: ${liveStatus}`);
+      
+      if (liveStatus === "none") {
+        console.log(`[Live Automator] Stream ${task.videoId} has ended. Attempting to post comment...`);
+        
+        const channelEntry = entries.find(e => e.channel.id === task.channelId);
+        if (!channelEntry) {
+          task.status = "failed";
+          task.error = "Channel credentials no longer connected";
+          continue;
+        }
+
+        const taskYoutube = google.youtube({ version: "v3", auth: channelEntry.auth });
+        
+        try {
+          await taskYoutube.commentThreads.insert({
+            part: ["snippet"],
+            requestBody: {
+              snippet: {
+                videoId: task.videoId,
+                topLevelComment: {
+                  snippet: {
+                    textOriginal: task.commentText
+                  }
+                }
+              }
+            }
+          });
+          
+          task.status = "posted";
+          task.postedAt = new Date().toISOString();
+          console.log(`[Live Automator] Successfully posted comment to ended stream ${task.videoId}`);
+        } catch (postErr) {
+          console.error(`[Live Automator] Failed to post comment to ${task.videoId}:`, postErr.message);
+          task.status = "failed";
+          task.error = postErr.message;
+        }
+      }
+    }
+
+    await saveLiveCommentTasks(tasks);
+  } catch (err) {
+    console.error("[Live Automator] Error checking live comment tasks:", err);
+  }
+}
+
+function startLiveCommentsScheduler() {
+  console.log("[Scheduler] Initializing live comment status checker (every 5 minutes)...");
+  checkLiveCommentTasks().catch(err => console.error("Error in immediate live comments check:", err));
+  setInterval(async () => {
+    await checkLiveCommentTasks();
+  }, 5 * 60 * 1000);
+}
+
+app.get("/api/live-automator/streams", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (teamAuthEnabled() && !viewer) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    
+    const { channelId } = req.query;
+    if (!channelId) {
+      return res.status(400).json({ error: "Missing channelId" });
+    }
+
+    const entries = await connectedChannelEntries();
+    const entry = entries.find(e => e.channel.id === channelId);
+    if (!entry) {
+      return res.status(404).json({ error: "Channel not found or unauthorized" });
+    }
+
+    const auth = entry.auth;
+    const youtube = google.youtube({ version: "v3", auth });
+
+    const upcomingRes = await youtube.liveBroadcasts.list({
+      part: ["snippet"],
+      broadcastStatus: "upcoming",
+      maxResults: 25
+    });
+
+    const upcomingItems = upcomingRes.data.items || [];
+    
+    const streams = upcomingItems.map(item => {
+      const snippet = item.snippet || {};
+      return {
+        id: item.id,
+        title: snippet.title,
+        publishedAt: snippet.publishedAt,
+        scheduledStartTime: snippet.scheduledStartTime,
+        thumbnail: snippet.thumbnails?.medium?.url || snippet.thumbnails?.default?.url || "",
+        status: "upcoming"
+      };
+    })
+    .filter(s => s.id)
+    .filter(s => {
+      if (!s.scheduledStartTime) return true;
+      return new Date(s.scheduledStartTime).getTime() > Date.now();
+    })
+    .sort((a, b) => new Date(a.scheduledStartTime).getTime() - new Date(b.scheduledStartTime).getTime());
+
+    res.json({ streams });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/live-automator/tasks", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (teamAuthEnabled() && !viewer) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const { channelId } = req.query;
+    if (!channelId) {
+      return res.status(400).json({ error: "Missing channelId" });
+    }
+
+    const tasks = await readLiveCommentTasks();
+    const channelTasks = tasks.filter(t => t.channelId === channelId);
+
+    res.json({ tasks: channelTasks });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/live-automator/save", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (teamAuthEnabled() && !viewer) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const { channelId, videoId, videoTitle, commentText, scheduledStartTime } = req.body;
+    if (!channelId || !videoId || !commentText) {
+      return res.status(400).json({ error: "Missing required parameters" });
+    }
+
+    const tasks = await readLiveCommentTasks();
+    
+    const existingIndex = tasks.findIndex(t => t.videoId === videoId);
+    if (existingIndex !== -1) {
+      tasks[existingIndex].commentText = commentText;
+      tasks[existingIndex].scheduledStartTime = scheduledStartTime || tasks[existingIndex].scheduledStartTime;
+      tasks[existingIndex].status = "pending";
+      tasks[existingIndex].error = null;
+    } else {
+      tasks.push({
+        channelId,
+        videoId,
+        videoTitle,
+        commentText,
+        scheduledStartTime,
+        status: "pending",
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    await saveLiveCommentTasks(tasks);
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/live-automator/delete", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (teamAuthEnabled() && !viewer) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const { videoId } = req.body;
+    if (!videoId) {
+      return res.status(400).json({ error: "Missing videoId" });
+    }
+
+    let tasks = await readLiveCommentTasks();
+    tasks = tasks.filter(t => t.videoId !== videoId);
+
+    await saveLiveCommentTasks(tasks);
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
 app.get("/api/competitors/outliers", async (req, res, next) => {
   try {
     const viewer = readViewerSession(req);
@@ -3904,6 +4174,7 @@ if (isDirectRun) {
     console.log(`YouTube dashboard running at http://localhost:${port}`);
     startKeywordScheduler();
     startTwiceDailyScheduler();
+    startLiveCommentsScheduler();
   });
 }
 
@@ -4553,6 +4824,7 @@ function isBrandKeyword(keyword, channelTitle) {
   const brandTerms = ["testbook", "supercoaching", "super coaching", "preplab"];
   return brandTerms.some(term => lowerKeyword.includes(term));
 }
+
 
 async function scrapeYoutubeSearch(keyword) {
   // Add a small randomized delay to avoid YouTube scraper rate limiting

@@ -109,6 +109,7 @@
           <button class="side-nav-button" type="button" data-view-tab="keywords">Rank AI</button>
           <button class="side-nav-button" type="button" data-view-tab="research">Research AI</button>
           <button class="side-nav-button" type="button" data-view-tab="seo">SEO Audit</button>
+          <button class="side-nav-button" type="button" data-view-tab="live-automator">Live Automator</button>
         </nav>
 
         <button class="connect-button" id="connectChannelButton" data-sidebar-view="dashboard">
@@ -406,6 +407,50 @@
             <div id="seoResults" class="seo-results"></div>
           </article>
 
+          <!-- Live Automator Panel -->
+          <article class="panel page-panel live-automator-panel is-hidden" data-view="live-automator">
+            <div class="panel-header live-automator-header">
+              <div>
+                <p class="eyebrow">Live Automator</p>
+                <h2>Publish comments automatically when live streams end</h2>
+              </div>
+            </div>
+            
+            <div class="seo-toolbar">
+              <div class="select-wrap">
+                <label for="liveAutomatorChannelSelect">Channel</label>
+                <select id="liveAutomatorChannelSelect">
+                  <!-- Will be populated dynamically -->
+                </select>
+              </div>
+              <button class="connect-button" type="button" id="liveAutomatorLoadButton">Load Streams</button>
+            </div>
+            
+            <div id="liveAutomatorProgressBarContainer" class="progress-bar-container is-hidden">
+              <div class="progress-bar-label" id="liveAutomatorProgressBarLabel">Loading streams... (0%)</div>
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="liveAutomatorProgressBarFill" style="width: 0%"></div>
+              </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 20px; align-items: start;">
+              <!-- Left side: Streams List -->
+              <div style="background: #fff; padding: 20px; border-radius: 8px; border: 1px solid var(--line);">
+                <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 15px; font-weight: 700; color: var(--ink);">Upcoming Streams</h3>
+                <div id="liveAutomatorStreamsList" class="live-automator-list">
+                  <!-- Dynamically populated streams -->
+                </div>
+              </div>
+              
+              <!-- Right side: Saved Comment Tasks -->
+              <div style="background: #fff; padding: 20px; border-radius: 8px; border: 1px solid var(--line);">
+                <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 15px; font-weight: 700; color: var(--ink);">Saved Comment Automations</h3>
+                <div id="liveAutomatorTasksList" class="live-automator-list">
+                  <!-- Dynamically populated tasks -->
+                </div>
+              </div>
+            </div>
+          </article>
 
           <!-- Rankings Panel -->
           <article class="panel page-panel rankings-panel is-hidden" data-view="keywords">
@@ -738,8 +783,37 @@
               <span>AI Reasoning</span>
             </div>
             <p id="seoSuggestReason" class="suggest-reason"></p>
-          </div>
         </div>
+      </form>
+    </dialog>
+
+    <dialog id="liveAutomatorDialog" class="modal" style="width: 100%; max-width: 500px;">
+      <form method="dialog" id="liveAutomatorForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Comment Automator</p>
+            <h2 id="liveAutomatorDialogStreamTitle">Save Stream Comment</h2>
+          </div>
+          <button value="cancel" class="icon-button" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body" style="padding: 16px 0; display: flex; flex-direction: column; gap: 16px;">
+          <p style="font-size: 13px; color: var(--muted); margin: 0; line-height: 1.4;">
+            Type a comment below. Once this stream transitions from **live** to **ended**, this comment will automatically be published to the comment section.
+          </p>
+          <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink);">
+            Comment Text
+            <textarea id="liveAutomatorCommentText" rows="5" placeholder="Type your comment to post at the end of the stream..." style="width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; font-size: 13px; font-family: inherit; line-height: 1.4; resize: vertical; box-sizing: border-box; outline: none;"></textarea>
+          </label>
+        </div>
+        <div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end; border-top: 1px solid var(--line); padding-top: 16px;">
+          <button value="cancel" class="ghost-button" type="button" id="liveAutomatorCancelBtn">Cancel</button>
+          <button class="connect-button" type="button" id="liveAutomatorSaveBtn">Save Automation</button>
+        </div>
+      </form>
+    </dialog>
+
+
+
     <dialog id="targetsDialog" class="modal" style="width: 100%; max-width: 800px;">
       <form method="dialog" id="targetsForm">
         <div class="modal-header">
