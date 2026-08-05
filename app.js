@@ -1067,7 +1067,7 @@ function formatPercentCompact(value) {
 
 function applyView() {
   const isDashboard = state.activeView === "dashboard";
-  const isAllInOne = state.report?.isAllInOne;
+  const isAllInOne = state.report ? state.report.isAllInOne : (state.selectedChannelId === "all-in-one" || !state.selectedChannelId);
   document.querySelectorAll("[data-view-tab]").forEach((button) => {
     button.classList.toggle("active", button.dataset.viewTab === state.activeView);
   });

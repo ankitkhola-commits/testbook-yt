@@ -887,20 +887,22 @@
       </form>
     </dialog>
 
-    <dialog id="unmatchedVideosDialog" class="modal" style="width: 100%; max-width: 950px; max-height: 80vh; display: flex; flex-direction: column;">
-      <div class="modal-header">
-        <div>
-          <p class="eyebrow">Faculty Analysis</p>
-          <h2 style="margin: 0;">Unmatched Videos (No Keywords)</h2>
+    <dialog id="unmatchedVideosDialog" class="modal" style="width: 100%; max-width: 950px;">
+      <form method="dialog" style="display: flex; flex-direction: column; max-height: 80vh; gap: 16px; padding: 22px; width: 100%; box-sizing: border-box;">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <p class="eyebrow">Faculty Analysis</p>
+            <h2 style="margin: 0;">Unmatched Videos (No Keywords)</h2>
+          </div>
+          <button value="cancel" class="icon-button" aria-label="Close" type="button" onclick="document.getElementById('unmatchedVideosDialog').close()">×</button>
         </div>
-        <button onclick="document.getElementById('unmatchedVideosDialog').close()" class="icon-button" aria-label="Close" type="button">×</button>
-      </div>
-      <div class="modal-body" id="unmatchedVideosList" style="padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; flex: 1;">
-        <!-- Dynamically populated list of unmatched videos -->
-      </div>
-      <div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end; border-top: 1px solid var(--line); padding-top: 16px;">
-        <button onclick="document.getElementById('unmatchedVideosDialog').close()" class="ghost-button" type="button">Close</button>
-      </div>
+        <div class="modal-body" id="unmatchedVideosList" style="padding: 16px 0; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; max-height: 50vh;">
+          <!-- Dynamically populated list of unmatched videos -->
+        </div>
+        <div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end; border-top: 1px solid var(--line); padding-top: 16px;">
+          <button value="cancel" class="ghost-button" type="button" onclick="document.getElementById('unmatchedVideosDialog').close()">Close</button>
+        </div>
+      </form>
     </dialog>
 
 
@@ -1006,6 +1008,6 @@
       </form>
     </dialog>
 
-    <script src="./app.js?v=6"></script>
+    <script src="./app.js?v=7"></script>
   </body>
 </html>
