@@ -139,7 +139,7 @@ let state = {
   channels: [],
   selectedChannelId: "",
   channelSearch: "",
-  activeRange: "28",
+  activeRange: "month",
   selectedMonth: currentMonthValue(),
   activeView: "dashboard",
   activeCompetitorCategory: null,
@@ -554,14 +554,20 @@ function renderReport(report) {
   renderChannels();
   renderGrowth(report.totals, report.comparisonTotals);
   renderMetrics(report.totals, report.comparisonTotals, report.isAllInOne);
+  
+  const facultyPanel = document.querySelector("#facultyPerformancePanel");
   if (report.isAllInOne) {
     renderAllInOneDashboard(report);
+    facultyPanel?.classList.add("is-hidden");
   } else {
     renderUploadTable(report.series);
     renderViewsSplit(report.totals);
     renderSubscriberContent(report.topContent);
     renderAverageViews(report.totals);
     renderYoutubeSearch(report);
+    
+    facultyPanel?.classList.remove("is-hidden");
+    renderFacultyPerformance(report.facultyPerformance);
   }
   renderCompetitorCategoryTabs();
   renderResearchView();
@@ -4115,6 +4121,9 @@ async function loadLiveAutomator(options = {}) {
   if (!channelId) {
     document.querySelector("#liveAutomatorStreamsList").innerHTML = emptyCard("Please connect a channel first.");
     document.querySelector("#liveAutomatorTasksList").innerHTML = emptyCard("Please connect a channel first.");
+    if (document.querySelector("#liveAutomatorRulesList")) {
+      document.querySelector("#liveAutomatorRulesList").innerHTML = emptyCard("Please connect a channel first.");
+    }
     return;
   }
 
@@ -4127,33 +4136,42 @@ async function loadLiveAutomator(options = {}) {
 
   document.querySelector("#liveAutomatorStreamsList").innerHTML = emptyCard("Fetching streams...");
   document.querySelector("#liveAutomatorTasksList").innerHTML = emptyCard("Fetching automation tasks...");
+  if (document.querySelector("#liveAutomatorRulesList")) {
+    document.querySelector("#liveAutomatorRulesList").innerHTML = emptyCard("Fetching rules...");
+  }
 
   const steps = [
     { time: 0, text: "Searching channel for live/upcoming broadcasts..." },
-    { time: 2, text: "Retrieving active tasks..." },
+    { time: 2, text: "Retrieving active tasks and rules..." },
     { time: 4, text: "Rendering live automator dashboard..." }
   ];
   const progressBar = startProgressBar("liveAutomatorProgressBarContainer", "liveAutomatorProgressBarFill", "liveAutomatorProgressBarLabel", steps);
 
   try {
-    const [streamsRes, tasksRes] = await Promise.all([
+    const [streamsRes, tasksRes, rulesRes] = await Promise.all([
       api(`/api/live-automator/streams?channelId=${encodeURIComponent(channelId)}`),
-      api(`/api/live-automator/tasks?channelId=${encodeURIComponent(channelId)}`)
+      api(`/api/live-automator/tasks?channelId=${encodeURIComponent(channelId)}`),
+      api(`/api/live-automator/rules?channelId=${encodeURIComponent(channelId)}`)
     ]);
 
     if (progressBar) progressBar.stop(true, "Dashboard Loaded!");
     state.liveAutomatorStreams = streamsRes.streams || [];
     state.liveAutomatorTasks = tasksRes.tasks || [];
+    state.liveAutomatorRules = rulesRes.rules || [];
     state.liveAutomatorStreamsChannelId = channelId;
     renderLiveAutomatorView();
   } catch (error) {
     if (progressBar) progressBar.stop(false, "Load Failed!");
     document.querySelector("#liveAutomatorStreamsList").innerHTML = emptyCard(error.message);
     document.querySelector("#liveAutomatorTasksList").innerHTML = emptyCard(error.message);
+    if (document.querySelector("#liveAutomatorRulesList")) {
+      document.querySelector("#liveAutomatorRulesList").innerHTML = emptyCard(error.message);
+    }
   }
 }
 
 function renderLiveAutomatorView() {
+  renderLiveAutomatorRules();
   renderLiveAutomatorStreams();
   renderLiveAutomatorTasks();
 }
@@ -4170,8 +4188,12 @@ function renderLiveAutomatorStreams() {
   container.innerHTML = `
     <div style="display: flex; flex-direction: column; gap: 12px;">
       ${state.liveAutomatorStreams.map(stream => {
-        const hasTask = state.liveAutomatorTasks.some(t => t.videoId === stream.id && t.status === "pending");
+        const task = state.liveAutomatorTasks.find(t => t.videoId === stream.id && t.status === "pending");
+        const hasTask = Boolean(task);
         const statusBadge = `<span style="background: #2563eb; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase;">Upcoming</span>`;
+        const autoCommentBadge = task && task.autoCreated 
+          ? `<span style="background: #059669; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase;">Auto Comment Set</span>`
+          : "";
         const dateToUse = stream.scheduledStartTime || stream.publishedAt;
         const dateStr = new Date(dateToUse).toLocaleDateString(undefined, { 
           month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' 
@@ -4183,8 +4205,9 @@ function renderLiveAutomatorStreams() {
               <div style="font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(stream.title)}">
                 ${escapeHtml(stream.title)}
               </div>
-              <div style="margin-top: 4px; display: flex; gap: 8px; align-items: center;">
+              <div style="margin-top: 4px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                 ${statusBadge}
+                ${autoCommentBadge}
                 <span style="font-size: 11px; color: var(--muted);" title="Scheduled Start Time">Start: ${escapeHtml(dateStr)}</span>
               </div>
             </div>
@@ -4326,6 +4349,182 @@ async function deleteLiveAutomatorTask(videoId) {
   }
 }
 
+function renderLiveAutomatorRules() {
+  const container = document.querySelector("#liveAutomatorRulesList");
+  if (!container) return;
+
+  if (!state.liveAutomatorRules || !state.liveAutomatorRules.length) {
+    container.innerHTML = `<div style="font-size: 12px; color: var(--muted); text-align: center; padding: 16px;">No keyword rules saved.</div>`;
+    return;
+  }
+
+  container.innerHTML = state.liveAutomatorRules.map(rule => `
+    <div style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface);">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="background: var(--line); color: var(--ink); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; font-family: monospace;">${escapeHtml(rule.keyword)}</span>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <button class="ghost-button automator-rule-edit-btn" type="button" data-keyword="${escapeHtml(rule.keyword)}" data-comment-text="${escapeHtml(rule.commentText)}" style="margin: 0; padding: 2px 6px; font-size: 11px; height: auto; width: auto; color: var(--ink); border: 1px solid var(--line); background: #fff;">Edit</button>
+          <button class="ghost-button automator-rule-delete-btn" type="button" data-keyword="${escapeHtml(rule.keyword)}" style="margin: 0; padding: 2px 6px; font-size: 11px; height: auto; width: auto; color: #dc2626; border: 1px solid #fecaca; background: #fef2f2;">Delete</button>
+        </div>
+      </div>
+      <div style="font-size: 11px; color: var(--muted); font-family: monospace; white-space: pre-wrap; max-height: 80px; overflow-y: auto; border: 1px solid transparent; padding: 2px 0;">${escapeHtml(rule.commentText)}</div>
+    </div>
+  `).join("");
+
+  // Bind edit & delete click listeners
+  container.querySelectorAll(".automator-rule-edit-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.getElementById("liveAutomatorRuleKeyword").value = btn.dataset.keyword;
+      document.getElementById("liveAutomatorRuleCommentText").value = btn.dataset.commentText;
+    });
+  });
+
+  container.querySelectorAll(".automator-rule-delete-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      deleteLiveAutomatorRule(btn.dataset.keyword);
+    });
+  });
+}
+
+async function saveLiveAutomatorRule() {
+  const keyword = document.getElementById("liveAutomatorRuleKeyword").value.trim();
+  const commentText = document.getElementById("liveAutomatorRuleCommentText").value.trim();
+
+  if (!keyword || !commentText) {
+    alert("Please fill in both Keyword and Comment Text.");
+    return;
+  }
+
+  const btn = document.getElementById("liveAutomatorRuleSaveBtn");
+  const origText = btn.textContent;
+  btn.textContent = "Saving...";
+  btn.disabled = true;
+
+  try {
+    await api("/api/live-automator/rules/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        channelId: state.liveAutomatorSelectedChannel,
+        keyword,
+        commentText
+      })
+    });
+
+    document.getElementById("liveAutomatorRuleKeyword").value = "";
+    document.getElementById("liveAutomatorRuleCommentText").value = "";
+    await loadLiveAutomator({ force: true });
+  } catch (err) {
+    alert("Failed to save rule: " + err.message);
+  } finally {
+    btn.textContent = origText;
+    btn.disabled = false;
+  }
+}
+
+async function deleteLiveAutomatorRule(keyword) {
+  if (!confirm(`Are you sure you want to delete the auto-rule for "${keyword}"?`)) return;
+
+  try {
+    await api("/api/live-automator/rules/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        channelId: state.liveAutomatorSelectedChannel,
+        keyword
+      })
+    });
+    await loadLiveAutomator({ force: true });
+  } catch (err) {
+    alert("Failed to delete rule: " + err.message);
+  }
+}
+
+function renderFacultyPerformance(data) {
+  const container = document.querySelector("#facultyPerformanceTable");
+  if (!container) return;
+
+  if (!data || !data.length) {
+    container.innerHTML = `<div style="font-size: 13px; color: var(--muted); text-align: center; padding: 24px;">No faculty performance data found for the configured keywords. Click "Manage Faculty" above to add names.</div>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+      <thead>
+        <tr style="background: #f8fafc; border-bottom: 1px solid var(--line); font-weight: 600; color: var(--ink);">
+          <th style="padding: 12px 16px;">Faculty Name</th>
+          <th style="padding: 12px 16px; text-align: right;">Views Gained</th>
+          <th style="padding: 12px 16px; text-align: right;">Subs Gained</th>
+          <th style="padding: 12px 16px; text-align: right;">Videos</th>
+          <th style="padding: 12px 16px; text-align: right;">Live Streams</th>
+          <th style="padding: 12px 16px; text-align: right;">Like Ratio</th>
+          <th style="padding: 12px 16px; text-align: right;">Total Duration</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map(row => `
+          <tr style="border-bottom: 1px solid var(--line); color: var(--ink);">
+            <td style="padding: 12px 16px; font-weight: 600;">${escapeHtml(row.facultyName)}</td>
+            <td style="padding: 12px 16px; text-align: right; font-weight: 500;">${row.views.toLocaleString()}</td>
+            <td style="padding: 12px 16px; text-align: right; color: #059669; font-weight: 500;">+${row.subscribers.toLocaleString()}</td>
+            <td style="padding: 12px 16px; text-align: right;">${row.noOfVideos}</td>
+            <td style="padding: 12px 16px; text-align: right;">${row.noOfLive}</td>
+            <td style="padding: 12px 16px; text-align: right; font-weight: 500;">${row.likeRatio || "-"}</td>
+            <td style="padding: 12px 16px; text-align: right;">${row.durationHours}h</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+async function openFacultyKeywordsManager() {
+  const channelId = state.selectedChannelId;
+  if (!channelId || channelId === "all-in-one") return;
+
+  const dialog = document.getElementById("facultyKeywordsDialog");
+  const textarea = document.getElementById("facultyKeywordsText");
+  textarea.value = "Loading...";
+  dialog.showModal();
+
+  try {
+    const res = await api(`/api/faculty-keywords?channelId=${encodeURIComponent(channelId)}`);
+    textarea.value = (res.keywords || []).join(", ");
+  } catch (err) {
+    textarea.value = "";
+    alert("Failed to load faculty keywords: " + err.message);
+  }
+}
+
+async function saveFacultyKeywordsManager() {
+  const channelId = state.selectedChannelId;
+  if (!channelId || channelId === "all-in-one") return;
+
+  const text = document.getElementById("facultyKeywordsText").value;
+  const keywords = text.split(",").map(k => k.trim()).filter(Boolean);
+
+  const btn = document.getElementById("facultyKeywordsSaveBtn");
+  const origText = btn.textContent;
+  btn.textContent = "Saving...";
+  btn.disabled = true;
+
+  try {
+    await api("/api/faculty-keywords/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ channelId, keywords })
+    });
+    document.getElementById("facultyKeywordsDialog").close();
+    await loadDashboard({ force: true });
+  } catch (err) {
+    alert("Failed to save faculty keywords: " + err.message);
+  } finally {
+    btn.textContent = origText;
+    btn.disabled = false;
+  }
+}
+
 function setupLiveAutomatorListeners() {
   document.getElementById("liveAutomatorLoadButton")?.addEventListener("click", () => {
     loadLiveAutomator({ force: true });
@@ -4343,7 +4542,123 @@ function setupLiveAutomatorListeners() {
   document.getElementById("liveAutomatorSaveBtn")?.addEventListener("click", () => {
     saveLiveAutomatorTask();
   });
+
+  document.getElementById("liveAutomatorRuleSaveBtn")?.addEventListener("click", () => {
+    saveLiveAutomatorRule();
+  });
+
+  // Faculty keyword manager listeners
+  document.getElementById("manageFacultyBtn")?.addEventListener("click", () => {
+    openFacultyKeywordsManager();
+  });
+
+  document.getElementById("unmatchedVideosBtn")?.addEventListener("click", () => {
+    window.openUnmatchedVideosManager();
+  });
+
+  document.getElementById("facultyKeywordsCancelBtn")?.addEventListener("click", () => {
+    document.getElementById("facultyKeywordsDialog")?.close();
+  });
+
+  document.getElementById("facultyKeywordsSaveBtn")?.addEventListener("click", () => {
+    saveFacultyKeywordsManager();
+  });
 }
+
+window.openUnmatchedVideosManager = function() {
+  const dialog = document.getElementById("unmatchedVideosDialog");
+  const container = document.getElementById("unmatchedVideosList");
+  if (!dialog || !container) return;
+
+  const unmatched = state.report?.unmatchedVideos || [];
+  if (!unmatched.length) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 32px; color: var(--muted); font-size: 14px;">
+        🎉 All videos in this range have matched faculty keywords!
+      </div>
+    `;
+    dialog.showModal();
+    return;
+  }
+
+  container.innerHTML = unmatched.map(video => {
+    const thumbnailUrl = `https://i.ytimg.com/vi/${video.id}/default.jpg`;
+    return `
+      <div style="display: flex; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 16px; align-items: center; min-width: 0;">
+        <img src="${thumbnailUrl}" alt="Thumbnail" style="width: 120px; aspect-ratio: 16/9; object-fit: cover; border-radius: 4px; background: #e2e8f0; border: 1px solid var(--line); flex-shrink: 0;" />
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
+          <div style="font-weight: 600; font-size: 14px; color: var(--ink); line-height: 1.4;">
+            ${escapeHtml(video.title)}
+          </div>
+          <div style="font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span>Published: ${new Date(video.publishedAt).toLocaleString()}</span>
+            <span>|</span>
+            <span>Format: ${video.format}</span>
+            <span>|</span>
+            <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noreferrer" style="color: #2563eb; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+              📺 Watch Video
+            </a>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; width: 100%; margin-top: 4px;">
+            <input type="text" id="input-title-${video.id}" value="${escapeHtml(video.title)}" style="flex: 1; border: 1px solid var(--line); border-radius: 4px; padding: 6px 12px; font-size: 13px; height: 32px; box-sizing: border-box; outline: none;" />
+            <button onclick="window.updateVideoTitleDirectly('${video.id}')" id="btn-title-${video.id}" class="connect-button" style="height: 32px; padding: 0 12px; font-size: 12px; margin: 0; width: auto; background: #2563eb; color: #fff;">
+              Update Title
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  dialog.showModal();
+};
+
+window.updateVideoTitleDirectly = async function(videoId) {
+  const input = document.getElementById(`input-title-${videoId}`);
+  const btn = document.getElementById(`btn-title-${videoId}`);
+  const channelId = state.selectedChannelId;
+  if (!input || !btn || !channelId) return;
+
+  const newTitle = input.value.trim();
+  if (!newTitle) {
+    alert("Title cannot be empty!");
+    return;
+  }
+
+  const oldText = btn.textContent;
+  btn.textContent = "Updating...";
+  btn.disabled = true;
+
+  try {
+    const res = await fetch("/api/update-video-title", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ videoId, channelId, newTitle })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      throw new Error(data.error || "Failed to update title");
+    }
+    
+    alert("Title updated successfully on YouTube!");
+    
+    const refreshBtn = document.querySelector(".dashboard-header .refresh-button") || document.getElementById("refreshBtn");
+    if (refreshBtn) {
+      refreshBtn.click();
+    } else {
+      loadDashboard({ force: true });
+    }
+    
+    document.getElementById("unmatchedVideosDialog")?.close();
+
+  } catch (err) {
+    alert("Error: " + err.message);
+    btn.textContent = oldText;
+    btn.disabled = false;
+  }
+};
 
 // Initialize listeners
 setTimeout(setupLiveAutomatorListeners, 1000);

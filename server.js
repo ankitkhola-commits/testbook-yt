@@ -479,6 +479,8 @@ async function refreshDashboardCacheInternal(activeChannelId, range, force = fal
         competitors: [],
         insights: buildLiveInsights([], merged),
         allInOne: activeChannelId === "all-in-one" ? buildAllInOneDashboard(selectedEntries, channelReports, dates) : null,
+        facultyPerformance: activeChannelId === "all-in-one" ? [] : (channelReports[0]?.facultyPerformance || []),
+        unmatchedVideos: activeChannelId === "all-in-one" ? [] : (channelReports[0]?.unmatchedVideos || []),
       };
     },
     { force }
@@ -532,6 +534,8 @@ app.get("/api/dashboard", async (req, res, next) => {
             competitors: [],
             insights: buildLiveInsights([], merged),
             allInOne: activeChannelId === "all-in-one" ? buildAllInOneDashboard(selectedEntries, channelReports, dates) : null,
+            facultyPerformance: activeChannelId === "all-in-one" ? [] : (channelReports[0]?.facultyPerformance || []),
+            unmatchedVideos: activeChannelId === "all-in-one" ? [] : (channelReports[0]?.unmatchedVideos || []),
           };
         },
         { force }
@@ -3526,8 +3530,115 @@ async function saveLiveCommentTasks(data) {
   }
 }
 
+const liveCommentRulesPath = path.join(dataDir, "live_comment_rules.json");
+
+async function readLiveCommentRules() {
+  if (sql) {
+    await ensureStorage();
+    const rows = await sql`select payload from app_state where key = 'live_comment_rules' limit 1`;
+    return rows[0]?.payload || [];
+  }
+  try {
+    return JSON.parse(await readFile(liveCommentRulesPath, "utf8"));
+  } catch {
+    return [];
+  }
+}
+
+async function saveLiveCommentRules(data) {
+  if (sql) {
+    await ensureStorage();
+    await sql`
+      insert into app_state (key, payload)
+      values ('live_comment_rules', ${sql.json(data)})
+      on conflict (key) do update set payload = excluded.payload
+    `;
+    return;
+  }
+  try {
+    await mkdir(dataDir, { recursive: true });
+    await writeFile(liveCommentRulesPath, JSON.stringify(data, null, 2), "utf8");
+  } catch (err) {
+    console.error("Failed to save live comment rules:", err);
+  }
+}
+
+async function autoMatchRulesForChannel(channelId, streams) {
+  try {
+    const rules = await readLiveCommentRules();
+    const channelRules = rules.filter(r => r.channelId === channelId);
+    if (!channelRules.length) return;
+
+    const tasks = await readLiveCommentTasks();
+    let tasksUpdated = false;
+
+    for (const stream of streams) {
+      const exists = tasks.some(t => t.videoId === stream.id);
+      if (exists) continue;
+
+      const streamTitleLower = (stream.title || "").toLowerCase();
+      const matchingRule = channelRules.find(r => {
+        const kw = (r.keyword || "").toLowerCase().trim();
+        return kw && streamTitleLower.includes(kw);
+      });
+
+      if (matchingRule) {
+        console.log(`[Live Automator] Auto-matched stream ${stream.id} ("${stream.title}") with keyword "${matchingRule.keyword}"`);
+        tasks.push({
+          channelId,
+          videoId: stream.id,
+          videoTitle: stream.title,
+          commentText: matchingRule.commentText,
+          scheduledStartTime: stream.scheduledStartTime || stream.publishedAt,
+          status: "pending",
+          createdAt: new Date().toISOString(),
+          autoCreated: true
+        });
+        tasksUpdated = true;
+      }
+    }
+
+    if (tasksUpdated) {
+      await saveLiveCommentTasks(tasks);
+    }
+  } catch (err) {
+    console.error("[Live Automator] Error in autoMatchRulesForChannel:", err);
+  }
+}
+
 async function checkLiveCommentTasks() {
   try {
+    const entries = await connectedChannelEntries();
+    if (!entries.length) return;
+
+    // 1. Proactively auto-match rules for all connected channels
+    for (const entry of entries) {
+      const channelId = entry.channel.id;
+      const youtube = google.youtube({ version: "v3", auth: entry.auth });
+      try {
+        const upcomingRes = await youtube.liveBroadcasts.list({
+          part: ["snippet"],
+          broadcastStatus: "upcoming",
+          maxResults: 25
+        });
+        const upcomingItems = upcomingRes.data.items || [];
+        const streams = upcomingItems.map(item => {
+          const snippet = item.snippet || {};
+          return {
+            id: item.id,
+            title: snippet.title,
+            publishedAt: snippet.publishedAt,
+            scheduledStartTime: snippet.scheduledStartTime
+          };
+        }).filter(s => s.id);
+
+        await autoMatchRulesForChannel(channelId, streams);
+      } catch (err) {
+        console.error(`[Live Automator] Error auto-matching upcoming streams for channel ${channelId}:`, err.message);
+      }
+    }
+
+    // 2. Poll and update pending tasks
     const tasks = await readLiveCommentTasks();
     const pendingTasks = tasks.filter(t => t.status === "pending");
     if (!pendingTasks.length) return;
@@ -3536,7 +3647,6 @@ async function checkLiveCommentTasks() {
     const tasksToCheck = pendingTasks.filter(t => {
       if (!t.scheduledStartTime) return true;
       const startTime = new Date(t.scheduledStartTime).getTime();
-      // Start checking 5 minutes before scheduled start time
       return now >= (startTime - 5 * 60 * 1000);
     });
 
@@ -3545,12 +3655,6 @@ async function checkLiveCommentTasks() {
     console.log(`[Live Automator] Checking status for ${tasksToCheck.length} active stream tasks...`);
 
     const videoIds = tasksToCheck.map(t => t.videoId);
-    const entries = await connectedChannelEntries();
-    if (!entries.length) {
-      console.warn("[Live Automator] No connected channels found to check task status.");
-      return;
-    }
-    
     const auth = entries[0].auth;
     const youtube = google.youtube({ version: "v3", auth });
 
@@ -3565,14 +3669,13 @@ async function checkLiveCommentTasks() {
       const videoInfo = items.find(item => item.id === task.videoId);
       
       if (!videoInfo) {
-        console.warn(`[Live Automator] Video ${task.videoId} not found on YouTube. Marking task as failed.`);
+        console.warn(`[Live Automator] Video ${task.videoId} not found. Marking task as failed.`);
         task.status = "failed";
         task.error = "Video not found or deleted";
         continue;
       }
 
       const liveStatus = videoInfo.snippet?.liveBroadcastContent;
-      
       console.log(`[Live Automator] Video ${task.videoId} status is currently: ${liveStatus}`);
       
       if (liveStatus === "none") {
@@ -3615,7 +3718,7 @@ async function checkLiveCommentTasks() {
 
     await saveLiveCommentTasks(tasks);
   } catch (err) {
-    console.error("[Live Automator] Error checking live comment tasks:", err);
+    console.error("[Live Automator] Error in checkLiveCommentTasks scheduler:", err);
   }
 }
 
@@ -3673,6 +3776,8 @@ app.get("/api/live-automator/streams", async (req, res, next) => {
       return new Date(s.scheduledStartTime).getTime() > Date.now();
     })
     .sort((a, b) => new Date(a.scheduledStartTime).getTime() - new Date(b.scheduledStartTime).getTime());
+
+    await autoMatchRulesForChannel(channelId, streams);
 
     res.json({ streams });
   } catch (error) {
@@ -3759,6 +3864,173 @@ app.post("/api/live-automator/delete", async (req, res, next) => {
     res.json({ success: true });
   } catch (error) {
     next(error);
+  }
+});
+
+app.get("/api/live-automator/rules", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (teamAuthEnabled() && !viewer) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const { channelId } = req.query;
+    if (!channelId) {
+      return res.status(400).json({ error: "Missing channelId" });
+    }
+
+    const rules = await readLiveCommentRules();
+    const channelRules = rules.filter(r => r.channelId === channelId);
+
+    res.json({ rules: channelRules });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/live-automator/rules/save", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (teamAuthEnabled() && !viewer) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const { channelId, keyword, commentText } = req.body;
+    if (!channelId || !keyword || !commentText) {
+      return res.status(400).json({ error: "Missing required parameters" });
+    }
+
+    const rules = await readLiveCommentRules();
+    const existingIndex = rules.findIndex(r => r.channelId === channelId && r.keyword.toLowerCase().trim() === keyword.toLowerCase().trim());
+    
+    if (existingIndex !== -1) {
+      rules[existingIndex].commentText = commentText;
+    } else {
+      rules.push({
+        channelId,
+        keyword: keyword.trim(),
+        commentText,
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    await saveLiveCommentRules(rules);
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/live-automator/rules/delete", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (teamAuthEnabled() && !viewer) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const { channelId, keyword } = req.body;
+    if (!channelId || !keyword) {
+      return res.status(400).json({ error: "Missing required parameters" });
+    }
+
+    let rules = await readLiveCommentRules();
+    rules = rules.filter(r => !(r.channelId === channelId && r.keyword.toLowerCase().trim() === keyword.toLowerCase().trim()));
+
+    await saveLiveCommentRules(rules);
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/faculty-keywords", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (teamAuthEnabled() && !viewer) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const { channelId } = req.query;
+    if (!channelId) {
+      return res.status(400).json({ error: "Missing channelId" });
+    }
+
+    const keywordsMap = await readFacultyKeywords();
+    const keywords = keywordsMap[channelId] || [];
+
+    res.json({ keywords });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/faculty-keywords/save", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (teamAuthEnabled() && !viewer) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const { channelId, keywords } = req.body;
+    if (!channelId || !Array.isArray(keywords)) {
+      return res.status(400).json({ error: "Missing required parameters" });
+    }
+
+    const keywordsMap = await readFacultyKeywords();
+    keywordsMap[channelId] = keywords.map(k => k.trim()).filter(Boolean);
+
+    await saveFacultyKeywords(keywordsMap);
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/update-video-title", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    const entries = await connectedChannelEntries(viewer);
+    const { videoId, channelId, newTitle } = req.body;
+    if (!videoId || !channelId || !newTitle) {
+      res.status(400).json({ error: "Missing required fields videoId, channelId, newTitle" });
+      return;
+    }
+
+    const entry = entries.find(e => e.channel.id === channelId);
+    if (!entry) {
+      res.status(403).json({ error: "Unauthorized access or channel not connected." });
+      return;
+    }
+
+    const youtube = google.youtube({ version: "v3", auth: entry.auth });
+    const videoDetails = await youtube.videos.list({
+      part: ["snippet"],
+      id: [videoId]
+    });
+    const videoItem = videoDetails.data.items?.[0];
+    if (!videoItem) {
+      res.status(404).json({ error: "Video not found." });
+      return;
+    }
+
+    await youtube.videos.update({
+      part: ["snippet"],
+      requestBody: {
+        id: videoId,
+        snippet: {
+          title: newTitle,
+          categoryId: videoItem.snippet.categoryId,
+          description: videoItem.snippet.description,
+          tags: videoItem.snippet.tags
+        }
+      }
+    });
+
+    responseCache.clear();
+    res.json({ success: true, message: "Video title updated successfully!" });
+  } catch (error) {
+    console.error("Error updating video title:", error);
+    res.status(500).json({ error: error.message || "Failed to update video title." });
   }
 });
 
@@ -4709,6 +4981,165 @@ async function listOwnedChannels(auth) {
   }));
 }
 
+const facultyKeywordsPath = path.join(dataDir, "faculty_keywords.json");
+
+async function readFacultyKeywords() {
+  if (sql) {
+    await ensureStorage();
+    const rows = await sql`select payload from app_state where key = 'faculty_keywords' limit 1`;
+    return rows[0]?.payload || {
+      "UCgM9qPLv7R-hTRQIGa4wgKA": ["Aps Sir", "Kamal Sir", "Vijay Sir", "Deepak Sir", "Nisha Mam", "Shanu Sir", "Krati"]
+    };
+  }
+  try {
+    return JSON.parse(await readFile(facultyKeywordsPath, "utf8"));
+  } catch {
+    return {
+      "UCgM9qPLv7R-hTRQIGa4wgKA": ["Aps Sir", "Kamal Sir", "Vijay Sir", "Deepak Sir", "Nisha Mam", "Shanu Sir", "Krati"]
+    };
+  }
+}
+
+async function saveFacultyKeywords(data) {
+  if (sql) {
+    await ensureStorage();
+    await sql`
+      insert into app_state (key, payload)
+      values ('faculty_keywords', ${sql.json(data)})
+      on conflict (key) do update set payload = excluded.payload
+    `;
+    return;
+  }
+  try {
+    await mkdir(dataDir, { recursive: true });
+    await writeFile(facultyKeywordsPath, JSON.stringify(data, null, 2), "utf8");
+  } catch (err) {
+    console.error("Failed to save faculty keywords:", err);
+  }
+}
+
+async function calculateFacultyPerformance(auth, channelId, uploads, dates, uploadedVideoViews = {}, uploadedVideoSubscribers = {}) {
+  try {
+    const keywordsMap = await readFacultyKeywords();
+    const channelKeywords = keywordsMap[channelId] || [];
+    if (!channelKeywords.length) return [];
+
+    // 1. Identify matched uploads for each faculty keyword first
+    const facultyMatches = channelKeywords.map(keyword => {
+      const kw = keyword.toLowerCase().trim();
+      const matchedUploads = (uploads || []).filter(item => {
+        if (item.format === "Shorts") {
+          return false;
+        }
+        const titleLower = (item.title || "").toLowerCase();
+
+        const matches = channelKeywords.filter(k => {
+          const kClean = k.toLowerCase().trim();
+          const escaped = kClean.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+          const regex = new RegExp(`\\b${escaped}\\b`, 'i');
+          return regex.test(titleLower);
+        });
+
+        if (matches.length > 1) {
+          return false;
+        }
+
+        const escapedKw = kw.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const regexKw = new RegExp(`\\b${escapedKw}\\b`, 'i');
+        return regexKw.test(titleLower);
+      });
+
+      return { keyword, kw, matchedUploads };
+    });
+
+    // 2. Extract all unique video IDs that matched any faculty
+    const allVideoIds = [
+      ...new Set(facultyMatches.flatMap(fm => fm.matchedUploads.map(u => u.id)))
+    ];
+
+    // 3. Query the Analytics API in chunks of 150 for these exact video IDs
+    const videoMetricsMap = {};
+    const chunkSize = 150;
+    for (let i = 0; i < allVideoIds.length; i += chunkSize) {
+      const chunk = allVideoIds.slice(i, i + chunkSize);
+      if (!chunk.length) continue;
+
+      try {
+        const metricsRows = await analyticsRows(auth, {
+          ids: `channel==${channelId}`,
+          startDate: dates.startDate,
+          endDate: dates.endDate,
+          dimensions: "video",
+          metrics: "views,subscribersGained,likes,dislikes,estimatedMinutesWatched",
+          filters: `video==${chunk.join(",")}`,
+          maxResults: 200
+        });
+        for (const row of metricsRows) {
+          const vId = row[0];
+          videoMetricsMap[vId] = {
+            views: Number(row[1] || 0),
+            subscribersGained: Number(row[2] || 0),
+            likes: Number(row[3] || 0),
+            dislikes: Number(row[4] || 0),
+            estimatedMinutesWatched: Number(row[5] || 0)
+          };
+        }
+      } catch (e) {
+        console.warn(`Could not load video metrics for chunk starting at ${i} on channel ${channelId}:`, e.message);
+      }
+    }
+
+    // 4. Calculate metrics for each faculty using the retrieved stats
+    const performance = facultyMatches.map(({ keyword, matchedUploads }) => {
+      let noOfVideos = 0;
+      let noOfLive = 0;
+      let durationSecondsSum = 0;
+      let viewsSum = 0;
+      let subscribersGainedSum = 0;
+      let likesSum = 0;
+      let dislikesSum = 0;
+
+      for (const item of matchedUploads) {
+        if (item.format === "Live") {
+          noOfLive++;
+        } else {
+          noOfVideos++;
+        }
+
+        if (item.durationSeconds) {
+          durationSecondsSum += item.durationSeconds;
+        }
+
+        const metrics = videoMetricsMap[item.id];
+        if (metrics) {
+          viewsSum += metrics.views || 0;
+          subscribersGainedSum += metrics.subscribersGained || 0;
+          likesSum += metrics.likes || 0;
+          dislikesSum += metrics.dislikes || 0;
+        }
+      }
+
+      const totalRatings = likesSum + dislikesSum;
+      const likeRatio = totalRatings > 0 ? `${((likesSum / totalRatings) * 100).toFixed(1)}%` : "-";
+
+      return {
+        facultyName: keyword,
+        views: viewsSum,
+        subscribers: subscribersGainedSum,
+        noOfVideos,
+        noOfLive,
+        likeRatio,
+        durationHours: Number((durationSecondsSum / 3600).toFixed(1))
+      };
+    });
+
+    return performance;
+  } catch (err) {
+    console.error(`Error calculating faculty performance for channel ${channelId}:`, err);
+    return [];
+  }
+}
+
 async function channelReport(auth, channel, dates) {
   const [daily, contentType, searchTraffic, uploadResult, topContent, uploadedVideoViews, uploadedVideoSubscribers] = await Promise.all([
     analyticsRows(auth, {
@@ -4741,6 +5172,29 @@ async function channelReport(auth, channel, dates) {
     uploadedVideoSubscribersById(auth, channel.id, dates),
   ]);
 
+  const facultyPerformance = await calculateFacultyPerformance(auth, channel.id, uploadResult.items, dates, uploadedVideoViews, uploadedVideoSubscribers);
+
+  const keywordsMap = await readFacultyKeywords();
+  const channelKeywords = keywordsMap[channel.id] || [];
+  const unmatchedVideos = (uploadResult.items || []).filter(item => {
+    if (item.format === "Shorts") {
+      return false;
+    }
+    const titleLower = (item.title || "").toLowerCase();
+    const matchedAny = channelKeywords.some(k => {
+      const kClean = k.toLowerCase().trim();
+      const escaped = kClean.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const regex = new RegExp(`\\b${escaped}\\b`, 'i');
+      return regex.test(titleLower);
+    });
+    return !matchedAny;
+  }).map(item => ({
+    id: item.id,
+    title: item.title,
+    format: item.format,
+    publishedAt: item.publishedAt
+  }));
+
   return {
     channel,
     daily,
@@ -4751,6 +5205,8 @@ async function channelReport(auth, channel, dates) {
     topContent,
     uploadedVideoViews,
     uploadedVideoSubscribers,
+    facultyPerformance,
+    unmatchedVideos,
   };
 }
 
@@ -5116,7 +5572,7 @@ async function uploadedVideoViewsById(auth, channelId, dates) {
     dimensions: "video",
     metrics: "views",
     sort: "-views",
-    maxResults: 500,
+    maxResults: 200,
   }).catch(() => []);
   return Object.fromEntries(rows.map((row) => [row[0], Number(row[1] || 0)]));
 }
@@ -5129,7 +5585,7 @@ async function uploadedVideoSubscribersById(auth, channelId, dates) {
     dimensions: "video",
     metrics: "subscribersGained",
     sort: "-subscribersGained",
-    maxResults: 500,
+    maxResults: 200,
   }).catch(() => []);
   return Object.fromEntries(rows.map((row) => [row[0], Number(row[1] || 0)]));
 }
@@ -5213,6 +5669,7 @@ async function loadPublishedContent(auth, channel, dates) {
     ...video,
     format: video.format || details[video.id]?.format || "Video",
     views: Number(details[video.id]?.views || 0),
+    durationSeconds: Number(details[video.id]?.durationSeconds || 0),
   }));
 }
 
@@ -5300,12 +5757,16 @@ async function videoDetails(auth, ids) {
             format = classifyVideo(item);
           }
           
+          const durationISO = item.contentDetails?.duration || "PT0S";
+          const durationSeconds = isoDurationSeconds(durationISO);
+          
           results.push({
             id: item.id,
             title: item.snippet?.title || item.id,
             channelTitle: item.snippet?.channelTitle || "",
             format,
             views: Number(item.statistics?.viewCount || 0),
+            durationSeconds: durationSeconds
           });
         }
         
@@ -5988,7 +6449,13 @@ function dateWindow(range, monthValue = "", customStart = "", customEnd = "") {
     const monthEnd = new Date(Date.UTC(year, month, 0));
     end.setTime(Math.min(monthEnd.getTime(), end.getTime()));
   } else if (range === "month") {
-    start.setDate(1);
+    if (today.getDate() < 4) {
+      end.setDate(0);
+      start = new Date(end);
+      start.setDate(1);
+    } else {
+      start.setDate(1);
+    }
   } else if (range === "prevMonth") {
     end.setDate(0);
     start = new Date(end);
