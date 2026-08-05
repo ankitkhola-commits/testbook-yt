@@ -216,6 +216,15 @@ document.querySelector("#refreshButton").addEventListener("click", () => {
 document.querySelectorAll("[data-view-tab]").forEach((button) => {
   button.addEventListener("click", () => {
     state.activeView = button.dataset.viewTab;
+    
+    // Hide dashboard progress bar if navigating away
+    if (state.activeView !== "dashboard") {
+      const container = document.getElementById("dashboardProgressBarContainer");
+      if (container) {
+        container.classList.add("is-hidden");
+      }
+    }
+    
     applyView();
     if (state.activeView === "competitors") {
       enterCompetitorView();

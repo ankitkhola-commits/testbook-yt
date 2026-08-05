@@ -491,6 +491,12 @@ app.get("/api/dashboard", async (req, res, next) => {
   try {
     const viewer = readViewerSession(req);
     const entries = await connectedChannelEntries(viewer);
+
+    // Run check in the background to ensure tasks execute on serverless (Vercel) environment
+    checkLiveCommentTasks().catch(err => {
+      console.error("[Live Automator] Background checkLiveCommentTasks failed on dashboard load:", err);
+    });
+
     const channels = [{ id: "all-in-one", name: "All in One", handle: "@all-in-one" }, ...publicChannels(entries)];
     const range = String(req.query.range || "month");
     const month = String(req.query.month || "");
@@ -3797,6 +3803,11 @@ app.get("/api/live-automator/tasks", async (req, res, next) => {
       return res.status(400).json({ error: "Missing channelId" });
     }
 
+    // Run the checks before loading the tasks list
+    await checkLiveCommentTasks().catch(err => {
+      console.error("[Live Automator] checkLiveCommentTasks failed in tasks endpoint:", err);
+    });
+
     const tasks = await readLiveCommentTasks();
     const channelTasks = tasks.filter(t => t.channelId === channelId);
 
@@ -4323,6 +4334,9 @@ app.get("/api/scheduler/trigger", async (req, res, next) => {
     refreshAllConnectedChannelsDashboardData().catch(err => {
       console.error("[Webhook Trigger] Background refresh failed:", err);
     });
+    checkLiveCommentTasks().catch(err => {
+      console.error("[Webhook Trigger] checkLiveCommentTasks failed:", err);
+    });
     res.json({ success: true, message: "Dashboard twice-daily pre-cache refresh triggered in the background." });
   } catch (error) {
     next(error);
@@ -4460,6 +4474,7 @@ function makeCacheKey(...parts) {
 }
 
 async function cached(key, maxAgeMs, loader, options = {}) {
+  const dbKey = `cache:${key}`;
   if (!options.force) {
     const existing = responseCache.get(key);
     if (existing && Date.now() - existing.createdAt < maxAgeMs) {
@@ -4468,11 +4483,41 @@ async function cached(key, maxAgeMs, loader, options = {}) {
     if (inFlightRequests.has(key)) {
       return inFlightRequests.get(key);
     }
+    if (sql) {
+      try {
+        await ensureStorage();
+        const rows = await sql`
+          select payload, updated_at from app_state where key = ${dbKey} limit 1
+        `;
+        if (rows[0]) {
+          const updatedAt = new Date(rows[0].updated_at).getTime();
+          if (Date.now() - updatedAt < maxAgeMs) {
+            const val = rows[0].payload;
+            responseCache.set(key, { createdAt: updatedAt, value: val });
+            return val;
+          }
+        }
+      } catch (dbErr) {
+        console.error(`[Cache] Failed to load key "${key}" from Postgres:`, dbErr.message);
+      }
+    }
   }
   const promise = Promise.resolve()
     .then(loader)
-    .then((value) => {
+    .then(async (value) => {
       responseCache.set(key, { createdAt: Date.now(), value });
+      if (sql) {
+        try {
+          await ensureStorage();
+          await sql`
+            insert into app_state (key, payload, updated_at)
+            values (${dbKey}, ${sql.json(value)}, now())
+            on conflict (key) do update set payload = excluded.payload, updated_at = now()
+          `;
+        } catch (dbErr) {
+          console.error(`[Cache] Failed to save key "${key}" to Postgres:`, dbErr.message);
+        }
+      }
       return value;
     })
     .finally(() => {
