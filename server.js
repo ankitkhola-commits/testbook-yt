@@ -4006,6 +4006,10 @@ app.post("/api/update-video-title", async (req, res, next) => {
       res.status(400).json({ error: "Missing required fields videoId, channelId, newTitle" });
       return;
     }
+    if (newTitle.trim().length > 100) {
+      res.status(400).json({ error: `YouTube video titles cannot exceed 100 characters. Yours is ${newTitle.trim().length} characters.` });
+      return;
+    }
 
     const entry = entries.find(e => e.channel.id === channelId);
     if (!entry) {

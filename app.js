@@ -4609,7 +4609,8 @@ window.openUnmatchedVideosManager = function() {
             </a>
           </div>
           <div style="display: flex; gap: 8px; align-items: center; width: 100%; margin-top: 4px;">
-            <input type="text" id="input-title-${video.id}" value="${escapeHtml(video.title)}" style="flex: 1; border: 1px solid var(--line); border-radius: 4px; padding: 6px 12px; font-size: 13px; height: 32px; box-sizing: border-box; outline: none;" />
+            <input type="text" id="input-title-${video.id}" maxlength="100" oninput="document.getElementById('char-count-${video.id}').textContent = this.value.length + '/100'" value="${escapeHtml(video.title)}" style="flex: 1; border: 1px solid var(--line); border-radius: 4px; padding: 6px 12px; font-size: 13px; height: 32px; box-sizing: border-box; outline: none;" />
+            <span id="char-count-${video.id}" style="font-size: 11px; color: var(--muted); white-space: nowrap; margin-right: 4px;">${video.title.length}/100</span>
             <button onclick="window.updateVideoTitleDirectly('${video.id}')" id="btn-title-${video.id}" class="connect-button" style="height: 32px; padding: 0 12px; font-size: 12px; margin: 0; width: auto; background: #2563eb; color: #fff;">
               Update Title
             </button>
@@ -4631,6 +4632,10 @@ window.updateVideoTitleDirectly = async function(videoId) {
   const newTitle = input.value.trim();
   if (!newTitle) {
     alert("Title cannot be empty!");
+    return;
+  }
+  if (newTitle.length > 100) {
+    alert(`YouTube video titles cannot exceed 100 characters. Your title is currently ${newTitle.length} characters long. Please shorten it before updating.`);
     return;
   }
 
