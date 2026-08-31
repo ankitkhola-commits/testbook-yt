@@ -1236,62 +1236,144 @@ async function saveQuarterTargets(targets) {
 
 async function channelTargetAnalytics(auth, channelId, startDate, endDate, options = {}) {
   return cached(
-    makeCacheKey("channel-target-analytics-v2", channelId, startDate, endDate),
+    makeCacheKey("channel-target-analytics-v3", channelId, startDate, endDate),
     2 * 60 * 60 * 1000, // 2 hours
     async () => {
-      const [dailyRows, trafficRows] = await Promise.all([
+      const [dailyRows, trafficRows, contentTypeRows] = await Promise.all([
         analyticsRows(auth, {
           ids: `channel==${channelId}`,
           startDate,
           endDate,
           dimensions: "day",
-          metrics: "views,subscribersGained,subscribersLost",
+          metrics: "views,engagedViews,subscribersGained,subscribersLost",
           sort: "day",
         }).catch((err) => {
-          console.error(`dailyRows fetch error for ${channelId}:`, err);
-          return [];
+          console.error(`dailyRows fetch error with engagedViews for ${channelId}:`, err);
+          return analyticsRows(auth, {
+            ids: `channel==${channelId}`,
+            startDate,
+            endDate,
+            dimensions: "day",
+            metrics: "views,subscribersGained,subscribersLost",
+            sort: "day",
+          }).catch(() => []);
         }),
         analyticsRows(auth, {
           ids: `channel==${channelId}`,
           startDate,
           endDate,
           dimensions: "day,insightTrafficSourceType",
-          metrics: "views",
+          metrics: "views,engagedViews",
           sort: "day",
         }).catch((err) => {
-          console.error(`trafficRows fetch error for ${channelId}:`, err);
-          return [];
+          console.error(`trafficRows fetch error with engagedViews for ${channelId}:`, err);
+          return analyticsRows(auth, {
+            ids: `channel==${channelId}`,
+            startDate,
+            endDate,
+            dimensions: "day,insightTrafficSourceType",
+            metrics: "views",
+            sort: "day",
+          }).catch(() => []);
+        }),
+        analyticsRows(auth, {
+          ids: `channel==${channelId}`,
+          startDate,
+          endDate,
+          dimensions: "day,creatorContentType",
+          metrics: "views,engagedViews",
+          sort: "day",
+        }).catch((err) => {
+          console.error(`contentTypeRows fetch error with engagedViews for ${channelId}:`, err);
+          return analyticsRows(auth, {
+            ids: `channel==${channelId}`,
+            startDate,
+            endDate,
+            dimensions: "day,creatorContentType",
+            metrics: "views",
+            sort: "day",
+          }).catch(() => []);
         }),
       ]);
 
       let totalViews = 0;
+      let totalEngagedViews = 0;
       let subscribersGained = 0;
       let subscribersLost = 0;
       for (const row of dailyRows) {
-        totalViews += Number(row[1] || 0);
-        subscribersGained += Number(row[2] || 0);
-        subscribersLost += Number(row[3] || 0);
-      }
-
-      let searchViews = 0;
-      let adViews = 0;
-      for (const row of trafficRows) {
-        const source = row[1];
-        const views = Number(row[2] || 0);
-        if (source === "YT_SEARCH") {
-          searchViews += views;
-        } else if (source === "ADVERTISING") {
-          adViews += views;
+        if (row.length === 5) {
+          totalViews += Number(row[1] || 0);
+          totalEngagedViews += Number(row[2] || 0);
+          subscribersGained += Number(row[3] || 0);
+          subscribersLost += Number(row[4] || 0);
+        } else {
+          totalViews += Number(row[1] || 0);
+          totalEngagedViews += Number(row[1] || 0); // fallback
+          subscribersGained += Number(row[2] || 0);
+          subscribersLost += Number(row[3] || 0);
         }
       }
 
+      let searchViews = 0;
+      let searchEngagedViews = 0;
+      let adViews = 0;
+      for (const row of trafficRows) {
+        const source = row[1];
+        if (row.length === 4) {
+          const viewsVal = Number(row[2] || 0);
+          const engagedVal = Number(row[3] || 0);
+          if (source === "YT_SEARCH") {
+            searchViews += viewsVal;
+            searchEngagedViews += engagedVal;
+          } else if (source === "ADVERTISING") {
+            adViews += viewsVal;
+          }
+        } else {
+          const viewsVal = Number(row[2] || 0);
+          if (source === "YT_SEARCH") {
+            searchViews += viewsVal;
+            searchEngagedViews += viewsVal; // fallback
+          } else if (source === "ADVERTISING") {
+            adViews += viewsVal;
+          }
+        }
+      }
+
+      // Map content types to calculate hybrid views
+      let totalHybridViews = 0;
+      for (const row of contentTypeRows) {
+        const type = normalizeContentType(row[1]);
+        if (!type) continue;
+        if (row.length === 4) {
+          const viewsVal = Number(row[2] || 0);
+          const engagedVal = Number(row[3] || 0);
+          if (type === "shorts") {
+            totalHybridViews += viewsVal; // Shorts uses normal views
+          } else {
+            totalHybridViews += engagedVal; // VoDs and Live use engaged views
+          }
+        } else {
+          const viewsVal = Number(row[2] || 0);
+          totalHybridViews += viewsVal; // fallback
+        }
+      }
+
+      // If contentTypeRows was empty or failed, fallback to totalEngagedViews
+      if (totalHybridViews === 0 && totalEngagedViews > 0) {
+        totalHybridViews = totalEngagedViews;
+      }
+
       const organicViews = Math.max(0, totalViews - adViews);
+      const organicHybridViews = Math.max(0, totalHybridViews - adViews);
       const netSubscribers = subscribersGained - subscribersLost;
       const days = dailyRows.map(row => row[0]).filter(Boolean);
+
       return {
         organicViews,
+        organicHybridViews,
         netSubscribers,
         searchViews,
+        searchEngagedViews,
         days
       };
     },
@@ -1375,7 +1457,7 @@ app.get("/api/targets", async (req, res, next) => {
       Array.from(targetChannelIds).map(async (channelId) => {
         const entry = channelMap.get(channelId);
         if (!entry || !hasStarted) {
-          statsMap.set(channelId, { organicViews: 0, netSubscribers: 0, searchViews: 0, days: [] });
+          statsMap.set(channelId, { organicViews: 0, organicHybridViews: 0, netSubscribers: 0, searchViews: 0, searchEngagedViews: 0, days: [] });
           return;
         }
         try {
@@ -1386,7 +1468,7 @@ app.get("/api/targets", async (req, res, next) => {
           }
         } catch (err) {
           console.error(`Error fetching target stats for channel ${channelId}:`, err);
-          statsMap.set(channelId, { organicViews: 0, netSubscribers: 0, searchViews: 0, days: [] });
+          statsMap.set(channelId, { organicViews: 0, organicHybridViews: 0, netSubscribers: 0, searchViews: 0, searchEngagedViews: 0, days: [] });
         }
       })
     );
@@ -1403,32 +1485,40 @@ app.get("/api/targets", async (req, res, next) => {
     const ytmResults = targetYtmFiltered.map(t => {
       const ids = t.channelIds || (t.channelId ? [t.channelId] : []);
       let actualViews = 0;
+      let actualStandardViews = 0;
       let actualSubs = 0;
       for (const id of ids) {
-        const stats = statsMap.get(id) || { organicViews: 0, netSubscribers: 0, searchViews: 0 };
-        actualViews += stats.organicViews;
+        const stats = statsMap.get(id) || { organicViews: 0, organicHybridViews: 0, netSubscribers: 0, searchViews: 0 };
+        actualViews += stats.organicHybridViews || stats.organicViews;
+        actualStandardViews += stats.organicViews;
         actualSubs += stats.netSubscribers;
       }
 
       const viewsPercent = t.viewsTarget ? (actualViews / t.viewsTarget) * 100 : 0;
+      const standardViewsPercent = t.viewsTarget ? (actualStandardViews / t.viewsTarget) * 100 : 0;
       const subsPercent = t.subsTarget ? (actualSubs / t.subsTarget) * 100 : 0;
 
       let viewsProRataPercent = 0;
+      let standardViewsProRataPercent = 0;
       let subsProRataPercent = 0;
       if (elapsedDays > 0 && totalDays > 0) {
         const expectedViews = (t.viewsTarget * elapsedDays) / totalDays;
         const expectedSubs = (t.subsTarget * elapsedDays) / totalDays;
         viewsProRataPercent = expectedViews ? (actualViews / expectedViews) * 100 : 0;
+        standardViewsProRataPercent = expectedViews ? (actualStandardViews / expectedViews) * 100 : 0;
         subsProRataPercent = expectedSubs ? (actualSubs / expectedSubs) * 100 : 0;
       }
 
       return {
         ...t,
         actualViews,
+        actualStandardViews,
         actualSubs,
         viewsPercent,
+        standardViewsPercent,
         subsPercent,
         viewsProRataPercent,
+        standardViewsProRataPercent,
         subsProRataPercent
       };
     });
@@ -1436,24 +1526,32 @@ app.get("/api/targets", async (req, res, next) => {
     const seoResults = targetSeoFiltered.map(t => {
       const ids = t.channelIds || (t.channelId ? [t.channelId] : []);
       let actualSearchViews = 0;
+      let actualStandardSearchViews = 0;
       for (const id of ids) {
-        const stats = statsMap.get(id) || { organicViews: 0, netSubscribers: 0, searchViews: 0 };
-        actualSearchViews += stats.searchViews;
+        const stats = statsMap.get(id) || { organicViews: 0, netSubscribers: 0, searchViews: 0, searchEngagedViews: 0 };
+        actualSearchViews += stats.searchEngagedViews || stats.searchViews;
+        actualStandardSearchViews += stats.searchViews;
       }
 
       const searchPercent = t.searchViewsTarget ? (actualSearchViews / t.searchViewsTarget) * 100 : 0;
+      const standardSearchPercent = t.searchViewsTarget ? (actualStandardSearchViews / t.searchViewsTarget) * 100 : 0;
 
       let searchProRataPercent = 0;
+      let standardSearchProRataPercent = 0;
       if (elapsedDays > 0 && totalDays > 0) {
         const expectedSearch = (t.searchViewsTarget * elapsedDays) / totalDays;
         searchProRataPercent = expectedSearch ? (actualSearchViews / expectedSearch) * 100 : 0;
+        standardSearchProRataPercent = expectedSearch ? (actualStandardSearchViews / expectedSearch) * 100 : 0;
       }
 
       return {
         ...t,
         actualSearchViews,
+        actualStandardSearchViews,
         searchPercent,
-        searchProRataPercent
+        standardSearchPercent,
+        searchProRataPercent,
+        standardSearchProRataPercent
       };
     });
 
@@ -4353,7 +4451,11 @@ app.use((error, _req, res, _next) => {
   if (message.includes("invalid_grant")) {
     message = "Google connection expired or was revoked. Click Add channel and sign in with Google again to reconnect your YouTube channels.";
   }
-  res.status(error?.code || error?.response?.status || 500).json({ error: message });
+  let status = Number(error?.response?.status || error?.code);
+  if (isNaN(status) || status < 100 || status > 999) {
+    status = 500;
+  }
+  res.status(status).json({ error: message });
 });
 
 await hydrateEnvFromFile();
@@ -5196,25 +5298,55 @@ async function channelReport(auth, channel, dates) {
       startDate: dates.startDate,
       endDate: dates.endDate,
       dimensions: "day",
-      metrics: "views,subscribersGained,subscribersLost,averageViewPercentage,shares",
+      metrics: "views,engagedViews,subscribersGained,subscribersLost,averageViewPercentage,shares",
       sort: "day",
+    }).catch((err) => {
+      console.error(`daily rows fetch error with engagedViews for ${channel.id}:`, err);
+      return analyticsRows(auth, {
+        ids: `channel==${channel.id}`,
+        startDate: dates.startDate,
+        endDate: dates.endDate,
+        dimensions: "day",
+        metrics: "views,subscribersGained,subscribersLost,averageViewPercentage,shares",
+        sort: "day",
+      }).catch(() => []);
     }),
     analyticsRows(auth, {
       ids: `channel==${channel.id}`,
       startDate: dates.startDate,
       endDate: dates.endDate,
       dimensions: "day,creatorContentType",
-      metrics: "views",
+      metrics: "views,engagedViews",
       sort: "day",
-    }).catch(() => []),
+    }).catch((err) => {
+      console.error(`contentType rows fetch error with engagedViews for ${channel.id}:`, err);
+      return analyticsRows(auth, {
+        ids: `channel==${channel.id}`,
+        startDate: dates.startDate,
+        endDate: dates.endDate,
+        dimensions: "day,creatorContentType",
+        metrics: "views",
+        sort: "day",
+      }).catch(() => []);
+    }),
     analyticsRows(auth, {
       ids: `channel==${channel.id}`,
       startDate: dates.startDate,
       endDate: dates.endDate,
       dimensions: "day,insightTrafficSourceType",
-      metrics: "views",
+      metrics: "views,engagedViews",
       sort: "day",
-    }).catch(() => []),
+    }).catch((err) => {
+      console.error(`searchTraffic rows fetch error with engagedViews for ${channel.id}:`, err);
+      return analyticsRows(auth, {
+        ids: `channel==${channel.id}`,
+        startDate: dates.startDate,
+        endDate: dates.endDate,
+        dimensions: "day,insightTrafficSourceType",
+        metrics: "views",
+        sort: "day",
+      }).catch(() => []);
+    }),
     publishedContentResult(auth, channel, dates),
     topVideos(auth, channel.id, dates),
     uploadedVideoViewsById(auth, channel.id, dates),
@@ -5849,9 +5981,14 @@ function mergeReports(reports, days) {
     label: formatDate(date),
     date,
     views: { videos: 0, shorts: 0, live: 0, posts: 0, total: 0 },
+    engagedViews: { videos: 0, shorts: 0, live: 0, posts: 0, total: 0 },
+    hybridViews: { videos: 0, shorts: 0, live: 0, posts: 0, total: 0 },
     youtubeSearchViews: 0,
+    youtubeSearchEngagedViews: 0,
     adViews: 0,
     organicViews: 0,
+    organicEngagedViews: 0,
+    organicHybridViews: 0,
     shares: 0,
     subscribers: 0,
     ctrNumerator: 0,
@@ -5869,12 +6006,32 @@ function mergeReports(reports, days) {
     for (const row of report.daily) {
       const day = byDate.get(row[0]);
       if (!day) continue;
-      const views = Number(row[1] || 0);
-      const gained = Number(row[2] || 0);
-      const lost = Number(row[3] || 0);
-      const averageViewPercentage = Number(row[4] || 0);
-      const shares = Number(row[5] || 0);
+      
+      let views = 0;
+      let engagedViews = 0;
+      let gained = 0;
+      let lost = 0;
+      let averageViewPercentage = 0;
+      let shares = 0;
+
+      if (row.length === 7) {
+        views = Number(row[1] || 0);
+        engagedViews = Number(row[2] || 0);
+        gained = Number(row[3] || 0);
+        lost = Number(row[4] || 0);
+        averageViewPercentage = Number(row[5] || 0);
+        shares = Number(row[6] || 0);
+      } else {
+        views = Number(row[1] || 0);
+        engagedViews = views; // fallback
+        gained = Number(row[2] || 0);
+        lost = Number(row[3] || 0);
+        averageViewPercentage = Number(row[4] || 0);
+        shares = Number(row[5] || 0);
+      }
+
       day.views.total += views;
+      day.engagedViews.total += engagedViews;
       day.subscribers += gained - lost;
       day.shares += shares;
       day.ctrNumerator += averageViewPercentage * Math.max(1, views);
@@ -5885,17 +6042,40 @@ function mergeReports(reports, days) {
       if (!day) continue;
       const type = normalizeContentType(row[1]);
       if (!type) continue;
-      day.views[type] += Number(row[2] || 0);
+      
+      if (row.length === 4) {
+        day.views[type] += Number(row[2] || 0);
+        day.engagedViews[type] += Number(row[3] || 0);
+      } else {
+        const viewsVal = Number(row[2] || 0);
+        day.views[type] += viewsVal;
+        day.engagedViews[type] += viewsVal; // fallback
+      }
     }
     for (const row of report.searchTraffic) {
       const day = byDate.get(row[0]);
       if (!day) continue;
-      const views = Number(row[2] || 0);
-      if (row[1] === "YT_SEARCH") {
-        day.youtubeSearchViews += views;
-      }
-      if (row[1] === "ADVERTISING") {
-        day.adViews += views;
+      
+      const source = row[1];
+      if (row.length === 4) {
+        const viewsVal = Number(row[2] || 0);
+        const engagedVal = Number(row[3] || 0);
+        if (source === "YT_SEARCH") {
+          day.youtubeSearchViews += viewsVal;
+          day.youtubeSearchEngagedViews += engagedVal;
+        }
+        if (source === "ADVERTISING") {
+          day.adViews += viewsVal;
+        }
+      } else {
+        const viewsVal = Number(row[2] || 0);
+        if (source === "YT_SEARCH") {
+          day.youtubeSearchViews += viewsVal;
+          day.youtubeSearchEngagedViews += viewsVal; // fallback
+        }
+        if (source === "ADVERTISING") {
+          day.adViews += viewsVal;
+        }
       }
     }
     for (const item of report.uploads) {
@@ -5922,9 +6102,26 @@ function mergeReports(reports, days) {
       day.views.videos = Math.round(day.views.total * fallbackShares.videos);
       day.views.shorts = Math.round(day.views.total * fallbackShares.shorts);
       day.views.live = Math.max(0, day.views.total - day.views.videos - day.views.shorts);
+
+      day.engagedViews.videos = Math.round(day.engagedViews.total * fallbackShares.videos);
+      day.engagedViews.shorts = Math.round(day.engagedViews.total * fallbackShares.shorts);
+      day.engagedViews.live = Math.max(0, day.engagedViews.total - day.engagedViews.videos - day.engagedViews.shorts);
     }
+    
     day.views.total = day.views.videos + day.views.shorts + day.views.live + day.views.posts || day.views.total;
+    day.engagedViews.total = day.engagedViews.videos + day.engagedViews.shorts + day.engagedViews.live + day.engagedViews.posts || day.engagedViews.total;
+    
+    // Calculate hybrid views per format
+    day.hybridViews.videos = day.engagedViews.videos;
+    day.hybridViews.live = day.engagedViews.live;
+    day.hybridViews.posts = day.engagedViews.posts;
+    day.hybridViews.shorts = day.views.shorts; // Shorts uses normal views
+    day.hybridViews.total = day.hybridViews.videos + day.hybridViews.live + day.hybridViews.shorts + day.hybridViews.posts;
+
     day.organicViews = Math.max(0, day.views.total - day.adViews);
+    day.organicEngagedViews = Math.max(0, day.engagedViews.total - day.adViews);
+    day.organicHybridViews = Math.max(0, day.hybridViews.total - day.adViews);
+    
     day.ctr = day.ctrWeight ? day.ctrNumerator / day.ctrWeight : 0;
   }
 
@@ -5945,6 +6142,7 @@ function buildAllInOneDashboard(entries, reports, dates) {
       id: entries[index]?.channel.id || report.channel.id,
       name: entries[index]?.channel.name || report.channel.name,
       organicViews: Number(totals.organicViews || 0),
+      organicHybridViews: Number(totals.organicHybridViews || 0),
       subscribers: Number(totals.subscribers || 0),
     };
   });
@@ -5954,10 +6152,12 @@ function buildAllInOneDashboard(entries, reports, dates) {
       date: day.date,
       label: day.label,
       organicViews: Number(day.organicViews || 0),
+      organicHybridViews: Number(day.organicHybridViews || 0),
       subscribers: Number(day.subscribers || 0),
     })),
     channelRankings: {
       organicViews: perChannel.slice().sort((a, b) => b.organicViews - a.organicViews),
+      organicHybridViews: perChannel.slice().sort((a, b) => b.organicHybridViews - a.organicHybridViews),
       subscribers: perChannel.slice().sort((a, b) => b.subscribers - a.subscribers),
     },
   };
@@ -6566,12 +6766,17 @@ function summarizeSeries(series) {
   return series.reduce((acc, day) => {
     for (const key of ["videos", "shorts", "live", "posts", "total"]) {
       acc.views[key] += day.views[key] || 0;
+      acc.engagedViews[key] += day.engagedViews[key] || 0;
+      acc.hybridViews[key] += day.hybridViews[key] || 0;
       acc.uploads[key] += day.uploads[key] || 0;
       acc.publishedViews[key] += day.publishedViews[key] || 0;
     }
     acc.youtubeSearchViews += day.youtubeSearchViews || 0;
+    acc.youtubeSearchEngagedViews += day.youtubeSearchEngagedViews || 0;
     acc.adViews += day.adViews || 0;
     acc.organicViews += day.organicViews || 0;
+    acc.organicEngagedViews += day.organicEngagedViews || 0;
+    acc.organicHybridViews += day.organicHybridViews || 0;
     acc.shares += day.shares || 0;
     acc.subscribers += day.subscribers;
     acc.ctrNumerator += day.ctr * Math.max(1, day.ctrWeight);
@@ -6580,11 +6785,16 @@ function summarizeSeries(series) {
     return acc;
   }, {
     views: { videos: 0, shorts: 0, live: 0, posts: 0, total: 0 },
+    engagedViews: { videos: 0, shorts: 0, live: 0, posts: 0, total: 0 },
+    hybridViews: { videos: 0, shorts: 0, live: 0, posts: 0, total: 0 },
     uploads: { videos: 0, shorts: 0, live: 0, posts: 0, total: 0 },
     publishedViews: { videos: 0, shorts: 0, live: 0, posts: 0, total: 0 },
     youtubeSearchViews: 0,
+    youtubeSearchEngagedViews: 0,
     adViews: 0,
     organicViews: 0,
+    organicEngagedViews: 0,
+    organicHybridViews: 0,
     shares: 0,
     subscribers: 0,
     ctr: 0,

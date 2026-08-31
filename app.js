@@ -140,6 +140,7 @@ let state = {
   selectedChannelId: "",
   channelSearch: "",
   activeRange: "month",
+  viewMetric: "hybrid",
   selectedMonth: currentMonthValue(),
   activeView: "dashboard",
   activeCompetitorCategory: null,
@@ -254,6 +255,18 @@ rangeSelect.addEventListener("change", (event) => {
     loadDashboard();
   }
 });
+
+const viewMetricSelect = document.querySelector("#viewMetricSelect");
+if (viewMetricSelect) {
+  viewMetricSelect.addEventListener("change", (event) => {
+    state.viewMetric = event.target.value;
+    if (state.activeView === "targets") {
+      renderTargetsTable();
+    } else if (state.report) {
+      renderReport(state.report);
+    }
+  });
+}
 
 const monthSelectInput = document.querySelector("#monthSelectInput");
 const customStartDateInput = document.querySelector("#customStartDateInput");
@@ -654,17 +667,22 @@ function channelButton(channel) {
 }
 
 function renderGrowth(totals, comparisonTotals = {}) {
-  document.querySelector("#viewsTrend").textContent = Number(totals.organicViews || 0).toLocaleString();
+  const useHybrid = state.viewMetric === "hybrid";
+  const viewsVal = Number((useHybrid ? totals.organicHybridViews : totals.organicViews) || 0);
+  const compViewsVal = Number((useHybrid ? comparisonTotals.organicHybridViews : comparisonTotals.organicViews) || 0);
+
+  document.querySelector("#viewsTrend").textContent = viewsVal.toLocaleString();
   document.querySelector("#subTrend").textContent = `+${totals.subscribers.toLocaleString()}`;
   document.querySelector("#viewsTrendDetail").textContent = rangeLabel();
   document.querySelector("#subTrendDetail").textContent = rangeLabel();
-  renderDelta("#viewsDelta", totals.organicViews, comparisonTotals.organicViews);
+  renderDelta("#viewsDelta", viewsVal, compViewsVal);
   renderDelta("#subDelta", totals.subscribers, comparisonTotals.subscribers);
 }
 
 function renderMetrics(totals, comparisonTotals = state.report?.comparisonTotals || {}, isAllInOne = false) {
+  const useHybrid = state.viewMetric === "hybrid";
   if (isAllInOne) {
-    document.querySelector("#metric1Label").textContent = "Views gained";
+    document.querySelector("#metric1Label").textContent = useHybrid ? "Views gained (Hybrid)" : "Views gained";
     document.querySelector("#metric2Label").textContent = "Subscribers gained";
     document.querySelector("#metric3Label").textContent = "Shorts views";
     document.querySelector("#metric4Label").textContent = "Video views";
@@ -672,15 +690,20 @@ function renderMetrics(totals, comparisonTotals = state.report?.comparisonTotals
     document.querySelector("#metric3Detail").textContent = "All authorized channels";
     document.querySelector("#metric4Detail").textContent = "All authorized channels";
     document.querySelector("#metric5Detail").textContent = "All authorized channels";
-    document.querySelector("#videoCount").textContent = Number(totals.views.shorts || 0).toLocaleString();
-    document.querySelector("#shortCount").textContent = Number(totals.views.videos || 0).toLocaleString();
-    document.querySelector("#liveCount").textContent = Number(totals.views.live || 0).toLocaleString();
-    renderDelta("#videoDelta", totals.views.shorts, comparisonTotals.views?.shorts);
-    renderDelta("#shortDelta", totals.views.videos, comparisonTotals.views?.videos);
-    renderDelta("#liveDelta", totals.views.live, comparisonTotals.views?.live);
+    
+    const viewsObj = useHybrid ? totals.hybridViews : totals.views;
+    const compViewsObj = useHybrid ? (comparisonTotals.hybridViews || {}) : (comparisonTotals.views || {});
+    
+    document.querySelector("#videoCount").textContent = Number(totals.views.shorts || 0).toLocaleString(); // Shorts always standard
+    document.querySelector("#shortCount").textContent = Number(viewsObj.videos || 0).toLocaleString();
+    document.querySelector("#liveCount").textContent = Number(viewsObj.live || 0).toLocaleString();
+    
+    renderDelta("#videoDelta", totals.views.shorts, compViewsObj.shorts);
+    renderDelta("#shortDelta", viewsObj.videos, compViewsObj.videos);
+    renderDelta("#liveDelta", viewsObj.live, compViewsObj.live);
     return;
   }
-  document.querySelector("#metric1Label").textContent = "Views gained";
+  document.querySelector("#metric1Label").textContent = useHybrid ? "Views gained (Hybrid)" : "Views gained";
   document.querySelector("#metric2Label").textContent = "Subscribers gained";
   document.querySelector("#metric3Label").textContent = "Videos published";
   document.querySelector("#metric4Label").textContent = "Shorts published";
@@ -698,11 +721,12 @@ function renderMetrics(totals, comparisonTotals = state.report?.comparisonTotals
 }
 
 function renderUploadTable(series) {
+  const useHybrid = state.viewMetric === "hybrid";
   const visibleSeries = dashboardVisibleSeries(series).slice().reverse();
   document.querySelector("#uploadChart").innerHTML = `
     <div class="publish-row publish-head">
       <span>Date</span>
-      <span>Organic views</span>
+      <span>${useHybrid ? "Organic views (Hybrid)" : "Organic views"}</span>
       <span>Subscribers</span>
       <span>Videos</span>
       <span>Shorts</span>
@@ -714,11 +738,12 @@ function renderUploadTable(series) {
       const subVal = Number(day.subscribers || 0);
       const subText = (subVal >= 0 ? "+" : "") + subVal.toLocaleString();
       const subColor = subVal >= 0 ? "var(--accent)" : "#dc2626";
+      const viewsVal = Number((useHybrid ? day.organicHybridViews : day.organicViews) || 0);
       
       return `
         <div class="publish-row">
           <strong>${escapeHtml(day.label)}</strong>
-          <span class="organic-cell">${Number(day.organicViews || 0).toLocaleString()}</span>
+          <span class="organic-cell">${viewsVal.toLocaleString()}</span>
           <span style="color: ${subColor}; font-weight: 500;">${subText}</span>
           <span>${formatKnownCount(day.uploads.videos, day.uploadsKnown !== false)}</span>
           <span>${formatKnownCount(day.uploads.shorts, day.uploadsKnown !== false)}</span>
@@ -732,12 +757,15 @@ function renderUploadTable(series) {
 }
 
 function renderViewsSplit(totals) {
-  const values = ["shorts", "videos", "live"].map((key) => totals.views[key]);
+  const useHybrid = state.viewMetric === "hybrid";
+  const viewsObj = useHybrid ? totals.hybridViews : totals.views;
+  
+  const values = ["shorts", "videos", "live"].map((key) => viewsObj[key]);
   const total = Math.max(1, values.reduce((sum, value) => sum + value, 0));
   let cursor = 0;
   const stops = ["shorts", "videos", "live"].map((key) => {
     const start = cursor;
-    cursor += (totals.views[key] / total) * 100;
+    cursor += (viewsObj[key] / total) * 100;
     return `${formats[key].color} ${start}% ${cursor}%`;
   });
   document.querySelector("#viewsDonut").style.background = `conic-gradient(${stops.join(", ")})`;
@@ -745,7 +773,7 @@ function renderViewsSplit(totals) {
     <div class="legend-row">
       <i class="dot ${key === "videos" ? "video" : key === "shorts" ? "short" : "live"}"></i>
       <strong>${formats[key].label}</strong>
-      <span>${Math.round((totals.views[key] / total) * 100)}%</span>
+      <span>${Math.round((viewsObj[key] / total) * 100)}%</span>
     </div>
   `).join("");
 }
@@ -777,28 +805,31 @@ function renderAverageViews(totals) {
 }
 
 function renderAllInOneDashboard(report) {
+  const useHybrid = state.viewMetric === "hybrid";
+  const organicKey = useHybrid ? "organicHybridViews" : "organicViews";
   renderAllInOneDailyTotals(report.allInOne?.dailyTotals || []);
   renderAllInOneTopContent(report.topContent || []);
-  renderChannelRankings("#allInOneOrganicChannels", report.allInOne?.channelRankings?.organicViews || [], "organicViews");
+  renderChannelRankings("#allInOneOrganicChannels", report.allInOne?.channelRankings?.[organicKey] || [], organicKey);
   renderChannelRankings("#allInOneSubscriberChannels", report.allInOne?.channelRankings?.subscribers || [], "subscribers");
 }
 
 function renderAllInOneDailyTotals(days) {
+  const useHybrid = state.viewMetric === "hybrid";
   const container = document.querySelector("#allInOneDailyTotals");
   const visibleDays = days
-    .filter((day) => Number(day.organicViews || 0) !== 0 || Number(day.subscribers || 0) !== 0)
+    .filter((day) => Number((useHybrid ? day.organicHybridViews : day.organicViews) || 0) !== 0 || Number(day.subscribers || 0) !== 0)
     .slice()
     .reverse();
   container.innerHTML = `
     <div class="daily-total-row daily-total-head">
       <span>Date</span>
-      <span>Total views</span>
+      <span>${useHybrid ? "Total views (Hybrid)" : "Total views"}</span>
       <span>Subscribers</span>
     </div>
     ${visibleDays.map((day) => `
       <div class="daily-total-row">
         <strong>${escapeHtml(day.label)}</strong>
-        <span>${Number(day.organicViews || 0).toLocaleString()}</span>
+        <span>${Number((useHybrid ? day.organicHybridViews : day.organicViews) || 0).toLocaleString()}</span>
         <em>${Number(day.subscribers || 0) >= 0 ? "+" : ""}${Number(day.subscribers || 0).toLocaleString()}</em>
       </div>
     `).join("") || `<div class="daily-total-row empty-row"><strong>No daily totals returned yet.</strong></div>`}
@@ -1293,10 +1324,11 @@ document.querySelector("#youtubeSearchChart").addEventListener("click", async (e
 });
 
 function renderYoutubeSearch(report) {
+  const useHybrid = state.viewMetric === "hybrid";
   const searchDays = dashboardVisibleSeries(report.series).map((day) => ({
     date: day.date,
     label: day.label,
-    views: Number(day.youtubeSearchViews || 0),
+    views: Number((useHybrid ? day.youtubeSearchEngagedViews : day.youtubeSearchViews) || 0),
   }));
   const maxViews = Math.max(1, ...searchDays.map((day) => day.views));
   const bestDay = searchDays.slice().sort((a, b) => b.views - a.views)[0];
@@ -1304,7 +1336,8 @@ function renderYoutubeSearch(report) {
     ? state.selectedSearchDate
     : bestDay?.date;
   state.selectedSearchDate = selectedDate;
-  document.querySelector("#searchTotal").textContent = `${Number(report.totals.youtubeSearchViews || 0).toLocaleString()} search views`;
+  const totalSearchVal = Number((useHybrid ? report.totals.youtubeSearchEngagedViews : report.totals.youtubeSearchViews) || 0);
+  document.querySelector("#searchTotal").textContent = `${totalSearchVal.toLocaleString()} search views${useHybrid ? " (Engaged)" : ""}`;
   document.querySelector("#youtubeSearchChart").innerHTML = searchDays.map((day) => {
     const height = day.views ? Math.max(10, Math.round((day.views / maxViews) * 126)) : 4;
     return `
@@ -3169,6 +3202,17 @@ function renderTargetsTable() {
   if (!state.targetsData) return;
 
   const { ytm, seo } = state.targetsData;
+  const useHybrid = state.viewMetric === "hybrid";
+
+  // Update table header names dynamically to clarify which metric is being viewed
+  const ytmHeaderEl = document.querySelector("#ytmTargetsTableSection th:nth-child(4)");
+  if (ytmHeaderEl) {
+    ytmHeaderEl.textContent = useHybrid ? "Actual Organic (Hybrid)" : "Actual Organic (Standard)";
+  }
+  const seoHeaderEl = document.querySelector("#seoTargetsTableSection th:nth-child(4)");
+  if (seoHeaderEl) {
+    seoHeaderEl.textContent = useHybrid ? "Actual Search (Engaged)" : "Actual Search (Standard)";
+  }
 
   // Render YTM Targets Table
   if (ytmBody) {
@@ -3176,7 +3220,11 @@ function renderTargetsTable() {
       ytmBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 20px; color: var(--muted);">No YTM targets configured for this quarter. Click "Manage Targets" to add.</td></tr>`;
     } else {
       ytmBody.innerHTML = ytm.map(t => {
-        const viewsBadgeClass = getProgressBadgeClass(t.viewsProRataPercent);
+        const actualViewsVal = useHybrid ? t.actualViews : t.actualStandardViews;
+        const percentVal = useHybrid ? t.viewsPercent : t.standardViewsPercent;
+        const proRataVal = useHybrid ? t.viewsProRataPercent : t.standardViewsProRataPercent;
+        
+        const viewsBadgeClass = getProgressBadgeClass(proRataVal);
         const subsBadgeClass = getProgressBadgeClass(t.subsProRataPercent);
 
         return `
@@ -3184,8 +3232,8 @@ function renderTargetsTable() {
             <td style="padding: 12px 8px; font-weight: 500; color: var(--text);">${escapeHtml(t.employee)}</td>
             <td style="padding: 12px 8px; color: var(--muted);">${escapeHtml(t.channelName)}</td>
             <td style="padding: 12px 8px; text-align: right; font-variant-numeric: tabular-nums;">${formatInteger(t.viewsTarget)}</td>
-            <td style="padding: 12px 8px; text-align: right; font-variant-numeric: tabular-nums;">${formatInteger(t.actualViews)}</td>
-            <td style="padding: 12px 8px; text-align: right;"><span class="${viewsBadgeClass}">${formatPercentText(t.viewsPercent)} reached</span></td>
+            <td style="padding: 12px 8px; text-align: right; font-variant-numeric: tabular-nums;">${formatInteger(actualViewsVal)}</td>
+            <td style="padding: 12px 8px; text-align: right;"><span class="${viewsBadgeClass}">${formatPercentText(percentVal)} reached</span></td>
             <td style="padding: 12px 8px; text-align: right; font-variant-numeric: tabular-nums;">${formatInteger(t.subsTarget)}</td>
             <td style="padding: 12px 8px; text-align: right; font-variant-numeric: tabular-nums;">${formatInteger(t.actualSubs)}</td>
             <td style="padding: 12px 8px; text-align: right;"><span class="${subsBadgeClass}">${formatPercentText(t.subsPercent)} reached</span></td>
@@ -3201,15 +3249,19 @@ function renderTargetsTable() {
       seoBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--muted);">No SEO targets configured for this quarter. Click "Manage Targets" to add.</td></tr>`;
     } else {
       seoBody.innerHTML = seo.map(t => {
-        const searchBadgeClass = getProgressBadgeClass(t.searchProRataPercent);
+        const actualSearchViewsVal = useHybrid ? t.actualSearchViews : t.actualStandardSearchViews;
+        const percentVal = useHybrid ? t.searchPercent : t.standardSearchPercent;
+        const proRataVal = useHybrid ? t.searchProRataPercent : t.standardSearchProRataPercent;
+        
+        const searchBadgeClass = getProgressBadgeClass(proRataVal);
 
         return `
           <tr style="border-bottom: 1px solid var(--line);">
             <td style="padding: 12px 8px; font-weight: 500; color: var(--text);">${escapeHtml(t.employee)}</td>
             <td style="padding: 12px 8px; color: var(--muted);">${escapeHtml(t.channelName)}</td>
             <td style="padding: 12px 8px; text-align: right; font-variant-numeric: tabular-nums;">${formatInteger(t.searchViewsTarget)}</td>
-            <td style="padding: 12px 8px; text-align: right; font-variant-numeric: tabular-nums;">${formatInteger(t.actualSearchViews)}</td>
-            <td style="padding: 12px 8px; text-align: right;"><span class="${searchBadgeClass}">${formatPercentText(t.searchPercent)} reached</span></td>
+            <td style="padding: 12px 8px; text-align: right; font-variant-numeric: tabular-nums;">${formatInteger(actualSearchViewsVal)}</td>
+            <td style="padding: 12px 8px; text-align: right;"><span class="${searchBadgeClass}">${formatPercentText(percentVal)} reached</span></td>
           </tr>
         `;
       }).join("");
