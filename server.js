@@ -6686,34 +6686,50 @@ function normalizeResearchFormat(value) {
 
 function dateWindow(range, monthValue = "", customStart = "", customEnd = "") {
   const today = new Date();
-  const end = new Date(today);
-  end.setDate(end.getDate() - 1);
-  let start = new Date(end);
+  const year = today.getFullYear();
+  const month = today.getMonth(); // 0 = Jan, 8 = Sep, etc.
+  const date = today.getDate();
+
+  // Yesterday in UTC representation
+  const yesterday = new Date(Date.UTC(year, month, date - 1));
+
+  let start;
+  let end;
+
   if (range === "custom" && /^\d{4}-\d{2}-\d{2}$/.test(customStart) && /^\d{4}-\d{2}-\d{2}$/.test(customEnd)) {
     start = new Date(`${customStart}T00:00:00Z`);
-    end.setTime(new Date(`${customEnd}T00:00:00Z`).getTime());
+    end = new Date(`${customEnd}T00:00:00Z`);
   } else if (range === "selectMonth" && /^\d{4}-\d{2}$/.test(monthValue)) {
-    const [year, month] = monthValue.split("-").map(Number);
-    start = new Date(Date.UTC(year, month - 1, 1));
-    const monthEnd = new Date(Date.UTC(year, month, 0));
-    end.setTime(Math.min(monthEnd.getTime(), end.getTime()));
+    const [selYear, selMonth] = monthValue.split("-").map(Number);
+    start = new Date(Date.UTC(selYear, selMonth - 1, 1));
+    const monthEnd = new Date(Date.UTC(selYear, selMonth, 0));
+    end = new Date(Math.min(monthEnd.getTime(), yesterday.getTime()));
+    if (end < start) end = new Date(start);
   } else if (range === "month") {
-    if (today.getDate() < 4) {
-      end.setDate(0);
-      start = new Date(end);
-      start.setDate(1);
+    if (date < 4) {
+      // First 3 days of the month: show the full previous month (e.g. on Sep 1-3, show Aug 1 to Aug 31)
+      start = new Date(Date.UTC(year, month - 1, 1));
+      end = new Date(Date.UTC(year, month, 0));
     } else {
-      start.setDate(1);
+      // 4th day onwards: show 1st of current month up to yesterday
+      start = new Date(Date.UTC(year, month, 1));
+      end = yesterday;
     }
   } else if (range === "prevMonth") {
-    end.setDate(0);
-    start = new Date(end);
-    start.setDate(1);
+    // Previous calendar month (e.g. in Sep, show Aug 1 to Aug 31)
+    start = new Date(Date.UTC(year, month - 1, 1));
+    end = new Date(Date.UTC(year, month, 0));
   } else {
     const days = isNaN(Number(range)) ? 28 : Number(range);
-    start.setDate(end.getDate() - days + 1);
+    end = yesterday;
+    start = new Date(Date.UTC(year, month, date - days));
   }
-  return { startDate: isoDate(start), endDate: isoDate(end), days: { startDate: isoDate(start), endDate: isoDate(end) } };
+
+  return {
+    startDate: isoDate(start),
+    endDate: isoDate(end),
+    days: { startDate: isoDate(start), endDate: isoDate(end) }
+  };
 }
 
 function isoDateUtc(date) {
