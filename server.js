@@ -199,6 +199,20 @@ app.get("/styles.css", (_req, res) => {
   res.sendFile(path.join(__dirname, "styles.css"));
 });
 
+app.get(["/creatives", "/creative-studio", "/creative-studio.html"], (_req, res) => {
+  res.sendFile(path.join(__dirname, "creative-studio.html"));
+});
+
+app.get("/creative-studio.js", (_req, res) => {
+  res.type("application/javascript");
+  res.sendFile(path.join(__dirname, "creative-studio.js"));
+});
+
+app.get("/creative-studio.css", (_req, res) => {
+  res.type("text/css");
+  res.sendFile(path.join(__dirname, "creative-studio.css"));
+});
+
 app.get("/assets/:file", (req, res) => {
   const file = path.basename(String(req.params.file || ""));
   res.sendFile(path.join(assetDir, file));
@@ -1236,10 +1250,10 @@ async function saveQuarterTargets(targets) {
 
 async function channelTargetAnalytics(auth, channelId, startDate, endDate, options = {}) {
   return cached(
-    makeCacheKey("channel-target-analytics-v3", channelId, startDate, endDate),
+    makeCacheKey("channel-target-analytics-v4", channelId, startDate, endDate),
     2 * 60 * 60 * 1000, // 2 hours
     async () => {
-      const [dailyRows, trafficRows, contentTypeRows] = await Promise.all([
+      const [dailyRows, trafficRows, contentTypeRows, searchContentTypeRows] = await Promise.all([
         analyticsRows(auth, {
           ids: `channel==${channelId}`,
           startDate,
@@ -1292,6 +1306,24 @@ async function channelTargetAnalytics(auth, channelId, startDate, endDate, optio
             dimensions: "day,creatorContentType",
             metrics: "views",
             sort: "day",
+          }).catch(() => []);
+        }),
+        analyticsRows(auth, {
+          ids: `channel==${channelId}`,
+          startDate,
+          endDate,
+          dimensions: "creatorContentType",
+          metrics: "views,engagedViews",
+          filters: "insightTrafficSourceType==YT_SEARCH",
+        }).catch((err) => {
+          console.error(`searchContentTypeRows fetch error with engagedViews for ${channelId}:`, err);
+          return analyticsRows(auth, {
+            ids: `channel==${channelId}`,
+            startDate,
+            endDate,
+            dimensions: "creatorContentType",
+            metrics: "views",
+            filters: "insightTrafficSourceType==YT_SEARCH",
           }).catch(() => []);
         }),
       ]);
@@ -1363,6 +1395,29 @@ async function channelTargetAnalytics(auth, channelId, startDate, endDate, optio
         totalHybridViews = totalEngagedViews;
       }
 
+      // Calculate search hybrid views: Engaged for VOD/Live, Standard for Shorts
+      let searchHybridViews = 0;
+      for (const row of searchContentTypeRows) {
+        const type = normalizeContentType(row[0]);
+        if (!type) continue;
+        if (row.length === 3) {
+          const viewsVal = Number(row[1] || 0);
+          const engagedVal = Number(row[2] || 0);
+          if (type === "shorts") {
+            searchHybridViews += viewsVal; // Shorts uses normal search views
+          } else {
+            searchHybridViews += engagedVal; // VoDs and Live use engaged search views
+          }
+        } else {
+          const viewsVal = Number(row[1] || 0);
+          searchHybridViews += viewsVal; // fallback
+        }
+      }
+
+      if (searchHybridViews === 0 && searchEngagedViews > 0) {
+        searchHybridViews = searchEngagedViews;
+      }
+
       const organicViews = Math.max(0, totalViews - adViews);
       const organicHybridViews = Math.max(0, totalHybridViews - adViews);
       const netSubscribers = subscribersGained - subscribersLost;
@@ -1374,6 +1429,7 @@ async function channelTargetAnalytics(auth, channelId, startDate, endDate, optio
         netSubscribers,
         searchViews,
         searchEngagedViews,
+        searchHybridViews,
         days
       };
     },
@@ -1457,7 +1513,7 @@ app.get("/api/targets", async (req, res, next) => {
       Array.from(targetChannelIds).map(async (channelId) => {
         const entry = channelMap.get(channelId);
         if (!entry || !hasStarted) {
-          statsMap.set(channelId, { organicViews: 0, organicHybridViews: 0, netSubscribers: 0, searchViews: 0, searchEngagedViews: 0, days: [] });
+          statsMap.set(channelId, { organicViews: 0, organicHybridViews: 0, netSubscribers: 0, searchViews: 0, searchEngagedViews: 0, searchHybridViews: 0, days: [] });
           return;
         }
         try {
@@ -1468,7 +1524,7 @@ app.get("/api/targets", async (req, res, next) => {
           }
         } catch (err) {
           console.error(`Error fetching target stats for channel ${channelId}:`, err);
-          statsMap.set(channelId, { organicViews: 0, organicHybridViews: 0, netSubscribers: 0, searchViews: 0, searchEngagedViews: 0, days: [] });
+          statsMap.set(channelId, { organicViews: 0, organicHybridViews: 0, netSubscribers: 0, searchViews: 0, searchEngagedViews: 0, searchHybridViews: 0, days: [] });
         }
       })
     );
@@ -1488,7 +1544,7 @@ app.get("/api/targets", async (req, res, next) => {
       let actualStandardViews = 0;
       let actualSubs = 0;
       for (const id of ids) {
-        const stats = statsMap.get(id) || { organicViews: 0, organicHybridViews: 0, netSubscribers: 0, searchViews: 0 };
+        const stats = statsMap.get(id) || { organicViews: 0, organicHybridViews: 0, netSubscribers: 0, searchViews: 0, searchEngagedViews: 0, searchHybridViews: 0 };
         actualViews += stats.organicHybridViews || stats.organicViews;
         actualStandardViews += stats.organicViews;
         actualSubs += stats.netSubscribers;
@@ -1528,8 +1584,8 @@ app.get("/api/targets", async (req, res, next) => {
       let actualSearchViews = 0;
       let actualStandardSearchViews = 0;
       for (const id of ids) {
-        const stats = statsMap.get(id) || { organicViews: 0, netSubscribers: 0, searchViews: 0, searchEngagedViews: 0 };
-        actualSearchViews += stats.searchEngagedViews || stats.searchViews;
+        const stats = statsMap.get(id) || { organicViews: 0, netSubscribers: 0, searchViews: 0, searchEngagedViews: 0, searchHybridViews: 0 };
+        actualSearchViews += stats.searchHybridViews || stats.searchEngagedViews || stats.searchViews;
         actualStandardSearchViews += stats.searchViews;
       }
 

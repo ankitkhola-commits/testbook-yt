@@ -3211,7 +3211,7 @@ function renderTargetsTable() {
   }
   const seoHeaderEl = document.querySelector("#seoTargetsTableSection th:nth-child(4)");
   if (seoHeaderEl) {
-    seoHeaderEl.textContent = useHybrid ? "Actual Search (Engaged)" : "Actual Search (Standard)";
+    seoHeaderEl.textContent = useHybrid ? "Actual Search (Hybrid)" : "Actual Search (Standard)";
   }
 
   // Render YTM Targets Table
