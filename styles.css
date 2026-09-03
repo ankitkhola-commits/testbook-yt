@@ -2943,4 +2943,20 @@ input {
   box-shadow: 0 0 0 3px rgba(45, 140, 240, 0.15);
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
+/* Admin 6-Month MoM Report Styles */
+.admin-reports-panel .data-table tbody tr:hover td {
+  background-color: rgba(99, 102, 241, 0.04);
+}
+
+.admin-reports-panel .data-table th,
+.admin-reports-panel .data-table td {
+  border-bottom: 1px solid var(--line, #e2e8f0);
+}
+
+.admin-reports-panel .table-scroll-container {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}

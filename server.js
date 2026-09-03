@@ -1250,10 +1250,10 @@ async function saveQuarterTargets(targets) {
 
 async function channelTargetAnalytics(auth, channelId, startDate, endDate, options = {}) {
   return cached(
-    makeCacheKey("channel-target-analytics-v4", channelId, startDate, endDate),
+    makeCacheKey("channel-target-analytics-v5", channelId, startDate, endDate),
     2 * 60 * 60 * 1000, // 2 hours
     async () => {
-      const [dailyRows, trafficRows, contentTypeRows, searchContentTypeRows] = await Promise.all([
+      const [dailyRows, trafficRows, contentTypeRows] = await Promise.all([
         analyticsRows(auth, {
           ids: `channel==${channelId}`,
           startDate,
@@ -1306,24 +1306,6 @@ async function channelTargetAnalytics(auth, channelId, startDate, endDate, optio
             dimensions: "day,creatorContentType",
             metrics: "views",
             sort: "day",
-          }).catch(() => []);
-        }),
-        analyticsRows(auth, {
-          ids: `channel==${channelId}`,
-          startDate,
-          endDate,
-          dimensions: "creatorContentType",
-          metrics: "views,engagedViews",
-          filters: "insightTrafficSourceType==YT_SEARCH",
-        }).catch((err) => {
-          console.error(`searchContentTypeRows fetch error with engagedViews for ${channelId}:`, err);
-          return analyticsRows(auth, {
-            ids: `channel==${channelId}`,
-            startDate,
-            endDate,
-            dimensions: "creatorContentType",
-            metrics: "views",
-            filters: "insightTrafficSourceType==YT_SEARCH",
           }).catch(() => []);
         }),
       ]);
@@ -1395,29 +1377,6 @@ async function channelTargetAnalytics(auth, channelId, startDate, endDate, optio
         totalHybridViews = totalEngagedViews;
       }
 
-      // Calculate search hybrid views: Engaged for VOD/Live, Standard for Shorts
-      let searchHybridViews = 0;
-      for (const row of searchContentTypeRows) {
-        const type = normalizeContentType(row[0]);
-        if (!type) continue;
-        if (row.length === 3) {
-          const viewsVal = Number(row[1] || 0);
-          const engagedVal = Number(row[2] || 0);
-          if (type === "shorts") {
-            searchHybridViews += viewsVal; // Shorts uses normal search views
-          } else {
-            searchHybridViews += engagedVal; // VoDs and Live use engaged search views
-          }
-        } else {
-          const viewsVal = Number(row[1] || 0);
-          searchHybridViews += viewsVal; // fallback
-        }
-      }
-
-      if (searchHybridViews === 0 && searchEngagedViews > 0) {
-        searchHybridViews = searchEngagedViews;
-      }
-
       const organicViews = Math.max(0, totalViews - adViews);
       const organicHybridViews = Math.max(0, totalHybridViews - adViews);
       const netSubscribers = subscribersGained - subscribersLost;
@@ -1429,7 +1388,7 @@ async function channelTargetAnalytics(auth, channelId, startDate, endDate, optio
         netSubscribers,
         searchViews,
         searchEngagedViews,
-        searchHybridViews,
+        searchHybridViews: searchEngagedViews,
         days
       };
     },
@@ -2059,6 +2018,317 @@ app.post("/api/keywords/refresh", async (req, res, next) => {
     }
 
     res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/admin/monthly-report", async (req, res, next) => {
+  try {
+    const viewer = readViewerSession(req);
+    if (!isAuditAdmin(viewer)) {
+      res.status(403).json({ error: "Forbidden. Admin access required." });
+      return;
+    }
+
+    const force = req.query.force === "1";
+    const entries = await connectedChannelEntries(viewer);
+
+    // Calculate the last 6 calendar months
+    const today = new Date();
+    const currentYear = today.getUTCFullYear();
+    const currentMonth = today.getUTCMonth(); // 0-11
+    const yesterdayDate = new Date(Date.UTC(currentYear, currentMonth, today.getUTCDate() - 1));
+    const yesterdayStr = yesterdayDate.toISOString().slice(0, 10);
+
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const months = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(Date.UTC(currentYear, currentMonth - i, 1));
+      const y = d.getUTCFullYear();
+      const m = d.getUTCMonth();
+      const key = `${y}-${String(m + 1).padStart(2, "0")}`;
+      const monthEnd = new Date(Date.UTC(y, m + 1, 0));
+      const isCurrent = (i === 0);
+      const mtdEnd = yesterdayStr < `${key}-01` ? `${key}-01` : yesterdayStr;
+      months.push({
+        key,
+        label: `${monthNames[m]} ${y}${isCurrent ? " (MTD)" : ""}`,
+        shortLabel: `${monthNames[m]} '${String(y).slice(2)}`,
+        year: y,
+        monthNum: m + 1,
+        isCurrent,
+        startDate: `${key}-01`,
+        endDate: isCurrent ? mtdEnd : monthEnd.toISOString().slice(0, 10)
+      });
+    }
+
+    const overallStartDate = months[0].startDate;
+    const overallEndDate = months[months.length - 1].endDate;
+
+    const cacheKey = makeCacheKey(
+      "admin-6m-monthly-report-v1",
+      overallStartDate,
+      overallEndDate,
+      entries.map(e => e.channel.id).sort().join(",")
+    );
+
+    const payload = await cached(
+      cacheKey,
+      2 * 60 * 60 * 1000, // 2 hours
+      async () => {
+        // Concurrency pool to process channels in chunks of 5
+        const channelResults = [];
+        const chunkSize = 5;
+        for (let i = 0; i < entries.length; i += chunkSize) {
+          const chunk = entries.slice(i, i + chunkSize);
+          const chunkData = await Promise.all(
+            chunk.map(async (entry) => {
+              const chId = entry.channel.id;
+              const chName = entry.channel.name || chId;
+
+              const [dailyRows, trafficRows, contentTypeRows] = await Promise.all([
+                analyticsRows(entry.auth, {
+                  ids: `channel==${chId}`,
+                  startDate: overallStartDate,
+                  endDate: overallEndDate,
+                  dimensions: "day",
+                  metrics: "views,engagedViews,subscribersGained,subscribersLost",
+                  sort: "day",
+                }).catch((err) => {
+                  console.error(`[Admin 6M] dailyRows error for ${chId}:`, err?.message || err);
+                  return analyticsRows(entry.auth, {
+                    ids: `channel==${chId}`,
+                    startDate: overallStartDate,
+                    endDate: overallEndDate,
+                    dimensions: "day",
+                    metrics: "views,subscribersGained,subscribersLost",
+                    sort: "day",
+                  }).catch(() => []);
+                }),
+                analyticsRows(entry.auth, {
+                  ids: `channel==${chId}`,
+                  startDate: overallStartDate,
+                  endDate: overallEndDate,
+                  dimensions: "day,insightTrafficSourceType",
+                  metrics: "views,engagedViews",
+                  sort: "day",
+                }).catch((err) => {
+                  console.error(`[Admin 6M] trafficRows error for ${chId}:`, err?.message || err);
+                  return analyticsRows(entry.auth, {
+                    ids: `channel==${chId}`,
+                    startDate: overallStartDate,
+                    endDate: overallEndDate,
+                    dimensions: "day,insightTrafficSourceType",
+                    metrics: "views",
+                    sort: "day",
+                  }).catch(() => []);
+                }),
+                analyticsRows(entry.auth, {
+                  ids: `channel==${chId}`,
+                  startDate: overallStartDate,
+                  endDate: overallEndDate,
+                  dimensions: "day,creatorContentType",
+                  metrics: "views,engagedViews",
+                  sort: "day",
+                }).catch((err) => {
+                  console.error(`[Admin 6M] contentTypeRows error for ${chId}:`, err?.message || err);
+                  return analyticsRows(entry.auth, {
+                    ids: `channel==${chId}`,
+                    startDate: overallStartDate,
+                    endDate: overallEndDate,
+                    dimensions: "day,creatorContentType",
+                    metrics: "views",
+                    sort: "day",
+                  }).catch(() => []);
+                }),
+              ]);
+
+              // Initialize day map for aggregating
+              const dayStats = new Map();
+              for (const row of dailyRows) {
+                const date = row[0];
+                if (!date) continue;
+                const hasEngaged = row.length === 5;
+                dayStats.set(date, {
+                  views: Number(row[1] || 0),
+                  engagedViews: hasEngaged ? Number(row[2] || 0) : Number(row[1] || 0),
+                  subsGained: Number(hasEngaged ? row[3] : row[2] || 0),
+                  subsLost: Number(hasEngaged ? row[4] : row[3] || 0),
+                  adViews: 0,
+                  contentViews: { shorts: 0, videos: 0, live: 0 },
+                  contentEngagedViews: { shorts: 0, videos: 0, live: 0 },
+                });
+              }
+
+              for (const row of trafficRows) {
+                const date = row[0];
+                const source = row[1];
+                const viewsVal = Number(row[2] || 0);
+                const stat = dayStats.get(date);
+                if (stat && source === "ADVERTISING") {
+                  stat.adViews += viewsVal;
+                }
+              }
+
+              for (const row of contentTypeRows) {
+                const date = row[0];
+                const rawType = row[1];
+                const type = normalizeContentType(rawType);
+                if (!type) continue;
+                const viewsVal = Number(row[2] || 0);
+                const engagedVal = row.length === 4 ? Number(row[3] || 0) : viewsVal;
+                const stat = dayStats.get(date);
+                if (stat) {
+                  stat.contentViews[type] += viewsVal;
+                  stat.contentEngagedViews[type] += engagedVal;
+                }
+              }
+
+              // Roll up days into months
+              const channelMonths = {};
+              for (const m of months) {
+                channelMonths[m.key] = {
+                  organicViews: 0,
+                  organicHybridViews: 0,
+                  totalViews: 0,
+                  subscribers: 0,
+                  adViews: 0,
+                };
+              }
+
+              for (const [date, stat] of dayStats.entries()) {
+                const mKey = date.slice(0, 7);
+                if (!channelMonths[mKey]) continue;
+
+                const dayOrganicViews = Math.max(0, stat.views - stat.adViews);
+                // Hybrid: Shorts normal views + Video engaged + Live engaged
+                const hasFormatBreakdown = (stat.contentViews.shorts + stat.contentViews.videos + stat.contentViews.live) > 0;
+                const dayHybridViews = hasFormatBreakdown
+                  ? (stat.contentViews.shorts + stat.contentEngagedViews.videos + stat.contentEngagedViews.live)
+                  : stat.engagedViews;
+                const dayOrganicHybridViews = Math.max(0, dayHybridViews - stat.adViews);
+                const dayNetSubs = stat.subsGained - stat.subsLost;
+
+                channelMonths[mKey].organicViews += dayOrganicViews;
+                channelMonths[mKey].organicHybridViews += dayOrganicHybridViews;
+                channelMonths[mKey].totalViews += stat.views;
+                channelMonths[mKey].subscribers += dayNetSubs;
+                channelMonths[mKey].adViews += stat.adViews;
+              }
+
+              // Compute 6M totals
+              let totalOrganicViews = 0;
+              let totalOrganicHybridViews = 0;
+              let totalSubscribers = 0;
+              for (const m of months) {
+                totalOrganicViews += channelMonths[m.key].organicViews;
+                totalOrganicHybridViews += channelMonths[m.key].organicHybridViews;
+                totalSubscribers += channelMonths[m.key].subscribers;
+              }
+
+              // MoM Growth: Compare latest completed month (index 4) with previous month (index 3)
+              const latestCompletedKey = months[4]?.key;
+              const priorMonthKey = months[3]?.key;
+              const latestViews = channelMonths[latestCompletedKey]?.organicViews || 0;
+              const priorViews = channelMonths[priorMonthKey]?.organicViews || 0;
+              const momViewsGrowth = priorViews > 0 ? Math.round(((latestViews - priorViews) / priorViews) * 1000) / 10 : (latestViews > 0 ? 100 : 0);
+
+              const latestHybridViews = channelMonths[latestCompletedKey]?.organicHybridViews || 0;
+              const priorHybridViews = channelMonths[priorMonthKey]?.organicHybridViews || 0;
+              const momHybridViewsGrowth = priorHybridViews > 0 ? Math.round(((latestHybridViews - priorHybridViews) / priorHybridViews) * 1000) / 10 : (latestHybridViews > 0 ? 100 : 0);
+
+              const latestSubs = channelMonths[latestCompletedKey]?.subscribers || 0;
+              const priorSubs = channelMonths[priorMonthKey]?.subscribers || 0;
+              const momSubsGrowth = priorSubs !== 0 ? Math.round(((latestSubs - priorSubs) / Math.abs(priorSubs)) * 1000) / 10 : (latestSubs > 0 ? 100 : 0);
+
+              return {
+                id: chId,
+                name: chName,
+                months: channelMonths,
+                totalOrganicViews,
+                totalOrganicHybridViews,
+                totalSubscribers,
+                momViewsGrowth,
+                momHybridViewsGrowth,
+                momSubsGrowth,
+              };
+            })
+          );
+          channelResults.push(...chunkData);
+        }
+
+        // Sort channels by totalOrganicViews descending
+        channelResults.sort((a, b) => b.totalOrganicViews - a.totalOrganicViews);
+
+        // Calculate Network Totals
+        const networkMonths = {};
+        for (const m of months) {
+          networkMonths[m.key] = {
+            organicViews: 0,
+            organicHybridViews: 0,
+            totalViews: 0,
+            subscribers: 0,
+            adViews: 0,
+          };
+        }
+
+        let networkTotalOrganicViews = 0;
+        let networkTotalOrganicHybridViews = 0;
+        let networkTotalSubscribers = 0;
+
+        for (const ch of channelResults) {
+          networkTotalOrganicViews += ch.totalOrganicViews;
+          networkTotalOrganicHybridViews += ch.totalOrganicHybridViews;
+          networkTotalSubscribers += ch.totalSubscribers;
+
+          for (const m of months) {
+            networkMonths[m.key].organicViews += ch.months[m.key].organicViews;
+            networkMonths[m.key].organicHybridViews += ch.months[m.key].organicHybridViews;
+            networkMonths[m.key].totalViews += ch.months[m.key].totalViews;
+            networkMonths[m.key].subscribers += ch.months[m.key].subscribers;
+            networkMonths[m.key].adViews += ch.months[m.key].adViews;
+          }
+        }
+
+        const latestCompletedKey = months[4]?.key;
+        const priorMonthKey = months[3]?.key;
+        const netLatestViews = networkMonths[latestCompletedKey]?.organicViews || 0;
+        const netPriorViews = networkMonths[priorMonthKey]?.organicViews || 0;
+        const netMomViewsGrowth = netPriorViews > 0 ? Math.round(((netLatestViews - netPriorViews) / netPriorViews) * 1000) / 10 : 0;
+
+        const netLatestHybrid = networkMonths[latestCompletedKey]?.organicHybridViews || 0;
+        const netPriorHybrid = networkMonths[priorMonthKey]?.organicHybridViews || 0;
+        const netMomHybridGrowth = netPriorHybrid > 0 ? Math.round(((netLatestHybrid - netPriorHybrid) / netPriorHybrid) * 1000) / 10 : 0;
+
+        const netLatestSubs = networkMonths[latestCompletedKey]?.subscribers || 0;
+        const netPriorSubs = networkMonths[priorMonthKey]?.subscribers || 0;
+        const netMomSubsGrowth = netPriorSubs !== 0 ? Math.round(((netLatestSubs - netPriorSubs) / Math.abs(netPriorSubs)) * 1000) / 10 : 0;
+
+        const networkTotals = {
+          name: "🌐 Network Total (All Channels)",
+          months: networkMonths,
+          totalOrganicViews: networkTotalOrganicViews,
+          totalOrganicHybridViews: networkTotalOrganicHybridViews,
+          totalSubscribers: networkTotalSubscribers,
+          momViewsGrowth: netMomViewsGrowth,
+          momHybridViewsGrowth: netMomHybridGrowth,
+          momSubsGrowth: netMomSubsGrowth,
+        };
+
+        return {
+          months,
+          channels: channelResults,
+          networkTotals,
+          latestCompletedMonth: months[4],
+          priorMonth: months[3],
+          generatedAt: new Date().toISOString(),
+        };
+      },
+      { force }
+    );
+
+    res.json(payload);
   } catch (error) {
     next(error);
   }

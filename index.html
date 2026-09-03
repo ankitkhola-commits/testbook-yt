@@ -110,6 +110,8 @@
           <button class="side-nav-button" type="button" data-view-tab="research">Research AI</button>
           <button class="side-nav-button" type="button" data-view-tab="seo">SEO Audit</button>
           <button class="side-nav-button" type="button" data-view-tab="live-automator">Live Automator</button>
+          <button class="side-nav-button" id="adminReportsNavBtn" type="button" data-view-tab="admin-reports" style="display: none;">📊 6M MoM Export</button>
+          <a class="side-nav-button" href="/creatives" style="text-decoration:none; display:flex; align-items:center; gap:6px; color:#38bdf8;" target="_blank">✨ Sale Creatives</a>
         </nav>
 
         <button class="connect-button" id="connectChannelButton" data-sidebar-view="dashboard">
@@ -737,7 +739,74 @@
               </div>
             </div>
           </article>
+ 
+          <!-- Admin 6-Month MoM Export Panel -->
+          <article class="panel page-panel admin-reports-panel is-hidden" data-view="admin-reports">
+            <div class="panel-header" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; width: 100%; gap: 20px; flex-wrap: wrap;">
+              <div>
+                <p class="eyebrow" style="color: #6366f1; font-weight: 700; margin: 0 0 4px 0;">Admin Analytics & Google Sheets Export</p>
+                <h2 style="margin: 0;">6-Month Month-on-Month Progress & Export</h2>
+                <p class="setup-lead" style="margin: 4px 0 0 0; font-size: 13px; color: var(--muted);">Track month-on-month Organic Views and Net Subscribers across all connected channels in presentation-ready format.</p>
+              </div>
 
+              <!-- Top Action Buttons -->
+              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button class="connect-button" type="button" id="adminExportCsvBtn" style="margin: 0; padding: 8px 16px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; background: #059669; color: #fff;">
+                  <span>📥</span> Download CSV / Excel
+                </button>
+                <button class="connect-button" type="button" id="adminCopySheetsBtn" style="margin: 0; padding: 8px 16px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; background: #2563eb; color: #fff;">
+                  <span>📋</span> Copy for Google Sheets
+                </button>
+                <button class="ghost-button" type="button" id="adminRefresh6mBtn" style="padding: 8px 14px; font-size: 13px; border: 1px solid var(--line); border-radius: 6px; cursor: pointer;">
+                  ↻ Refresh Data
+                </button>
+              </div>
+            </div>
+
+            <!-- KPI Summary Cards -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
+              <div class="stat-card" style="background: var(--surface); border: 1px solid var(--line); padding: 16px; border-radius: 8px;">
+                <p class="eyebrow" style="margin: 0 0 6px 0; font-size: 11px;">6M Total Network Organic Views</p>
+                <strong id="admin6mTotalViews" style="font-size: 26px; font-weight: 700; color: var(--ink);">-</strong>
+                <p id="admin6mViewsDetail" style="margin: 4px 0 0 0; font-size: 12px; color: var(--muted);">-</p>
+              </div>
+              <div class="stat-card" style="background: var(--surface); border: 1px solid var(--line); padding: 16px; border-radius: 8px;">
+                <p class="eyebrow" style="margin: 0 0 6px 0; font-size: 11px;">6M Total Network Subscribers</p>
+                <strong id="admin6mTotalSubs" style="font-size: 26px; font-weight: 700; color: var(--ink);">-</strong>
+                <p id="admin6mSubsDetail" style="margin: 4px 0 0 0; font-size: 12px; color: var(--muted);">-</p>
+              </div>
+              <div class="stat-card" style="background: var(--surface); border: 1px solid var(--line); padding: 16px; border-radius: 8px;">
+                <p class="eyebrow" style="margin: 0 0 6px 0; font-size: 11px;">Fastest Growing Channel (MoM)</p>
+                <strong id="admin6mTopChannel" style="font-size: 18px; font-weight: 700; color: #16a34a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;">-</strong>
+                <p id="admin6mTopChannelDetail" style="margin: 4px 0 0 0; font-size: 12px; color: var(--muted);">-</p>
+              </div>
+              <div class="stat-card" style="background: var(--surface); border: 1px solid var(--line); padding: 16px; border-radius: 8px;">
+                <p class="eyebrow" style="margin: 0 0 6px 0; font-size: 11px;">Network MoM Views Trend</p>
+                <strong id="admin6mMomTrend" style="font-size: 26px; font-weight: 700;">-</strong>
+                <p id="admin6mMomTrendDetail" style="margin: 4px 0 0 0; font-size: 12px; color: var(--muted);">-</p>
+              </div>
+            </div>
+
+            <!-- Toolbar: Subtabs (Views vs Subs vs Combined) & Channel Search Filter -->
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; background: var(--surface); border: 1px solid var(--line); padding: 12px 16px; border-radius: 8px;">
+              <div class="sub-tabs" style="display: flex; gap: 8px; margin: 0;">
+                <button class="ghost-button active-sub-tab" type="button" id="adminSubTabViews" data-admin-tab="views" style="padding: 6px 16px; font-weight: 600; border-radius: 6px; border: 1px solid var(--line); font-size: 13px; cursor: pointer;">Organic Views</button>
+                <button class="ghost-button" type="button" id="adminSubTabSubs" data-admin-tab="subs" style="padding: 6px 16px; font-weight: 600; border-radius: 6px; border: 1px solid var(--line); font-size: 13px; cursor: pointer;">Subscribers Gained</button>
+                <button class="ghost-button" type="button" id="adminSubTabCombined" data-admin-tab="combined" style="padding: 6px 16px; font-weight: 600; border-radius: 6px; border: 1px solid var(--line); font-size: 13px; cursor: pointer;">Combined Overview</button>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <input type="search" id="adminChannelSearchInput" placeholder="Filter channel name..." style="background: #fff; color: var(--ink); border: 1px solid var(--line); padding: 6px 12px; border-radius: 6px; font-size: 13px; outline: none; width: 220px; height: 34px;" />
+                <span id="adminChannelCountBadge" style="font-size: 12px; color: var(--muted); font-weight: 500;">0 channels</span>
+              </div>
+            </div>
+
+            <!-- Table Container -->
+            <div id="adminMonthlyTableContainer" class="table-scroll-container" style="background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; max-height: 65vh;">
+              <!-- Dynamically populated table -->
+              <div style="padding: 40px; text-align: center; color: var(--muted);">Click to load 6-month channel analytics.</div>
+            </div>
+          </article>
         </section>
       </main>
     </div>

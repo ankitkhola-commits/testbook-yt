@@ -238,6 +238,7 @@ document.querySelectorAll("[data-view-tab]").forEach((button) => {
     if (state.activeView === "targets") loadTargets();
     if (state.activeView === "keywords") loadKeywords();
     if (state.activeView === "comments") loadComments();
+    if (state.activeView === "admin-reports") loadAdminMonthlyReport();
   });
 });
 
@@ -262,6 +263,8 @@ if (viewMetricSelect) {
     state.viewMetric = event.target.value;
     if (state.activeView === "targets") {
       renderTargetsTable();
+    } else if (state.activeView === "admin-reports") {
+      renderAdminMonthlyReport();
     } else if (state.report) {
       renderReport(state.report);
     }
@@ -1143,7 +1146,9 @@ function applyView() {
                 ? "Rank Tracker"
                 : state.activeView === "comments"
                   ? "Comments Moderator"
-                  : "Research";
+                  : state.activeView === "admin-reports"
+                    ? "6-Month MoM Progress & Export"
+                    : "Research";
 }
 
 function renderResearchView() {
@@ -1483,13 +1488,13 @@ function showDashboard() {
   appShell.hidden = false;
   
   const isAd = (state.isAuditAdmin === undefined || state.isAuditAdmin === true);
-  if (!isAd && (state.activeView === "seo" || state.activeView === "ytm")) {
+  if (!isAd && (state.activeView === "seo" || state.activeView === "ytm" || state.activeView === "admin-reports")) {
     state.activeView = "dashboard";
   }
   
   setupAdminCustomFilters(isAd);
   
-  document.querySelectorAll('[data-view-tab="seo"], [data-view-tab="ytm"]').forEach(btn => {
+  document.querySelectorAll('[data-view-tab="seo"], [data-view-tab="ytm"], [data-view-tab="admin-reports"]').forEach(btn => {
     btn.style.display = isAd ? "" : "none";
   });
 
@@ -3520,6 +3525,542 @@ document.querySelector("#addNewTargetRowBtn")?.addEventListener("click", () => {
 
 document.querySelector("#saveTargetsEditorBtn")?.addEventListener("click", () => {
   saveEditorTargets();
+});
+
+// ==========================================
+// Admin 6-Month MoM Report & Export Controller
+// ==========================================
+
+state.adminMonthlyReport = null;
+state.adminActiveTab = "views"; // "views" | "subs" | "combined"
+state.adminChannelSearch = "";
+
+async function loadAdminMonthlyReport(options = {}) {
+  const container = document.querySelector("#adminMonthlyTableContainer");
+  if (!container) return;
+
+  if (state.adminMonthlyReport && !options.force) {
+    renderAdminMonthlyReport();
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="padding: 48px; text-align: center; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 12px;">
+      <div style="width: 32px; height: 32px; border: 3px solid var(--line); border-top-color: var(--blue, #3c6ee8); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+      <span style="font-size: 14px; font-weight: 500;">Aggregating last 6 months of analytics across all attached channels...</span>
+      <span style="font-size: 12px; color: var(--muted);">Calculating Organic Views, Hybrid Views, and Net Subscribers...</span>
+    </div>
+  `;
+
+  try {
+    const query = options.force ? "?force=1" : "";
+    const data = await api(`/api/admin/monthly-report${query}`);
+    state.adminMonthlyReport = data;
+    renderAdminMonthlyReport();
+  } catch (err) {
+    container.innerHTML = `
+      <div style="padding: 32px; text-align: center; color: #dc2626; font-size: 14px;">
+        <strong>Failed to load 6-month report:</strong> ${escapeHtml(err.message || String(err))}
+      </div>
+    `;
+  }
+}
+
+function renderAdminMonthlyReport() {
+  const data = state.adminMonthlyReport;
+  if (!data) return;
+
+  renderAdminMonthlyKPIs(data);
+  renderAdminMonthlyTable();
+}
+
+function renderAdminMonthlyKPIs(data) {
+  const useHybrid = state.viewMetric === "hybrid";
+  const totals = data.networkTotals || {};
+  const totalViewsVal = useHybrid ? (totals.totalOrganicHybridViews || 0) : (totals.totalOrganicViews || 0);
+  const totalSubsVal = totals.totalSubscribers || 0;
+
+  const totalViewsEl = document.querySelector("#admin6mTotalViews");
+  if (totalViewsEl) totalViewsEl.textContent = totalViewsVal.toLocaleString();
+
+  const latestM = data.latestCompletedMonth;
+  const priorM = data.priorMonth;
+  const momGrowthVal = useHybrid ? totals.momHybridViewsGrowth : totals.momViewsGrowth;
+
+  const viewsDetailEl = document.querySelector("#admin6mViewsDetail");
+  if (viewsDetailEl && latestM) {
+    const latestViews = totals.months?.[latestM.key] ? (useHybrid ? totals.months[latestM.key].organicHybridViews : totals.months[latestM.key].organicViews) : 0;
+    viewsDetailEl.textContent = `${latestM.label.replace(" (MTD)", "")}: ${latestViews.toLocaleString()} (${momGrowthVal >= 0 ? "+" : ""}${momGrowthVal}% MoM)`;
+  }
+
+  const totalSubsEl = document.querySelector("#admin6mTotalSubs");
+  if (totalSubsEl) totalSubsEl.textContent = (totalSubsVal >= 0 ? "+" : "") + totalSubsVal.toLocaleString();
+
+  const subsDetailEl = document.querySelector("#admin6mSubsDetail");
+  if (subsDetailEl && latestM) {
+    const latestSubs = totals.months?.[latestM.key]?.subscribers || 0;
+    const momSubsVal = totals.momSubsGrowth || 0;
+    subsDetailEl.textContent = `${latestM.label.replace(" (MTD)", "")}: ${(latestSubs >= 0 ? "+" : "")}${latestSubs.toLocaleString()} (${momSubsVal >= 0 ? "+" : ""}${momSubsVal}% MoM)`;
+  }
+
+  let topGrowingCh = null;
+  let maxGrowth = -Infinity;
+  for (const ch of (data.channels || [])) {
+    const growth = useHybrid ? ch.momHybridViewsGrowth : ch.momViewsGrowth;
+    const views = ch.months?.[latestM?.key] ? (useHybrid ? ch.months[latestM.key].organicHybridViews : ch.months[latestM.key].organicViews) : 0;
+    if (views >= 5000 && growth > maxGrowth) {
+      maxGrowth = growth;
+      topGrowingCh = ch;
+    }
+  }
+
+  const topChannelEl = document.querySelector("#admin6mTopChannel");
+  const topChannelDetailEl = document.querySelector("#admin6mTopChannelDetail");
+  if (topChannelEl) {
+    if (topGrowingCh) {
+      topChannelEl.textContent = topGrowingCh.name;
+      if (topChannelDetailEl) topChannelDetailEl.textContent = `+${maxGrowth}% MoM growth in ${latestM?.label.replace(" (MTD)", "")}`;
+    } else {
+      topChannelEl.textContent = "-";
+      if (topChannelDetailEl) topChannelDetailEl.textContent = "No data yet";
+    }
+  }
+
+  const momTrendEl = document.querySelector("#admin6mMomTrend");
+  const momTrendDetailEl = document.querySelector("#admin6mMomTrendDetail");
+  if (momTrendEl) {
+    const isUp = momGrowthVal >= 0;
+    momTrendEl.textContent = `${isUp ? "+" : ""}${momGrowthVal}%`;
+    momTrendEl.style.color = isUp ? "#16a34a" : "#dc2626";
+    if (momTrendDetailEl && latestM && priorM) {
+      momTrendDetailEl.textContent = `${latestM.label.replace(" (MTD)", "")} vs ${priorM.label.replace(" (MTD)", "")}`;
+    }
+  }
+
+  const badge = document.querySelector("#adminChannelCountBadge");
+  if (badge) {
+    badge.textContent = `${data.channels?.length || 0} channels connected`;
+  }
+}
+
+function renderAdminMonthlyTable() {
+  const data = state.adminMonthlyReport;
+  const container = document.querySelector("#adminMonthlyTableContainer");
+  if (!data || !container) return;
+
+  const useHybrid = state.viewMetric === "hybrid";
+  const activeTab = state.adminActiveTab || "views";
+  const search = (state.adminChannelSearch || "").toLowerCase().trim();
+
+  const filteredChannels = (data.channels || []).filter(ch => {
+    if (!search) return true;
+    return ch.name.toLowerCase().includes(search) || ch.id.toLowerCase().includes(search);
+  });
+
+  const months = data.months || [];
+  const network = data.networkTotals || {};
+
+  let theadHtml = "";
+  if (activeTab === "views") {
+    theadHtml = `
+      <tr style="border-bottom: 2px solid var(--line); background: var(--bg-alt, #f8fafc); color: var(--muted); font-size: 12px; text-transform: uppercase; font-weight: 600;">
+        <th style="padding: 12px 14px; text-align: left; position: sticky; left: 0; background: var(--bg-alt, #f8fafc); z-index: 2;">Channel Name</th>
+        ${months.map(m => `<th style="padding: 12px 10px; text-align: right; white-space: nowrap;">${escapeHtml(m.label)}</th>`).join("")}
+        <th style="padding: 12px 12px; text-align: right; white-space: nowrap;">6M Total</th>
+        <th style="padding: 12px 14px; text-align: right; white-space: nowrap;">MoM Growth</th>
+      </tr>
+    `;
+  } else if (activeTab === "subs") {
+    theadHtml = `
+      <tr style="border-bottom: 2px solid var(--line); background: var(--bg-alt, #f8fafc); color: var(--muted); font-size: 12px; text-transform: uppercase; font-weight: 600;">
+        <th style="padding: 12px 14px; text-align: left; position: sticky; left: 0; background: var(--bg-alt, #f8fafc); z-index: 2;">Channel Name</th>
+        ${months.map(m => `<th style="padding: 12px 10px; text-align: right; white-space: nowrap;">${escapeHtml(m.label)}</th>`).join("")}
+        <th style="padding: 12px 12px; text-align: right; white-space: nowrap;">6M Net Subs</th>
+        <th style="padding: 12px 14px; text-align: right; white-space: nowrap;">MoM Growth</th>
+      </tr>
+    `;
+  } else {
+    theadHtml = `
+      <tr style="border-bottom: 1px solid var(--line); background: var(--bg-alt, #f8fafc); color: var(--muted); font-size: 11px; text-transform: uppercase; font-weight: 600;">
+        <th rowspan="2" style="padding: 12px 14px; text-align: left; vertical-align: middle; position: sticky; left: 0; background: var(--bg-alt, #f8fafc); z-index: 2; border-right: 1px solid var(--line);">Channel Name</th>
+        ${months.map(m => `<th colspan="2" style="padding: 8px 10px; text-align: center; border-right: 1px solid var(--line);">${escapeHtml(m.label)}</th>`).join("")}
+        <th colspan="2" style="padding: 8px 12px; text-align: center;">6M Total</th>
+      </tr>
+      <tr style="border-bottom: 2px solid var(--line); background: var(--bg-alt, #f8fafc); color: var(--muted); font-size: 11px; text-transform: uppercase; font-weight: 600;">
+        ${months.map(() => `<th style="padding: 6px 8px; text-align: right; font-size: 10px;">Views</th><th style="padding: 6px 8px; text-align: right; font-size: 10px; border-right: 1px solid var(--line);">Subs</th>`).join("")}
+        <th style="padding: 6px 8px; text-align: right; font-size: 10px;">Views</th>
+        <th style="padding: 6px 8px; text-align: right; font-size: 10px;">Subs</th>
+      </tr>
+    `;
+  }
+
+  let networkRowHtml = "";
+  if (activeTab === "views") {
+    const totalVal = useHybrid ? network.totalOrganicHybridViews : network.totalOrganicViews;
+    const momVal = useHybrid ? network.momHybridViewsGrowth : network.momViewsGrowth;
+    const momBadgeClass = momVal >= 0 ? "badge-reached-good" : "badge-reached-danger";
+    networkRowHtml = `
+      <tr style="background: rgba(99, 102, 241, 0.08); font-weight: 700; border-bottom: 2px solid var(--line);">
+        <td style="padding: 12px 14px; position: sticky; left: 0; background: #e0e7ff; z-index: 1; color: #3730a3;">${network.name || "🌐 Network Total"}</td>
+        ${months.map(m => {
+          const val = network.months?.[m.key] ? (useHybrid ? network.months[m.key].organicHybridViews : network.months[m.key].organicViews) : 0;
+          return `<td style="padding: 12px 10px; text-align: right; font-variant-numeric: tabular-nums;">${val.toLocaleString()}</td>`;
+        }).join("")}
+        <td style="padding: 12px 12px; text-align: right; font-variant-numeric: tabular-nums; color: #3730a3;">${totalVal.toLocaleString()}</td>
+        <td style="padding: 12px 14px; text-align: right;"><span class="${momBadgeClass}">${momVal >= 0 ? "+" : ""}${momVal}%</span></td>
+      </tr>
+    `;
+  } else if (activeTab === "subs") {
+    const totalVal = network.totalSubscribers || 0;
+    const momVal = network.momSubsGrowth || 0;
+    const momBadgeClass = momVal >= 0 ? "badge-reached-good" : "badge-reached-danger";
+    networkRowHtml = `
+      <tr style="background: rgba(99, 102, 241, 0.08); font-weight: 700; border-bottom: 2px solid var(--line);">
+        <td style="padding: 12px 14px; position: sticky; left: 0; background: #e0e7ff; z-index: 1; color: #3730a3;">${network.name || "🌐 Network Total"}</td>
+        ${months.map(m => {
+          const val = network.months?.[m.key]?.subscribers || 0;
+          return `<td style="padding: 12px 10px; text-align: right; font-variant-numeric: tabular-nums;">${(val >= 0 ? "+" : "") + val.toLocaleString()}</td>`;
+        }).join("")}
+        <td style="padding: 12px 12px; text-align: right; font-variant-numeric: tabular-nums; color: #3730a3;">${(totalVal >= 0 ? "+" : "") + totalVal.toLocaleString()}</td>
+        <td style="padding: 12px 14px; text-align: right;"><span class="${momBadgeClass}">${momVal >= 0 ? "+" : ""}${momVal}%</span></td>
+      </tr>
+    `;
+  } else {
+    const totalViewsVal = useHybrid ? network.totalOrganicHybridViews : network.totalOrganicViews;
+    const totalSubsVal = network.totalSubscribers || 0;
+    networkRowHtml = `
+      <tr style="background: rgba(99, 102, 241, 0.08); font-weight: 700; border-bottom: 2px solid var(--line);">
+        <td style="padding: 10px 14px; position: sticky; left: 0; background: #e0e7ff; z-index: 1; color: #3730a3; border-right: 1px solid var(--line);">${network.name || "🌐 Network Total"}</td>
+        ${months.map(m => {
+          const v = network.months?.[m.key] ? (useHybrid ? network.months[m.key].organicHybridViews : network.months[m.key].organicViews) : 0;
+          const s = network.months?.[m.key]?.subscribers || 0;
+          return `<td style="padding: 10px 8px; text-align: right; font-variant-numeric: tabular-nums;">${v.toLocaleString()}</td><td style="padding: 10px 8px; text-align: right; font-variant-numeric: tabular-nums; border-right: 1px solid var(--line);">${(s >= 0 ? "+" : "") + s.toLocaleString()}</td>`;
+        }).join("")}
+        <td style="padding: 10px 8px; text-align: right; font-variant-numeric: tabular-nums; color: #3730a3;">${totalViewsVal.toLocaleString()}</td>
+        <td style="padding: 10px 8px; text-align: right; font-variant-numeric: tabular-nums; color: #3730a3;">${(totalSubsVal >= 0 ? "+" : "") + totalSubsVal.toLocaleString()}</td>
+      </tr>
+    `;
+  }
+
+  let bodyRowsHtml = "";
+  if (!filteredChannels.length) {
+    const colSpan = activeTab === "combined" ? (months.length * 2 + 3) : (months.length + 3);
+    bodyRowsHtml = `<tr><td colspan="${colSpan}" style="padding: 30px; text-align: center; color: var(--muted);">No matching channels found.</td></tr>`;
+  } else {
+    bodyRowsHtml = filteredChannels.map(ch => {
+      if (activeTab === "views") {
+        const totalVal = useHybrid ? ch.totalOrganicHybridViews : ch.totalOrganicViews;
+        const momVal = useHybrid ? ch.momHybridViewsGrowth : ch.momViewsGrowth;
+        const momBadgeClass = momVal >= 0 ? "badge-reached-good" : "badge-reached-danger";
+        return `
+          <tr style="border-bottom: 1px solid var(--line);">
+            <td style="padding: 10px 14px; font-weight: 500; color: var(--ink); position: sticky; left: 0; background: var(--surface); z-index: 1; white-space: nowrap;">${escapeHtml(ch.name)}</td>
+            ${months.map(m => {
+              const val = ch.months?.[m.key] ? (useHybrid ? ch.months[m.key].organicHybridViews : ch.months[m.key].organicViews) : 0;
+              return `<td style="padding: 10px 10px; text-align: right; font-variant-numeric: tabular-nums;">${val.toLocaleString()}</td>`;
+            }).join("")}
+            <td style="padding: 10px 12px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums;">${totalVal.toLocaleString()}</td>
+            <td style="padding: 10px 14px; text-align: right;"><span class="${momBadgeClass}">${momVal >= 0 ? "+" : ""}${momVal}%</span></td>
+          </tr>
+        `;
+      } else if (activeTab === "subs") {
+        const totalVal = ch.totalSubscribers || 0;
+        const momVal = ch.momSubsGrowth || 0;
+        const momBadgeClass = momVal >= 0 ? "badge-reached-good" : "badge-reached-danger";
+        return `
+          <tr style="border-bottom: 1px solid var(--line);">
+            <td style="padding: 10px 14px; font-weight: 500; color: var(--ink); position: sticky; left: 0; background: var(--surface); z-index: 1; white-space: nowrap;">${escapeHtml(ch.name)}</td>
+            ${months.map(m => {
+              const val = ch.months?.[m.key]?.subscribers || 0;
+              return `<td style="padding: 10px 10px; text-align: right; font-variant-numeric: tabular-nums;">${(val >= 0 ? "+" : "") + val.toLocaleString()}</td>`;
+            }).join("")}
+            <td style="padding: 10px 12px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums;">${(totalVal >= 0 ? "+" : "") + totalVal.toLocaleString()}</td>
+            <td style="padding: 10px 14px; text-align: right;"><span class="${momBadgeClass}">${momVal >= 0 ? "+" : ""}${momVal}%</span></td>
+          </tr>
+        `;
+      } else {
+        const totalViewsVal = useHybrid ? ch.totalOrganicHybridViews : ch.totalOrganicViews;
+        const totalSubsVal = ch.totalSubscribers || 0;
+        return `
+          <tr style="border-bottom: 1px solid var(--line);">
+            <td style="padding: 10px 14px; font-weight: 500; color: var(--ink); position: sticky; left: 0; background: var(--surface); z-index: 1; white-space: nowrap; border-right: 1px solid var(--line);">${escapeHtml(ch.name)}</td>
+            ${months.map(m => {
+              const v = ch.months?.[m.key] ? (useHybrid ? ch.months[m.key].organicHybridViews : ch.months[m.key].organicViews) : 0;
+              const s = ch.months?.[m.key]?.subscribers || 0;
+              return `<td style="padding: 10px 8px; text-align: right; font-variant-numeric: tabular-nums;">${v.toLocaleString()}</td><td style="padding: 10px 8px; text-align: right; font-variant-numeric: tabular-nums; border-right: 1px solid var(--line);">${(s >= 0 ? "+" : "") + s.toLocaleString()}</td>`;
+            }).join("")}
+            <td style="padding: 10px 8px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums;">${totalViewsVal.toLocaleString()}</td>
+            <td style="padding: 10px 8px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums;">${(totalSubsVal >= 0 ? "+" : "") + totalSubsVal.toLocaleString()}</td>
+          </tr>
+        `;
+      }
+    }).join("");
+  }
+
+  container.innerHTML = `
+    <table class="data-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+      <thead>${theadHtml}</thead>
+      <tbody>
+        ${networkRowHtml}
+        ${bodyRowsHtml}
+      </tbody>
+    </table>
+  `;
+}
+
+function updateAdminSubTabsUI() {
+  const tabs = [
+    { id: "#adminSubTabViews", name: "views" },
+    { id: "#adminSubTabSubs", name: "subs" },
+    { id: "#adminSubTabCombined", name: "combined" },
+  ];
+  for (const t of tabs) {
+    const el = document.querySelector(t.id);
+    if (el) {
+      if (state.adminActiveTab === t.name) {
+        el.classList.add("active-sub-tab");
+      } else {
+        el.classList.remove("active-sub-tab");
+      }
+    }
+  }
+}
+
+function exportAdminMonthlyCsv() {
+  const data = state.adminMonthlyReport;
+  if (!data) return;
+
+  const useHybrid = state.viewMetric === "hybrid";
+  const activeTab = state.adminActiveTab || "views";
+  const months = data.months || [];
+  const network = data.networkTotals || {};
+  const channels = data.channels || [];
+
+  let csvRows = [];
+
+  if (activeTab === "views") {
+    const headers = ["Channel Name", ...months.map(m => m.label.replace(" (MTD)", "")), "6M Total", "MoM Growth %"];
+    csvRows.push(headers);
+
+    const netTotal = useHybrid ? network.totalOrganicHybridViews : network.totalOrganicViews;
+    const netGrowth = useHybrid ? network.momHybridViewsGrowth : network.momViewsGrowth;
+    csvRows.push([
+      "Network Total (All Channels)",
+      ...months.map(m => network.months?.[m.key] ? (useHybrid ? network.months[m.key].organicHybridViews : network.months[m.key].organicViews) : 0),
+      netTotal,
+      `${netGrowth}%`
+    ]);
+
+    for (const ch of channels) {
+      const chTotal = useHybrid ? ch.totalOrganicHybridViews : ch.totalOrganicViews;
+      const chGrowth = useHybrid ? ch.momHybridViewsGrowth : ch.momViewsGrowth;
+      csvRows.push([
+        ch.name,
+        ...months.map(m => ch.months?.[m.key] ? (useHybrid ? ch.months[m.key].organicHybridViews : ch.months[m.key].organicViews) : 0),
+        chTotal,
+        `${chGrowth}%`
+      ]);
+    }
+  } else if (activeTab === "subs") {
+    const headers = ["Channel Name", ...months.map(m => m.label.replace(" (MTD)", "")), "6M Net Subs", "MoM Growth %"];
+    csvRows.push(headers);
+
+    const netTotal = network.totalSubscribers || 0;
+    const netGrowth = network.momSubsGrowth || 0;
+    csvRows.push([
+      "Network Total (All Channels)",
+      ...months.map(m => network.months?.[m.key]?.subscribers || 0),
+      netTotal,
+      `${netGrowth}%`
+    ]);
+
+    for (const ch of channels) {
+      const chTotal = ch.totalSubscribers || 0;
+      const chGrowth = ch.momSubsGrowth || 0;
+      csvRows.push([
+        ch.name,
+        ...months.map(m => ch.months?.[m.key]?.subscribers || 0),
+        chTotal,
+        `${chGrowth}%`
+      ]);
+    }
+  } else {
+    const headers = ["Channel Name"];
+    for (const m of months) {
+      headers.push(`${m.label.replace(" (MTD)", "")} Views`, `${m.label.replace(" (MTD)", "")} Subs`);
+    }
+    headers.push("6M Total Views", "6M Total Subs");
+    csvRows.push(headers);
+
+    const netRow = ["Network Total (All Channels)"];
+    for (const m of months) {
+      const v = network.months?.[m.key] ? (useHybrid ? network.months[m.key].organicHybridViews : network.months[m.key].organicViews) : 0;
+      const s = network.months?.[m.key]?.subscribers || 0;
+      netRow.push(v, s);
+    }
+    netRow.push(useHybrid ? network.totalOrganicHybridViews : network.totalOrganicViews, network.totalSubscribers || 0);
+    csvRows.push(netRow);
+
+    for (const ch of channels) {
+      const row = [ch.name];
+      for (const m of months) {
+        const v = ch.months?.[m.key] ? (useHybrid ? ch.months[m.key].organicHybridViews : ch.months[m.key].organicViews) : 0;
+        const s = ch.months?.[m.key]?.subscribers || 0;
+        row.push(v, s);
+      }
+      row.push(useHybrid ? ch.totalOrganicHybridViews : ch.totalOrganicViews, ch.totalSubscribers || 0);
+      csvRows.push(row);
+    }
+  }
+
+  const csvContent = csvRows.map(row => row.map(cell => {
+    const val = cell === null || cell === undefined ? "" : String(cell);
+    return `"${val.replace(/"/g, '""')}"`;
+  }).join(",")).join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `testbook_6m_mom_${activeTab}_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.style.visibility = "hidden";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+async function copyAdminMonthlyForSheets(btn) {
+  const data = state.adminMonthlyReport;
+  if (!data) return;
+
+  const useHybrid = state.viewMetric === "hybrid";
+  const activeTab = state.adminActiveTab || "views";
+  const months = data.months || [];
+  const network = data.networkTotals || {};
+  const channels = data.channels || [];
+
+  let rows = [];
+
+  if (activeTab === "views") {
+    rows.push(["Channel Name", ...months.map(m => m.label.replace(" (MTD)", "")), "6M Total", "MoM Growth %"]);
+    const netTotal = useHybrid ? network.totalOrganicHybridViews : network.totalOrganicViews;
+    const netGrowth = useHybrid ? network.momHybridViewsGrowth : network.momViewsGrowth;
+    rows.push([
+      "Network Total (All Channels)",
+      ...months.map(m => network.months?.[m.key] ? (useHybrid ? network.months[m.key].organicHybridViews : network.months[m.key].organicViews) : 0),
+      netTotal,
+      `${netGrowth}%`
+    ]);
+    for (const ch of channels) {
+      const chTotal = useHybrid ? ch.totalOrganicHybridViews : ch.totalOrganicViews;
+      const chGrowth = useHybrid ? ch.momHybridViewsGrowth : ch.momViewsGrowth;
+      rows.push([
+        ch.name,
+        ...months.map(m => ch.months?.[m.key] ? (useHybrid ? ch.months[m.key].organicHybridViews : ch.months[m.key].organicViews) : 0),
+        chTotal,
+        `${chGrowth}%`
+      ]);
+    }
+  } else if (activeTab === "subs") {
+    rows.push(["Channel Name", ...months.map(m => m.label.replace(" (MTD)", "")), "6M Net Subs", "MoM Growth %"]);
+    const netTotal = network.totalSubscribers || 0;
+    const netGrowth = network.momSubsGrowth || 0;
+    rows.push([
+      "Network Total (All Channels)",
+      ...months.map(m => network.months?.[m.key]?.subscribers || 0),
+      netTotal,
+      `${netGrowth}%`
+    ]);
+    for (const ch of channels) {
+      const chTotal = ch.totalSubscribers || 0;
+      const chGrowth = ch.momSubsGrowth || 0;
+      rows.push([
+        ch.name,
+        ...months.map(m => ch.months?.[m.key]?.subscribers || 0),
+        chTotal,
+        `${chGrowth}%`
+      ]);
+    }
+  } else {
+    const headers = ["Channel Name"];
+    for (const m of months) {
+      headers.push(`${m.label.replace(" (MTD)", "")} Views`, `${m.label.replace(" (MTD)", "")} Subs`);
+    }
+    headers.push("6M Total Views", "6M Total Subs");
+    rows.push(headers);
+
+    const netRow = ["Network Total (All Channels)"];
+    for (const m of months) {
+      const v = network.months?.[m.key] ? (useHybrid ? network.months[m.key].organicHybridViews : network.months[m.key].organicViews) : 0;
+      const s = network.months?.[m.key]?.subscribers || 0;
+      netRow.push(v, s);
+    }
+    netRow.push(useHybrid ? network.totalOrganicHybridViews : network.totalOrganicViews, network.totalSubscribers || 0);
+    rows.push(netRow);
+
+    for (const ch of channels) {
+      const row = [ch.name];
+      for (const m of months) {
+        const v = ch.months?.[m.key] ? (useHybrid ? ch.months[m.key].organicHybridViews : ch.months[m.key].organicViews) : 0;
+        const s = ch.months?.[m.key]?.subscribers || 0;
+        row.push(v, s);
+      }
+      row.push(useHybrid ? ch.totalOrganicHybridViews : ch.totalOrganicViews, ch.totalSubscribers || 0);
+      rows.push(row);
+    }
+  }
+
+  const tsvContent = rows.map(row => row.map(cell => {
+    const val = cell === null || cell === undefined ? "" : String(cell);
+    return val.replace(/\t/g, " ").replace(/\r?\n/g, " ");
+  }).join("\t")).join("\n");
+
+  try {
+    await navigator.clipboard.writeText(tsvContent);
+    const orig = btn.innerHTML;
+    btn.innerHTML = `<span>✅</span> Copied TSV for Sheets!`;
+    setTimeout(() => {
+      btn.innerHTML = orig;
+    }, 1800);
+  } catch (err) {
+    alert("Could not copy to clipboard: " + err.message);
+  }
+}
+
+// Event Listeners for Admin 6M Monthly Report
+document.querySelector("#adminSubTabViews")?.addEventListener("click", () => {
+  state.adminActiveTab = "views";
+  updateAdminSubTabsUI();
+  renderAdminMonthlyTable();
+});
+
+document.querySelector("#adminSubTabSubs")?.addEventListener("click", () => {
+  state.adminActiveTab = "subs";
+  updateAdminSubTabsUI();
+  renderAdminMonthlyTable();
+});
+
+document.querySelector("#adminSubTabCombined")?.addEventListener("click", () => {
+  state.adminActiveTab = "combined";
+  updateAdminSubTabsUI();
+  renderAdminMonthlyTable();
+});
+
+document.querySelector("#adminChannelSearchInput")?.addEventListener("input", (e) => {
+  state.adminChannelSearch = e.target.value;
+  renderAdminMonthlyTable();
+});
+
+document.querySelector("#adminRefresh6mBtn")?.addEventListener("click", () => {
+  loadAdminMonthlyReport({ force: true });
+});
+
+document.querySelector("#adminExportCsvBtn")?.addEventListener("click", () => {
+  exportAdminMonthlyCsv();
+});
+
+document.querySelector("#adminCopySheetsBtn")?.addEventListener("click", (e) => {
+  copyAdminMonthlyForSheets(e.target.closest("button") || e.target);
 });
 
 // Admin Cross-Channel Keywords Controller
