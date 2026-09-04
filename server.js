@@ -936,8 +936,8 @@ const defaultTargets = {
         "employee": "Raubnish",
         "channelId": "UC1y7Nv1-ZdkJdNUkUgFaydg",
         "channelName": "Odisha Testbook",
-        "viewsTarget": 20000000,
-        "subsTarget": 35000
+        "viewsTarget": 15000000,
+        "subsTarget": 30000
       },
       {
         "id": "ytm_t26_raubnish_odishateach",
@@ -972,7 +972,7 @@ const defaultTargets = {
         "channelId": "UCLLhVCsO2Em-IQXwqq2EVyw",
         "channelName": "TET PRT Testbook",
         "viewsTarget": 9000000,
-        "subsTarget": 30000
+        "subsTarget": 20000
       },
       {
         "id": "ytm_t29_abhinav_tgtpgt",
@@ -987,8 +987,8 @@ const defaultTargets = {
         "employee": "Abhinav",
         "channelId": "UCYmiOXiMpiwlQFU4OIDPZzA",
         "channelName": "CTET Testbook",
-        "viewsTarget": 10000000,
-        "subsTarget": 38000
+        "viewsTarget": 8000000,
+        "subsTarget": 35000
       },
       {
         "id": "ytm_t31_abhinav_biharteach",
@@ -1019,8 +1019,8 @@ const defaultTargets = {
         "employee": "Ashish Tyagi",
         "channelId": "UCW3qu1ViFQhIMLZRXugCFRg",
         "channelName": "Punjab Testbook",
-        "viewsTarget": 25000000,
-        "subsTarget": 50000
+        "viewsTarget": 20000000,
+        "subsTarget": 30000
       },
       {
         "id": "ytm_t35_lubna_railway",
@@ -1056,7 +1056,7 @@ const defaultTargets = {
       },
       {
         "id": "ytm_t39_govardhan_tamil",
-        "employee": "Govardhan",
+        "employee": "Vivek",
         "channelId": "UC-a42jy3Ow5RTLGBQwa2y8g",
         "channelName": "Testbook Tamil",
         "viewsTarget": 1800000,
@@ -1064,7 +1064,7 @@ const defaultTargets = {
       },
       {
         "id": "ytm_t40_govardhan_telugu",
-        "employee": "Govardhan",
+        "employee": "Vivek",
         "channelId": "UC08MiG8-bjllfy94OeY5zWw",
         "channelName": "Testbook Telugu",
         "viewsTarget": 1530000,
@@ -1091,7 +1091,7 @@ const defaultTargets = {
         "employee": "Saijal",
         "channelId": "UCYmiOXiMpiwlQFU4OIDPZzA",
         "channelName": "CTET Testbook",
-        "searchViewsTarget": 2244039
+        "searchViewsTarget": 1795231
       },
       {
         "id": "seo_t22_saijal_combined",
@@ -1129,7 +1129,7 @@ const defaultTargets = {
         "employee": "Mohit",
         "channelId": "UCW3qu1ViFQhIMLZRXugCFRg",
         "channelName": "Punjab Testbook",
-        "searchViewsTarget": 4000000
+        "searchViewsTarget": 3200000
       },
       {
         "id": "seo_t27_vinayak_banking",
@@ -1185,7 +1185,7 @@ const defaultTargets = {
         "employee": "Aditya",
         "channelId": "UC1y7Nv1-ZdkJdNUkUgFaydg",
         "channelName": "Odisha Testbook",
-        "searchViewsTarget": 3744070
+        "searchViewsTarget": 2808052
       },
       {
         "id": "seo_t35_aditya_tetfactory",
@@ -1218,7 +1218,8 @@ async function readQuarterTargets() {
     !targets.JAS_2026 ||
     !targets.JAS_2026.ytm ||
     !targets.JAS_2026.ytm.some(t => t.id === "ytm_t41_raubnish_sambhab") ||
-    targets.JAS_2026.ytm.some(t => t.employee === "Atul Sharma" || t.id === "ytm_t7" || (t.channelName === "CTET Testbook" && t.viewsTarget === 13000000))
+    targets.JAS_2026.ytm.some(t => t.employee === "Atul Sharma" || t.id === "ytm_t7" || (t.channelName === "CTET Testbook" && (t.viewsTarget === 13000000 || t.viewsTarget === 10000000)) || (t.channelName === "Odisha Testbook" && t.viewsTarget === 20000000)) ||
+    (targets.JAS_2026.seo && targets.JAS_2026.seo.some(t => (t.channelName === "CTET Testbook" && t.searchViewsTarget === 2244039) || (t.channelName === "Punjab Testbook" && t.searchViewsTarget === 4000000)))
   ) {
     targets.JAS_2026 = defaultTargets.JAS_2026;
     if (targets.AMJ_2026 && targets.AMJ_2026.ytm && !targets.AMJ_2026.ytm.some(t => t.id === "ytm_t_sambhab")) {
@@ -1250,7 +1251,7 @@ async function saveQuarterTargets(targets) {
 
 async function channelTargetAnalytics(auth, channelId, startDate, endDate, options = {}) {
   return cached(
-    makeCacheKey("channel-target-analytics-v5", channelId, startDate, endDate),
+    makeCacheKey("channel-target-analytics-v6", channelId, startDate, endDate),
     2 * 60 * 60 * 1000, // 2 hours
     async () => {
       const [dailyRows, trafficRows, contentTypeRows] = await Promise.all([
