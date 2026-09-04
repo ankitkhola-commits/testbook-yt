@@ -1147,7 +1147,7 @@ function applyView() {
                 : state.activeView === "comments"
                   ? "Comments Moderator"
                   : state.activeView === "admin-reports"
-                    ? "6-Month MoM Progress & Export"
+                    ? "MoM Progress & Export (Aug 2025 - Aug 2026)"
                     : "Research";
 }
 
@@ -3547,7 +3547,7 @@ async function loadAdminMonthlyReport(options = {}) {
   container.innerHTML = `
     <div style="padding: 48px; text-align: center; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 12px;">
       <div style="width: 32px; height: 32px; border: 3px solid var(--line); border-top-color: var(--blue, #3c6ee8); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
-      <span style="font-size: 14px; font-weight: 500;">Aggregating last 6 months of analytics across all attached channels...</span>
+      <span style="font-size: 14px; font-weight: 500;">Aggregating 1-year analytics (Aug 2025 - Aug 2026) across all attached channels...</span>
       <span style="font-size: 12px; color: var(--muted);">Calculating Organic Views, Hybrid Views, and Net Subscribers...</span>
     </div>
   `;
@@ -3560,7 +3560,7 @@ async function loadAdminMonthlyReport(options = {}) {
   } catch (err) {
     container.innerHTML = `
       <div style="padding: 32px; text-align: center; color: #dc2626; font-size: 14px;">
-        <strong>Failed to load 6-month report:</strong> ${escapeHtml(err.message || String(err))}
+        <strong>Failed to load report:</strong> ${escapeHtml(err.message || String(err))}
       </div>
     `;
   }
@@ -3590,7 +3590,7 @@ function renderAdminMonthlyKPIs(data) {
   const viewsDetailEl = document.querySelector("#admin6mViewsDetail");
   if (viewsDetailEl && latestM) {
     const latestViews = totals.months?.[latestM.key] ? (useHybrid ? totals.months[latestM.key].organicHybridViews : totals.months[latestM.key].organicViews) : 0;
-    viewsDetailEl.textContent = `${latestM.label.replace(" (MTD)", "")}: ${latestViews.toLocaleString()} (${momGrowthVal >= 0 ? "+" : ""}${momGrowthVal}% MoM)`;
+    viewsDetailEl.textContent = `${latestM.label}: ${latestViews.toLocaleString()} (${momGrowthVal >= 0 ? "+" : ""}${momGrowthVal}% MoM)`;
   }
 
   const totalSubsEl = document.querySelector("#admin6mTotalSubs");
@@ -3600,7 +3600,7 @@ function renderAdminMonthlyKPIs(data) {
   if (subsDetailEl && latestM) {
     const latestSubs = totals.months?.[latestM.key]?.subscribers || 0;
     const momSubsVal = totals.momSubsGrowth || 0;
-    subsDetailEl.textContent = `${latestM.label.replace(" (MTD)", "")}: ${(latestSubs >= 0 ? "+" : "")}${latestSubs.toLocaleString()} (${momSubsVal >= 0 ? "+" : ""}${momSubsVal}% MoM)`;
+    subsDetailEl.textContent = `${latestM.label}: ${(latestSubs >= 0 ? "+" : "")}${latestSubs.toLocaleString()} (${momSubsVal >= 0 ? "+" : ""}${momSubsVal}% MoM)`;
   }
 
   let topGrowingCh = null;
@@ -3619,7 +3619,7 @@ function renderAdminMonthlyKPIs(data) {
   if (topChannelEl) {
     if (topGrowingCh) {
       topChannelEl.textContent = topGrowingCh.name;
-      if (topChannelDetailEl) topChannelDetailEl.textContent = `+${maxGrowth}% MoM growth in ${latestM?.label.replace(" (MTD)", "")}`;
+      if (topChannelDetailEl) topChannelDetailEl.textContent = `+${maxGrowth}% MoM growth in ${latestM?.label}`;
     } else {
       topChannelEl.textContent = "-";
       if (topChannelDetailEl) topChannelDetailEl.textContent = "No data yet";
@@ -3633,7 +3633,7 @@ function renderAdminMonthlyKPIs(data) {
     momTrendEl.textContent = `${isUp ? "+" : ""}${momGrowthVal}%`;
     momTrendEl.style.color = isUp ? "#16a34a" : "#dc2626";
     if (momTrendDetailEl && latestM && priorM) {
-      momTrendDetailEl.textContent = `${latestM.label.replace(" (MTD)", "")} vs ${priorM.label.replace(" (MTD)", "")}`;
+      momTrendDetailEl.textContent = `${latestM.label} vs ${priorM.label}`;
     }
   }
 
@@ -3666,7 +3666,7 @@ function renderAdminMonthlyTable() {
       <tr style="border-bottom: 2px solid var(--line); background: var(--bg-alt, #f8fafc); color: var(--muted); font-size: 12px; text-transform: uppercase; font-weight: 600;">
         <th style="padding: 12px 14px; text-align: left; position: sticky; left: 0; background: var(--bg-alt, #f8fafc); z-index: 2;">Channel Name</th>
         ${months.map(m => `<th style="padding: 12px 10px; text-align: right; white-space: nowrap;">${escapeHtml(m.label)}</th>`).join("")}
-        <th style="padding: 12px 12px; text-align: right; white-space: nowrap;">6M Total</th>
+        <th style="padding: 12px 12px; text-align: right; white-space: nowrap;">Total Views</th>
         <th style="padding: 12px 14px; text-align: right; white-space: nowrap;">MoM Growth</th>
       </tr>
     `;
@@ -3675,7 +3675,7 @@ function renderAdminMonthlyTable() {
       <tr style="border-bottom: 2px solid var(--line); background: var(--bg-alt, #f8fafc); color: var(--muted); font-size: 12px; text-transform: uppercase; font-weight: 600;">
         <th style="padding: 12px 14px; text-align: left; position: sticky; left: 0; background: var(--bg-alt, #f8fafc); z-index: 2;">Channel Name</th>
         ${months.map(m => `<th style="padding: 12px 10px; text-align: right; white-space: nowrap;">${escapeHtml(m.label)}</th>`).join("")}
-        <th style="padding: 12px 12px; text-align: right; white-space: nowrap;">6M Net Subs</th>
+        <th style="padding: 12px 12px; text-align: right; white-space: nowrap;">Total Net Subs</th>
         <th style="padding: 12px 14px; text-align: right; white-space: nowrap;">MoM Growth</th>
       </tr>
     `;
@@ -3684,7 +3684,7 @@ function renderAdminMonthlyTable() {
       <tr style="border-bottom: 1px solid var(--line); background: var(--bg-alt, #f8fafc); color: var(--muted); font-size: 11px; text-transform: uppercase; font-weight: 600;">
         <th rowspan="2" style="padding: 12px 14px; text-align: left; vertical-align: middle; position: sticky; left: 0; background: var(--bg-alt, #f8fafc); z-index: 2; border-right: 1px solid var(--line);">Channel Name</th>
         ${months.map(m => `<th colspan="2" style="padding: 8px 10px; text-align: center; border-right: 1px solid var(--line);">${escapeHtml(m.label)}</th>`).join("")}
-        <th colspan="2" style="padding: 8px 12px; text-align: center;">6M Total</th>
+        <th colspan="2" style="padding: 8px 12px; text-align: center;">Total (Aug '25 - Aug '26)</th>
       </tr>
       <tr style="border-bottom: 2px solid var(--line); background: var(--bg-alt, #f8fafc); color: var(--muted); font-size: 11px; text-transform: uppercase; font-weight: 600;">
         ${months.map(() => `<th style="padding: 6px 8px; text-align: right; font-size: 10px;">Views</th><th style="padding: 6px 8px; text-align: right; font-size: 10px; border-right: 1px solid var(--line);">Subs</th>`).join("")}
@@ -3839,7 +3839,7 @@ function exportAdminMonthlyCsv() {
   let csvRows = [];
 
   if (activeTab === "views") {
-    const headers = ["Channel Name", ...months.map(m => m.label.replace(" (MTD)", "")), "6M Total", "MoM Growth %"];
+    const headers = ["Channel Name", ...months.map(m => m.label), "Total Views", "MoM Growth %"];
     csvRows.push(headers);
 
     const netTotal = useHybrid ? network.totalOrganicHybridViews : network.totalOrganicViews;
@@ -3862,7 +3862,7 @@ function exportAdminMonthlyCsv() {
       ]);
     }
   } else if (activeTab === "subs") {
-    const headers = ["Channel Name", ...months.map(m => m.label.replace(" (MTD)", "")), "6M Net Subs", "MoM Growth %"];
+    const headers = ["Channel Name", ...months.map(m => m.label), "Total Net Subs", "MoM Growth %"];
     csvRows.push(headers);
 
     const netTotal = network.totalSubscribers || 0;
@@ -3887,9 +3887,9 @@ function exportAdminMonthlyCsv() {
   } else {
     const headers = ["Channel Name"];
     for (const m of months) {
-      headers.push(`${m.label.replace(" (MTD)", "")} Views`, `${m.label.replace(" (MTD)", "")} Subs`);
+      headers.push(`${m.label} Views`, `${m.label} Subs`);
     }
-    headers.push("6M Total Views", "6M Total Subs");
+    headers.push("Total Views (Aug '25 - Aug '26)", "Total Net Subs (Aug '25 - Aug '26)");
     csvRows.push(headers);
 
     const netRow = ["Network Total (All Channels)"];
@@ -3922,7 +3922,7 @@ function exportAdminMonthlyCsv() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `testbook_6m_mom_${activeTab}_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `testbook_mom_export_${activeTab}_aug2025_aug2026_${new Date().toISOString().slice(0, 10)}.csv`;
   a.style.visibility = "hidden";
   document.body.appendChild(a);
   a.click();
@@ -3942,7 +3942,7 @@ async function copyAdminMonthlyForSheets(btn) {
   let rows = [];
 
   if (activeTab === "views") {
-    rows.push(["Channel Name", ...months.map(m => m.label.replace(" (MTD)", "")), "6M Total", "MoM Growth %"]);
+    rows.push(["Channel Name", ...months.map(m => m.label), "Total Views", "MoM Growth %"]);
     const netTotal = useHybrid ? network.totalOrganicHybridViews : network.totalOrganicViews;
     const netGrowth = useHybrid ? network.momHybridViewsGrowth : network.momViewsGrowth;
     rows.push([
@@ -3962,7 +3962,7 @@ async function copyAdminMonthlyForSheets(btn) {
       ]);
     }
   } else if (activeTab === "subs") {
-    rows.push(["Channel Name", ...months.map(m => m.label.replace(" (MTD)", "")), "6M Net Subs", "MoM Growth %"]);
+    rows.push(["Channel Name", ...months.map(m => m.label), "Total Net Subs", "MoM Growth %"]);
     const netTotal = network.totalSubscribers || 0;
     const netGrowth = network.momSubsGrowth || 0;
     rows.push([
@@ -3984,9 +3984,9 @@ async function copyAdminMonthlyForSheets(btn) {
   } else {
     const headers = ["Channel Name"];
     for (const m of months) {
-      headers.push(`${m.label.replace(" (MTD)", "")} Views`, `${m.label.replace(" (MTD)", "")} Subs`);
+      headers.push(`${m.label} Views`, `${m.label} Subs`);
     }
-    headers.push("6M Total Views", "6M Total Subs");
+    headers.push("Total Views (Aug '25 - Aug '26)", "Total Net Subs (Aug '25 - Aug '26)");
     rows.push(headers);
 
     const netRow = ["Network Total (All Channels)"];

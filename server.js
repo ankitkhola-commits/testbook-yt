@@ -2034,40 +2034,43 @@ app.get("/api/admin/monthly-report", async (req, res, next) => {
     const force = req.query.force === "1";
     const entries = await connectedChannelEntries(viewer);
 
-    // Calculate the last 6 calendar months
-    const today = new Date();
-    const currentYear = today.getUTCFullYear();
-    const currentMonth = today.getUTCMonth(); // 0-11
-    const yesterdayDate = new Date(Date.UTC(currentYear, currentMonth, today.getUTCDate() - 1));
-    const yesterdayStr = yesterdayDate.toISOString().slice(0, 10);
-
+    // Calculate months strictly from August 2025 to August 2026 (excluding Sept 2026)
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const months = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(Date.UTC(currentYear, currentMonth - i, 1));
-      const y = d.getUTCFullYear();
-      const m = d.getUTCMonth();
-      const key = `${y}-${String(m + 1).padStart(2, "0")}`;
-      const monthEnd = new Date(Date.UTC(y, m + 1, 0));
-      const isCurrent = (i === 0);
-      const mtdEnd = yesterdayStr < `${key}-01` ? `${key}-01` : yesterdayStr;
+    const startYear = 2025;
+    const startMonth = 7; // August (0-indexed)
+    const endYear = 2026;
+    const endMonth = 7; // August (0-indexed)
+
+    let curYear = startYear;
+    let curMonth = startMonth;
+
+    while (curYear < endYear || (curYear === endYear && curMonth <= endMonth)) {
+      const key = `${curYear}-${String(curMonth + 1).padStart(2, "0")}`;
+      const monthEnd = new Date(Date.UTC(curYear, curMonth + 1, 0));
       months.push({
         key,
-        label: `${monthNames[m]} ${y}${isCurrent ? " (MTD)" : ""}`,
-        shortLabel: `${monthNames[m]} '${String(y).slice(2)}`,
-        year: y,
-        monthNum: m + 1,
-        isCurrent,
+        label: `${monthNames[curMonth]} ${curYear}`,
+        shortLabel: `${monthNames[curMonth]} '${String(curYear).slice(2)}`,
+        year: curYear,
+        monthNum: curMonth + 1,
+        isCurrent: false,
         startDate: `${key}-01`,
-        endDate: isCurrent ? mtdEnd : monthEnd.toISOString().slice(0, 10)
+        endDate: monthEnd.toISOString().slice(0, 10),
       });
+
+      curMonth++;
+      if (curMonth > 11) {
+        curMonth = 0;
+        curYear++;
+      }
     }
 
     const overallStartDate = months[0].startDate;
     const overallEndDate = months[months.length - 1].endDate;
 
     const cacheKey = makeCacheKey(
-      "admin-6m-monthly-report-v1",
+      "admin-1y-monthly-report-v2",
       overallStartDate,
       overallEndDate,
       entries.map(e => e.channel.id).sort().join(",")
@@ -2227,9 +2230,9 @@ app.get("/api/admin/monthly-report", async (req, res, next) => {
                 totalSubscribers += channelMonths[m.key].subscribers;
               }
 
-              // MoM Growth: Compare latest completed month (index 4) with previous month (index 3)
-              const latestCompletedKey = months[4]?.key;
-              const priorMonthKey = months[3]?.key;
+              // MoM Growth: Compare latest completed month (August 2026) with previous month (July 2026)
+              const latestCompletedKey = months[months.length - 1]?.key;
+              const priorMonthKey = months[months.length - 2]?.key;
               const latestViews = channelMonths[latestCompletedKey]?.organicViews || 0;
               const priorViews = channelMonths[priorMonthKey]?.organicViews || 0;
               const momViewsGrowth = priorViews > 0 ? Math.round(((latestViews - priorViews) / priorViews) * 1000) / 10 : (latestViews > 0 ? 100 : 0);
@@ -2291,8 +2294,8 @@ app.get("/api/admin/monthly-report", async (req, res, next) => {
           }
         }
 
-        const latestCompletedKey = months[4]?.key;
-        const priorMonthKey = months[3]?.key;
+        const latestCompletedKey = months[months.length - 1]?.key;
+        const priorMonthKey = months[months.length - 2]?.key;
         const netLatestViews = networkMonths[latestCompletedKey]?.organicViews || 0;
         const netPriorViews = networkMonths[priorMonthKey]?.organicViews || 0;
         const netMomViewsGrowth = netPriorViews > 0 ? Math.round(((netLatestViews - netPriorViews) / netPriorViews) * 1000) / 10 : 0;
@@ -2320,8 +2323,8 @@ app.get("/api/admin/monthly-report", async (req, res, next) => {
           months,
           channels: channelResults,
           networkTotals,
-          latestCompletedMonth: months[4],
-          priorMonth: months[3],
+          latestCompletedMonth: months[months.length - 1],
+          priorMonth: months[months.length - 2],
           generatedAt: new Date().toISOString(),
         };
       },

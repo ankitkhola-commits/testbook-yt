@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brand Sale Creative Studio — Multi-Ratio Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Outfit:wght@500;700;800;900&family=Bebas+Neue&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/creative-studio.css">
+  <!-- JSZip & html2canvas for instant export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body class="studio-body">
+  <!-- Header Bar -->
+  <header class="studio-header">
+    <div class="header-left">
+      <div class="logo-badge">
+        <span class="sparkle-icon">✨</span>
+        <span class="brand-title">Creative Studio</span>
+        <span class="version-tag">Multi-Ratio Generator</span>
+      </div>
+    </div>
+    
+    <div class="header-center">
+      <div class="campaign-selector">
+        <label for="campaignPresetSelect">Quick Presets:</label>
+        <select id="campaignPresetSelect" class="studio-select">
+          <option value="testbook_monsoon">⚡ Monsoon Mega Sale (Testbook)</option>
+          <option value="exam_pass">🎯 Pass Pro Selection Mela</option>
+          <option value="supercoaching">🏆 SuperCoaching Grand Discount</option>
+          <option value="flash_midnight">🔥 Midnight Flash Sale 85% OFF</option>
+          <option value="custom">✏️ Custom Campaign</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <button id="btnExportAll" class="btn btn-primary btn-glow">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>Download All 4 Sizes (.ZIP)</span>
+      </button>
+      <a href="/" class="btn btn-secondary btn-sm" title="Back to YouTube Dashboard">
+        ← Back to Dashboard
+      </a>
+    </div>
+  </header>
+
+  <!-- Studio Main Container -->
+  <main class="studio-layout">
+    
+    <!-- LEFT SIDEBAR: Controls & Settings -->
+    <aside class="studio-sidebar" id="studioSidebar">
+      <div class="sidebar-tabs">
+        <button class="tab-btn active" data-tab="campaign">📢 Campaign Copy</button>
+        <button class="tab-btn" data-tab="brand">🎨 Brand Kit</button>
+        <button class="tab-btn" data-tab="style">✨ Theme & Style</button>
+        <button class="tab-btn" data-tab="image">🖼️ Hero Image</button>
+      </div>
+
+      <div class="sidebar-content">
+        <!-- TAB 1: Campaign Copy & Offer -->
+        <section class="tab-panel active" id="tab-campaign">
+          <div class="panel-section">
+            <h3 class="section-title">Sale & Offer Details</h3>
+            
+            <div class="form-group">
+              <label for="inputSaleTag">Sale Tag / Urgency Hook</label>
+              <div class="input-with-presets">
+                <input type="text" id="inputSaleTag" value="⚡ MONSOON MEGA SALE" placeholder="e.g. 🔥 FLASH SALE">
+                <div class="chip-row">
+                  <button type="button" class="chip" data-target="inputSaleTag" data-val="⚡ FLASH SALE">⚡ Flash</button>
+                  <button type="button" class="chip" data-target="inputSaleTag" data-val="🔥 MEGA SALE">🔥 Mega</button>
+                  <button type="button" class="chip" data-target="inputSaleTag" data-val="🎉 LIMITED PERIOD">🎉 Limited</button>
+                  <button type="button" class="chip" data-target="inputSaleTag" data-val="⏳ ENDS TONIGHT">⏳ Ends Tonight</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="inputDiscount">Main Hook / Big Discount</label>
+              <input type="text" id="inputDiscount" value="FLAT 70% OFF" placeholder="e.g. FLAT 80% OFF or UPTO 90% OFF">
+            </div>
+
+            <div class="form-group">
+              <label for="inputHeadline">Headline / Target Audience</label>
+              <textarea id="inputHeadline" rows="2" placeholder="e.g. On All SSC, Banking & Railway SuperCoachings">On All SSC, Railway & State Govt Courses</textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="inputSubline">Sub-headline / Extra Perks</label>
+              <input type="text" id="inputSubline" value="Free Pass Pro + 50,000+ Mock Tests Included" placeholder="e.g. Free 3 Months Validity Included">
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <h3 class="section-title">Pricing & CTA</h3>
+            
+            <div class="form-row">
+              <div class="form-group col">
+                <label for="inputOriginalPrice">Original Price</label>
+                <input type="text" id="inputOriginalPrice" value="₹4,999" placeholder="₹4,999">
+              </div>
+              <div class="form-group col">
+                <label for="inputOfferPrice">Offer Price</label>
+                <input type="text" id="inputOfferPrice" value="₹999" placeholder="₹999">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group col">
+                <label for="inputCouponCode">Coupon Code</label>
+                <input type="text" id="inputCouponCode" value="USE CODE: CRACKIT" placeholder="USE CODE: SALE">
+              </div>
+              <div class="form-group col">
+                <label for="inputCtaText">CTA Button Text</label>
+                <input type="text" id="inputCtaText" value="ENROLL NOW →" placeholder="ENROLL NOW">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="inputDisclaimer">Validity / Footer Disclaimer</label>
+              <input type="text" id="inputDisclaimer" value="*Valid till midnight only. T&C Apply." placeholder="*Offer valid for today only">
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 2: Brand Kit & Tokens -->
+        <section class="tab-panel" id="tab-brand">
+          <div class="panel-section">
+            <h3 class="section-title">Brand Identity</h3>
+            
+            <div class="form-group">
+              <label>Brand Preset</label>
+              <div class="brand-presets-grid">
+                <button type="button" class="brand-btn active" data-brand="testbook">
+                  <span class="color-dot" style="background:#00A8E8"></span>
+                  <span>Testbook Pro</span>
+                </button>
+                <button type="button" class="brand-btn" data-brand="supercoaching">
+                  <span class="color-dot" style="background:#FF9F1C"></span>
+                  <span>SuperCoaching</span>
+                </button>
+                <button type="button" class="brand-btn" data-brand="cyberdark">
+                  <span class="color-dot" style="background:#06D6A0"></span>
+                  <span>Cyber Neon</span>
+                </button>
+                <button type="button" class="brand-btn" data-brand="royalpurple">
+                  <span class="color-dot" style="background:#8338EC"></span>
+                  <span>Royal Purple</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="inputBrandName">Brand Name / Logo Text</label>
+              <input type="text" id="inputBrandName" value="testbook" placeholder="testbook">
+            </div>
+
+            <div class="form-group">
+              <label for="inputBrandLogo">Brand Logo Image (Optional)</label>
+              <input type="file" id="inputBrandLogo" accept="image/*" class="file-input">
+              <div class="logo-preview-box" id="logoPreviewContainer">
+                <img id="logoPreviewImg" src="/assets/testbook-logo.png" alt="Brand Logo" onerror="this.style.display='none'">
+                <button type="button" id="btnResetLogo" class="btn-link-sm">Use Default Logo</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <h3 class="section-title">Brand Colors (Hex)</h3>
+            
+            <div class="color-picker-grid">
+              <div class="color-item">
+                <label>Primary (Cyan/Blue)</label>
+                <div class="color-input-wrapper">
+                  <input type="color" id="colorPrimary" value="#00A8E8">
+                  <input type="text" id="hexPrimary" value="#00A8E8" class="hex-text">
+                </div>
+              </div>
+
+              <div class="color-item">
+                <label>Secondary (Deep Navy)</label>
+                <div class="color-input-wrapper">
+                  <input type="color" id="colorSecondary" value="#001B3A">
+                  <input type="text" id="hexSecondary" value="#001B3A" class="hex-text">
+                </div>
+              </div>
+
+              <div class="color-item">
+                <label>Accent (Gold/Yellow)</label>
+                <div class="color-input-wrapper">
+                  <input type="color" id="colorAccent" value="#FFB703">
+                  <input type="text" id="hexAccent" value="#FFB703" class="hex-text">
+                </div>
+              </div>
+
+              <div class="color-item">
+                <label>Background (Base)</label>
+                <div class="color-input-wrapper">
+                  <input type="color" id="colorBg" value="#071228">
+                  <input type="text" id="hexBg" value="#071228" class="hex-text">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group mt-3">
+              <label for="fontSelect">Primary Font Family</label>
+              <select id="fontSelect" class="studio-select">
+                <option value="'Plus Jakarta Sans', sans-serif">Plus Jakarta Sans (Modern Clean)</option>
+                <option value="'Outfit', sans-serif">Outfit (Bold Geometric)</option>
+                <option value="'Space Grotesk', sans-serif">Space Grotesk (Tech High-Energy)</option>
+                <option value="'Bebas Neue', sans-serif">Bebas Neue (Heavy Impact)</option>
+                <option value="'Inter', sans-serif">Inter (Corporate)</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 3: Theme & Visual Style -->
+        <section class="tab-panel" id="tab-style">
+          <div class="panel-section">
+            <h3 class="section-title">Visual Layout Theme</h3>
+            <div class="theme-options-grid">
+              <label class="theme-card active">
+                <input type="radio" name="layoutTheme" value="theme-modern-electric" checked>
+                <div class="theme-card-body">
+                  <div class="theme-swatch electric"></div>
+                  <span class="theme-name">⚡ Electric Energy</span>
+                  <span class="theme-desc">Vibrant gradients & high-impact discount badges</span>
+                </div>
+              </label>
+
+              <label class="theme-card">
+                <input type="radio" name="layoutTheme" value="theme-neon-dark">
+                <div class="theme-card-body">
+                  <div class="theme-swatch neon"></div>
+                  <span class="theme-name">🔥 Dark Glow</span>
+                  <span class="theme-desc">Luminous accents with deep contrast backdrop</span>
+                </div>
+              </label>
+
+              <label class="theme-card">
+                <input type="radio" name="layoutTheme" value="theme-clean-light">
+                <div class="theme-card-body">
+                  <div class="theme-swatch light"></div>
+                  <span class="theme-name">✨ Clean Light</span>
+                  <span class="theme-desc">Bright white surface with bold primary accents</span>
+                </div>
+              </label>
+
+              <label class="theme-card">
+                <input type="radio" name="layoutTheme" value="theme-festive-gold">
+                <div class="theme-card-body">
+                  <div class="theme-swatch gold"></div>
+                  <span class="theme-name">🏆 Gold Celebration</span>
+                  <span class="theme-desc">Festive golden glows and premium badges</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <h3 class="section-title">Effects & Overlays</h3>
+            
+            <div class="form-group checkbox-group">
+              <label><input type="checkbox" id="chkShowBadgeGlow" checked> Enable Discount Badge Glow</label>
+              <label><input type="checkbox" id="chkShowBgGrid" checked> Geometric Background Grid</label>
+              <label><input type="checkbox" id="chkShowSparkles" checked> Sale Sparkles & Accents</label>
+              <label><input type="checkbox" id="chkShowPriceBox" checked> Show Strikethrough Price Box</label>
+            </div>
+
+            <div class="form-group">
+              <label for="badgeStyleSelect">Badge Style</label>
+              <select id="badgeStyleSelect" class="studio-select">
+                <option value="badge-pill">Rounded Pill</option>
+                <option value="badge-ribbon">Angular Ribbon / Banner</option>
+                <option value="badge-stamp">Sticker / Stamp Style</option>
+                <option value="badge-clean">Minimal Border</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 4: Hero Image & Cutout -->
+        <section class="tab-panel" id="tab-image">
+          <div class="panel-section">
+            <h3 class="section-title">Hero / Faculty / Product Image</h3>
+            
+            <div class="form-group">
+              <label for="inputHeroImage">Upload Cutout / Photo (PNG with transparent bg recommended)</label>
+              <input type="file" id="inputHeroImage" accept="image/*" class="file-input">
+            </div>
+
+            <div class="form-group">
+              <label>Or Choose Sample Hero Cutout:</label>
+              <div class="sample-heroes-grid">
+                <button type="button" class="sample-hero-btn active" data-img="faculty">
+                  <span class="hero-icon">👨‍🏫</span>
+                  <span>Faculty / Educator</span>
+                </button>
+                <button type="button" class="sample-hero-btn" data-img="trophy">
+                  <span class="hero-icon">🏆</span>
+                  <span>Trophy / Success</span>
+                </button>
+                <button type="button" class="sample-hero-btn" data-img="pass">
+                  <span class="hero-icon">🎟️</span>
+                  <span>Pass Pro / Badge</span>
+                </button>
+                <button type="button" class="sample-hero-btn" data-img="books">
+                  <span class="hero-icon">📚</span>
+                  <span>Exam Bundle</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="sliderHeroScale">Image Scale: <span id="valHeroScale">100%</span></label>
+              <input type="range" id="sliderHeroScale" min="60" max="150" value="100" class="studio-slider">
+            </div>
+
+            <div class="form-group">
+              <label for="sliderHeroPosY">Vertical Position: <span id="valHeroPosY">0px</span></label>
+              <input type="range" id="sliderHeroPosY" min="-100" max="100" value="0" class="studio-slider">
+            </div>
+
+            <div class="form-group checkbox-group">
+              <label><input type="checkbox" id="chkHeroGlow" checked> Soft Halo / Glow Behind Image</label>
+            </div>
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <!-- RIGHT WORKSPACE: Multi-Aspect Ratio Live Previews -->
+    <section class="studio-workspace">
+      <!-- Toolbar -->
+      <div class="workspace-toolbar">
+        <div class="toolbar-left">
+          <span class="toolbar-label">Live Previews (4 Formats Active):</span>
+          <div class="format-pills">
+            <span class="pill active">1:1 Square</span>
+            <span class="pill active">9:16 Story/Reel</span>
+            <span class="pill active">16:9 Landscape</span>
+            <span class="pill active">4:3 Display</span>
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <span class="zoom-label">Preview Zoom:</span>
+          <button id="btnZoomOut" class="btn-icon" title="Zoom Out">−</button>
+          <span id="zoomLevelDisplay">80%</span>
+          <button id="btnZoomIn" class="btn-icon" title="Zoom In">+</button>
+          <button id="btnResetZoom" class="btn-icon btn-sm" title="Fit to Screen">Fit</button>
+        </div>
+      </div>
+
+      <!-- Preview Canvas Grid -->
+      <div class="previews-container" id="previewsContainer">
+        
+        <!-- CARD 1: 1:1 SQUARE (1080x1080) -->
+        <div class="preview-card" data-ratio="1:1">
+          <div class="preview-card-header">
+            <div class="card-title-group">
+              <span class="ratio-badge">1:1</span>
+              <span class="ratio-name">Instagram & FB Feed</span>
+              <span class="ratio-dims">1080 × 1080 px</span>
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-sm btn-outline btn-copy" data-target="canvas-1x1" title="Copy to Clipboard">📋 Copy</button>
+              <button class="btn btn-sm btn-primary btn-download" data-target="canvas-1x1" data-filename="sale-creative-1x1.png" title="Download High-Res PNG">⬇ PNG</button>
+            </div>
+          </div>
+          
+          <div class="creative-viewport ratio-1x1-viewport">
+            <div class="creative-artboard ratio-1x1" id="canvas-1x1">
+              <!-- Background layers -->
+              <div class="art-bg-layer"></div>
+              <div class="art-grid-layer"></div>
+              <div class="art-glow-orb orb-primary"></div>
+              <div class="art-glow-orb orb-accent"></div>
+              
+              <!-- Content Body -->
+              <div class="art-inner">
+                <!-- Header: Brand Logo & Urgency Badge -->
+                <div class="art-header">
+                  <div class="art-brand-lockup">
+                    <img class="art-logo-img" src="/assets/testbook-logo.png" alt="Testbook Logo">
+                    <span class="art-brand-text">testbook</span>
+                  </div>
+                  <div class="art-sale-tag-badge">
+                    <span class="art-tag-text">⚡ MONSOON MEGA SALE</span>
+                  </div>
+                </div>
+
+                <!-- Center Section: Headline + Offer + Hero -->
+                <div class="art-main-split">
+                  <div class="art-copy-col">
+                    <div class="art-discount-block">
+                      <span class="art-discount-text">FLAT 70% OFF</span>
+                    </div>
+                    <h1 class="art-headline-text">On All SSC, Railway & State Govt Courses</h1>
+                    <p class="art-subline-text">Free Pass Pro + 50,000+ Mock Tests Included</p>
+                    
+                    <!-- Price & Coupon Strip -->
+                    <div class="art-offer-strip">
+                      <div class="art-price-badge">
+                        <span class="art-price-orig">₹4,999</span>
+                        <span class="art-price-now">₹999</span>
+                      </div>
+                      <div class="art-coupon-badge">
+                        <span class="art-coupon-text">USE CODE: CRACKIT</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="art-hero-col">
+                    <div class="art-hero-glow"></div>
+                    <div class="art-hero-wrapper">
+                      <img class="art-hero-img" src="" alt="Hero Image" style="display:none;">
+                      <div class="art-hero-svg-fallback">👨‍🏫</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Footer: CTA & Disclaimer -->
+                <div class="art-footer">
+                  <div class="art-cta-btn">
+                    <span class="art-cta-text">ENROLL NOW →</span>
+                  </div>
+                  <span class="art-disclaimer-text">*Valid till midnight only. T&C Apply.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 2: 9:16 VERTICAL (1080x1920) -->
+        <div class="preview-card" data-ratio="9:16">
+          <div class="preview-card-header">
+            <div class="card-title-group">
+              <span class="ratio-badge">9:16</span>
+              <span class="ratio-name">Instagram Stories & Reels</span>
+              <span class="ratio-dims">1080 × 1920 px</span>
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-sm btn-outline btn-copy" data-target="canvas-9x16" title="Copy to Clipboard">📋 Copy</button>
+              <button class="btn btn-sm btn-primary btn-download" data-target="canvas-9x16" data-filename="sale-creative-9x16.png" title="Download High-Res PNG">⬇ PNG</button>
+            </div>
+          </div>
+          
+          <div class="creative-viewport ratio-9x16-viewport">
+            <div class="creative-artboard ratio-9x16" id="canvas-9x16">
+              <div class="art-bg-layer"></div>
+              <div class="art-grid-layer"></div>
+              <div class="art-glow-orb orb-primary"></div>
+              <div class="art-glow-orb orb-accent"></div>
+
+              <div class="art-inner">
+                <!-- Top Brand Safe Area -->
+                <div class="art-header">
+                  <div class="art-brand-lockup">
+                    <img class="art-logo-img" src="/assets/testbook-logo.png" alt="Testbook Logo">
+                    <span class="art-brand-text">testbook</span>
+                  </div>
+                  <div class="art-sale-tag-badge">
+                    <span class="art-tag-text">⚡ MONSOON MEGA SALE</span>
+                  </div>
+                </div>
+
+                <!-- Story Central Hero & Hook -->
+                <div class="art-story-center">
+                  <div class="art-discount-block">
+                    <span class="art-discount-text">FLAT 70% OFF</span>
+                  </div>
+                  <h1 class="art-headline-text">On All SSC, Railway & State Govt Courses</h1>
+                  <p class="art-subline-text">Free Pass Pro + 50,000+ Mock Tests Included</p>
+
+                  <div class="art-hero-col story-hero">
+                    <div class="art-hero-glow"></div>
+                    <div class="art-hero-wrapper">
+                      <img class="art-hero-img" src="" alt="Hero Image" style="display:none;">
+                      <div class="art-hero-svg-fallback">👨‍🏫</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Bottom Sticky Conversion Box -->
+                <div class="art-story-bottom">
+                  <div class="art-offer-strip">
+                    <div class="art-price-badge">
+                      <span class="art-price-orig">₹4,999</span>
+                      <span class="art-price-now">₹999</span>
+                    </div>
+                    <div class="art-coupon-badge">
+                      <span class="art-coupon-text">USE CODE: CRACKIT</span>
+                    </div>
+                  </div>
+                  <div class="art-cta-btn pulse">
+                    <span class="art-cta-text">ENROLL NOW →</span>
+                  </div>
+                  <span class="art-disclaimer-text">*Valid till midnight only. T&C Apply.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 3: 16:9 LANDSCAPE (1920x1080) -->
+        <div class="preview-card" data-ratio="16:9">
+          <div class="preview-card-header">
+            <div class="card-title-group">
+              <span class="ratio-badge">16:9</span>
+              <span class="ratio-name">YouTube & Display Banner</span>
+              <span class="ratio-dims">1920 × 1080 px</span>
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-sm btn-outline btn-copy" data-target="canvas-16x9" title="Copy to Clipboard">📋 Copy</button>
+              <button class="btn btn-sm btn-primary btn-download" data-target="canvas-16x9" data-filename="sale-creative-16x9.png" title="Download High-Res PNG">⬇ PNG</button>
+            </div>
+          </div>
+          
+          <div class="creative-viewport ratio-16x9-viewport">
+            <div class="creative-artboard ratio-16x9" id="canvas-16x9">
+              <div class="art-bg-layer"></div>
+              <div class="art-grid-layer"></div>
+              <div class="art-glow-orb orb-primary"></div>
+              <div class="art-glow-orb orb-accent"></div>
+
+              <div class="art-inner">
+                <div class="art-header">
+                  <div class="art-brand-lockup">
+                    <img class="art-logo-img" src="/assets/testbook-logo.png" alt="Testbook Logo">
+                    <span class="art-brand-text">testbook</span>
+                  </div>
+                  <div class="art-sale-tag-badge">
+                    <span class="art-tag-text">⚡ MONSOON MEGA SALE</span>
+                  </div>
+                </div>
+
+                <div class="art-main-split landscape-split">
+                  <div class="art-copy-col">
+                    <div class="art-discount-block">
+                      <span class="art-discount-text">FLAT 70% OFF</span>
+                    </div>
+                    <h1 class="art-headline-text">On All SSC, Railway & State Govt Courses</h1>
+                    <p class="art-subline-text">Free Pass Pro + 50,000+ Mock Tests Included</p>
+
+                    <div class="art-landscape-bottom-row">
+                      <div class="art-offer-strip">
+                        <div class="art-price-badge">
+                          <span class="art-price-orig">₹4,999</span>
+                          <span class="art-price-now">₹999</span>
+                        </div>
+                        <div class="art-coupon-badge">
+                          <span class="art-coupon-text">USE CODE: CRACKIT</span>
+                        </div>
+                      </div>
+                      <div class="art-cta-btn">
+                        <span class="art-cta-text">ENROLL NOW →</span>
+                      </div>
+                    </div>
+                    <span class="art-disclaimer-text">*Valid till midnight only. T&C Apply.</span>
+                  </div>
+
+                  <div class="art-hero-col landscape-hero">
+                    <div class="art-hero-glow"></div>
+                    <div class="art-hero-wrapper">
+                      <img class="art-hero-img" src="" alt="Hero Image" style="display:none;">
+                      <div class="art-hero-svg-fallback">👨‍🏫</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 4: 4:3 DISPLAY (1200x900) -->
+        <div class="preview-card" data-ratio="4:3">
+          <div class="preview-card-header">
+            <div class="card-title-group">
+              <span class="ratio-badge">4:3</span>
+              <span class="ratio-name">Standard Card & Tablet</span>
+              <span class="ratio-dims">1200 × 900 px</span>
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-sm btn-outline btn-copy" data-target="canvas-4x3" title="Copy to Clipboard">📋 Copy</button>
+              <button class="btn btn-sm btn-primary btn-download" data-target="canvas-4x3" data-filename="sale-creative-4x3.png" title="Download High-Res PNG">⬇ PNG</button>
+            </div>
+          </div>
+          
+          <div class="creative-viewport ratio-4x3-viewport">
+            <div class="creative-artboard ratio-4x3" id="canvas-4x3">
+              <div class="art-bg-layer"></div>
+              <div class="art-grid-layer"></div>
+              <div class="art-glow-orb orb-primary"></div>
+              <div class="art-glow-orb orb-accent"></div>
+
+              <div class="art-inner">
+                <div class="art-header">
+                  <div class="art-brand-lockup">
+                    <img class="art-logo-img" src="/assets/testbook-logo.png" alt="Testbook Logo">
+                    <span class="art-brand-text">testbook</span>
+                  </div>
+                  <div class="art-sale-tag-badge">
+                    <span class="art-tag-text">⚡ MONSOON MEGA SALE</span>
+                  </div>
+                </div>
+
+                <div class="art-main-split four-three-split">
+                  <div class="art-copy-col">
+                    <div class="art-discount-block">
+                      <span class="art-discount-text">FLAT 70% OFF</span>
+                    </div>
+                    <h1 class="art-headline-text">On All SSC, Railway & State Govt Courses</h1>
+                    <p class="art-subline-text">Free Pass Pro + 50,000+ Mock Tests Included</p>
+
+                    <div class="art-offer-strip">
+                      <div class="art-price-badge">
+                        <span class="art-price-orig">₹4,999</span>
+                        <span class="art-price-now">₹999</span>
+                      </div>
+                      <div class="art-coupon-badge">
+                        <span class="art-coupon-text">USE CODE: CRACKIT</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="art-hero-col">
+                    <div class="art-hero-glow"></div>
+                    <div class="art-hero-wrapper">
+                      <img class="art-hero-img" src="" alt="Hero Image" style="display:none;">
+                      <div class="art-hero-svg-fallback">👨‍🏫</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="art-footer">
+                  <div class="art-cta-btn">
+                    <span class="art-cta-text">ENROLL NOW →</span>
+                  </div>
+                  <span class="art-disclaimer-text">*Valid till midnight only. T&C Apply.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Notification Toast -->
+  <div id="studioToast" class="studio-toast" aria-live="polite"></div>
+
+  <!-- Studio JavaScript Engine -->
+  <script src="/creative-studio.js"></script>
+</body>
+</html>

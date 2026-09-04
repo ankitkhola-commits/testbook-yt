@@ -110,8 +110,7 @@
           <button class="side-nav-button" type="button" data-view-tab="research">Research AI</button>
           <button class="side-nav-button" type="button" data-view-tab="seo">SEO Audit</button>
           <button class="side-nav-button" type="button" data-view-tab="live-automator">Live Automator</button>
-          <button class="side-nav-button" id="adminReportsNavBtn" type="button" data-view-tab="admin-reports" style="display: none;">📊 6M MoM Export</button>
-          <a class="side-nav-button" href="/creatives" style="text-decoration:none; display:flex; align-items:center; gap:6px; color:#38bdf8;" target="_blank">✨ Sale Creatives</a>
+          <button class="side-nav-button" id="adminReportsNavBtn" type="button" data-view-tab="admin-reports" style="display: none;">📊 MoM Export</button>
         </nav>
 
         <button class="connect-button" id="connectChannelButton" data-sidebar-view="dashboard">
@@ -740,13 +739,13 @@
             </div>
           </article>
  
-          <!-- Admin 6-Month MoM Export Panel -->
+          <!-- Admin MoM Export Panel (August 2025 - August 2026) -->
           <article class="panel page-panel admin-reports-panel is-hidden" data-view="admin-reports">
             <div class="panel-header" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; width: 100%; gap: 20px; flex-wrap: wrap;">
               <div>
                 <p class="eyebrow" style="color: #6366f1; font-weight: 700; margin: 0 0 4px 0;">Admin Analytics & Google Sheets Export</p>
-                <h2 style="margin: 0;">6-Month Month-on-Month Progress & Export</h2>
-                <p class="setup-lead" style="margin: 4px 0 0 0; font-size: 13px; color: var(--muted);">Track month-on-month Organic Views and Net Subscribers across all connected channels in presentation-ready format.</p>
+                <h2 style="margin: 0;">1-Year MoM Progress & Export (Aug 2025 - Aug 2026)</h2>
+                <p class="setup-lead" style="margin: 4px 0 0 0; font-size: 13px; color: var(--muted);">Track month-on-month Organic Views and Net Subscribers across all connected channels from August 2025 to August 2026 in presentation-ready format.</p>
               </div>
 
               <!-- Top Action Buttons -->
@@ -758,7 +757,7 @@
                   <span>📋</span> Copy for Google Sheets
                 </button>
                 <button class="ghost-button" type="button" id="adminRefresh6mBtn" style="padding: 8px 14px; font-size: 13px; border: 1px solid var(--line); border-radius: 6px; cursor: pointer;">
-                  ↻ Refresh Data
+                  ↻ Refresh MoM Data
                 </button>
               </div>
             </div>
@@ -766,12 +765,12 @@
             <!-- KPI Summary Cards -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
               <div class="stat-card" style="background: var(--surface); border: 1px solid var(--line); padding: 16px; border-radius: 8px;">
-                <p class="eyebrow" style="margin: 0 0 6px 0; font-size: 11px;">6M Total Network Organic Views</p>
+                <p class="eyebrow" style="margin: 0 0 6px 0; font-size: 11px;">Total Network Organic Views (Aug '25 - Aug '26)</p>
                 <strong id="admin6mTotalViews" style="font-size: 26px; font-weight: 700; color: var(--ink);">-</strong>
                 <p id="admin6mViewsDetail" style="margin: 4px 0 0 0; font-size: 12px; color: var(--muted);">-</p>
               </div>
               <div class="stat-card" style="background: var(--surface); border: 1px solid var(--line); padding: 16px; border-radius: 8px;">
-                <p class="eyebrow" style="margin: 0 0 6px 0; font-size: 11px;">6M Total Network Subscribers</p>
+                <p class="eyebrow" style="margin: 0 0 6px 0; font-size: 11px;">Total Network Subscribers (Aug '25 - Aug '26)</p>
                 <strong id="admin6mTotalSubs" style="font-size: 26px; font-weight: 700; color: var(--ink);">-</strong>
                 <p id="admin6mSubsDetail" style="margin: 4px 0 0 0; font-size: 12px; color: var(--muted);">-</p>
               </div>
@@ -781,7 +780,7 @@
                 <p id="admin6mTopChannelDetail" style="margin: 4px 0 0 0; font-size: 12px; color: var(--muted);">-</p>
               </div>
               <div class="stat-card" style="background: var(--surface); border: 1px solid var(--line); padding: 16px; border-radius: 8px;">
-                <p class="eyebrow" style="margin: 0 0 6px 0; font-size: 11px;">Network MoM Views Trend</p>
+                <p class="eyebrow" style="margin: 0 0 6px 0; font-size: 11px;">Network MoM Views Trend (Aug vs Jul '26)</p>
                 <strong id="admin6mMomTrend" style="font-size: 26px; font-weight: 700;">-</strong>
                 <p id="admin6mMomTrendDetail" style="margin: 4px 0 0 0; font-size: 12px; color: var(--muted);">-</p>
               </div>
@@ -804,7 +803,7 @@
             <!-- Table Container -->
             <div id="adminMonthlyTableContainer" class="table-scroll-container" style="background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; max-height: 65vh;">
               <!-- Dynamically populated table -->
-              <div style="padding: 40px; text-align: center; color: var(--muted);">Click to load 6-month channel analytics.</div>
+              <div style="padding: 40px; text-align: center; color: var(--muted);">Click to load 1-year channel analytics.</div>
             </div>
           </article>
         </section>
