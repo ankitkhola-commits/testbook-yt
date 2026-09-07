@@ -17,41 +17,52 @@ let competitorAutoRefreshTimer = null;
 const activeProgressBars = {};
 
 const candidateMappings = {
-  "Vinayak": [
-    "SuperCoaching MPSC by Testbook",
-    "Banking Testbook",
-    "Railway Testbook"
+  "Saijal": [
+    "TET PRT",
+    "TET PRT Testbook",
+    "TGT PGT",
+    "TGT PGT Testbook",
+    "CTET",
+    "CTET Testbook",
+    "UGC NET",
+    "UGC NET Testbook",
+    "NET JRF",
+    "Testbook NET JRF",
+    "Bihar Teaching",
+    "Bihar Teaching Exams by Testbook"
   ],
   "Mohit": [
     "Bihar Testbook",
     "Testbook",
+    "Punjab",
     "Punjab Testbook"
   ],
-  "Saijal": [
-    "UGC NET Testbook",
-    "Testbook NET JRF",
-    "TET PRT Testbook",
-    "TGT PGT Testbook",
-    "CTET Testbook",
-    "Bihar Teaching Exams by Testbook",
-    "Assistant Professor & PhD by Testbook"
+  "Vinayak": [
+    "Banking",
+    "Banking Testbook",
+    "MPSC",
+    "SuperCoaching MPSC by Testbook",
+    "Railways",
+    "Railway Testbook"
   ],
-  "Govardhan": [
-    "Testbook Tamil",
-    "Testbook Telugu"
+  "Aditya": [
+    "Bengali",
+    "Testbook Bengali",
+    "WBPSC",
+    "WBPSC Testbook",
+    "Marathi",
+    "SuperCoaching Marathi by Testbook",
+    "Odisha Teaching",
+    "Odisha Teaching by Testbook",
+    "Odisha Testbook",
+    "TET Factory",
+    "TET Factory by Testbook"
   ],
   "Vivek": [
     "AE JE Testbook",
     "SSC Testbook",
-    "Testbook - JAIIB CAIIB"
-  ],
-  "Aditya": [
-    "Testbook Bengali",
-    "WBPSC Testbook",
-    "SuperCoaching Marathi by Testbook",
-    "TET Factory by Testbook",
-    "Odisha Testbook",
-    "Odisha Teaching by Testbook"
+    "Testbook Tamil",
+    "Testbook Telugu"
   ]
 };
 
@@ -104,9 +115,6 @@ const ytmMappings = {
   "Vivek": [
     "AE JE Testbook",
     "SSC Testbook",
-    "Testbook - JAIIB CAIIB"
-  ],
-  "Govardhan": [
     "Testbook Tamil",
     "Testbook Telugu"
   ]
@@ -1481,13 +1489,17 @@ function showDashboard() {
   appShell.hidden = false;
   
   const isAd = (state.isAuditAdmin === undefined || state.isAuditAdmin === true);
-  if (!isAd && (state.activeView === "seo" || state.activeView === "ytm" || state.activeView === "admin-reports")) {
+  if (!isAd && state.activeView === "ytm") {
     state.activeView = "dashboard";
   }
   
   setupAdminCustomFilters(isAd);
   
-  document.querySelectorAll('[data-view-tab="seo"], [data-view-tab="ytm"], [data-view-tab="admin-reports"]').forEach(btn => {
+  // SEO Audit and MoM Export are available to everyone
+  document.querySelectorAll('[data-view-tab="seo"], [data-view-tab="admin-reports"]').forEach(btn => {
+    btn.style.display = "";
+  });
+  document.querySelectorAll('[data-view-tab="ytm"]').forEach(btn => {
     btn.style.display = isAd ? "" : "none";
   });
 
@@ -1825,7 +1837,7 @@ function renderSeoChannelFilters() {
     candidatesWithResults.add(candidate);
   });
   
-  const candidateList = ["Vinayak", "Mohit", "Saijal", "Aditya", "Vivek", "Govardhan", "Other"].filter(c => candidatesWithResults.has(c));
+  const candidateList = ["Saijal", "Mohit", "Vinayak", "Aditya", "Vivek", "Other"].filter(c => candidatesWithResults.has(c));
   
   if (!candidateList.includes(state.seoFilter)) {
     state.seoFilter = candidateList[0] || "Other";
@@ -3129,6 +3141,59 @@ document.querySelector("#manualKeywordInput")?.addEventListener("keydown", (e) =
 
 // Target Tracker View Controllers
 
+function formatQuarterLabel(quarterKey) {
+  if (!quarterKey) return "";
+  const parts = quarterKey.split("_");
+  const period = parts[0] || "";
+  const year = parts[1] || "";
+  let monthDesc = "";
+  if (period === "AMJ") monthDesc = "(Apr - Jun)";
+  else if (period === "JAS") monthDesc = "(Jul - Sep)";
+  else if (period === "OND") monthDesc = "(Oct - Dec)";
+  else if (period === "JFM") monthDesc = "(Jan - Mar)";
+  return `${period} ${year} ${monthDesc}`.trim();
+}
+
+function updateQuarterSelectOptions(allQuarters = [], activeQuarter = "") {
+  const defaultQuarters = ["AMJ_2026", "JAS_2026"];
+  const quarters = Array.from(new Set([...defaultQuarters, ...allQuarters])).filter(Boolean);
+  
+  // Update main quarterSelect
+  const mainSelect = document.querySelector("#quarterSelect");
+  if (mainSelect) {
+    const currentVal = activeQuarter || mainSelect.value || "JAS_2026";
+    mainSelect.innerHTML = quarters.map(q => `
+      <option value="${escapeHtml(q)}" ${q === currentVal ? "selected" : ""}>${escapeHtml(formatQuarterLabel(q))}</option>
+    `).join("");
+  }
+
+  // Update editorQuarterSelect inside Manage Targets Modal
+  const editorSelect = document.querySelector("#editorQuarterSelect");
+  if (editorSelect) {
+    const currentEditorVal = editorActiveQuarter || activeQuarter || "JAS_2026";
+    editorSelect.innerHTML = quarters.map(q => `
+      <option value="${escapeHtml(q)}" ${q === currentEditorVal ? "selected" : ""}>${escapeHtml(formatQuarterLabel(q))}</option>
+    `).join("");
+  }
+
+  // Update editorCopyFromSelect inside Manage Targets Modal
+  const editorCopySelect = document.querySelector("#editorCopyFromSelect");
+  if (editorCopySelect) {
+    editorCopySelect.innerHTML = quarters.map(q => `
+      <option value="${escapeHtml(q)}">${escapeHtml(formatQuarterLabel(q))}</option>
+    `).join("");
+  }
+
+  // Update newQuarterCopyFrom inside Add Quarter Modal
+  const newQuarterCopySelect = document.querySelector("#newQuarterCopyFrom");
+  if (newQuarterCopySelect) {
+    newQuarterCopySelect.innerHTML = `
+      <option value="">-- Start with Empty Targets --</option>
+      ${quarters.map(q => `<option value="${escapeHtml(q)}">${escapeHtml(formatQuarterLabel(q))}</option>`).join("")}
+    `;
+  }
+}
+
 async function loadTargets(options = {}) {
   const ytmBody = document.querySelector("#ytmTargetsTableBody");
   const seoBody = document.querySelector("#seoTargetsTableBody");
@@ -3147,6 +3212,9 @@ async function loadTargets(options = {}) {
 
     const res = await api(`/api/targets?quarter=${encodeURIComponent(state.activeQuarter)}${options.force ? "&force=1" : ""}`);
     state.targetsData = res;
+
+    // Update quarter dropdowns dynamically
+    updateQuarterSelectOptions(res.allQuarters || [], state.activeQuarter);
 
     // Update date range info
     if (dateRangeEl) {
@@ -3294,17 +3362,45 @@ function updateTargetSubTabUI() {
 
 // Modal Target Editor Controllers
 
+let editorActiveQuarter = "";
 let tempYtmTargets = [];
 let tempSeoTargets = [];
 
-function openTargetsEditor() {
+function loadEditorTargetsForQuarter(quarterKey) {
+  if (state.targetsData?.rawTargets && state.targetsData.rawTargets[quarterKey]) {
+    const raw = state.targetsData.rawTargets[quarterKey];
+    tempYtmTargets = JSON.parse(JSON.stringify(raw.ytm || []));
+    tempSeoTargets = JSON.parse(JSON.stringify(raw.seo || []));
+  } else if (quarterKey === state.activeQuarter && state.targetsData) {
+    tempYtmTargets = JSON.parse(JSON.stringify(state.targetsData.ytm || []));
+    tempSeoTargets = JSON.parse(JSON.stringify(state.targetsData.seo || []));
+  } else {
+    tempYtmTargets = [];
+    tempSeoTargets = [];
+  }
+}
+
+function openTargetsEditor(quarterToEdit = "") {
   const dialog = document.querySelector("#targetsDialog");
   const channelSelect = document.querySelector("#targetChannelInput");
   const editorQuarterLabel = document.querySelector("#targetsEditorQuarter");
 
   if (!dialog) return;
 
-  editorQuarterLabel.textContent = `Quarter Targets for ${state.activeQuarter.replace("_", " ")}`;
+  editorActiveQuarter = quarterToEdit || state.activeQuarter || "JAS_2026";
+  if (editorQuarterLabel) {
+    editorQuarterLabel.textContent = `Quarter Targets for ${editorActiveQuarter.replace("_", " ")}`;
+  }
+
+  // Update dropdown options
+  if (state.targetsData?.allQuarters) {
+    updateQuarterSelectOptions(state.targetsData.allQuarters, state.activeQuarter);
+  }
+
+  const editorSelect = document.querySelector("#editorQuarterSelect");
+  if (editorSelect) {
+    editorSelect.value = editorActiveQuarter;
+  }
 
   // Populate Channel dropdown select options
   if (channelSelect && state.channels) {
@@ -3314,14 +3410,8 @@ function openTargetsEditor() {
     `).join("");
   }
 
-  // Load active targets into temporary lists
-  if (state.targetsData) {
-    tempYtmTargets = JSON.parse(JSON.stringify(state.targetsData.ytm || []));
-    tempSeoTargets = JSON.parse(JSON.stringify(state.targetsData.seo || []));
-  } else {
-    tempYtmTargets = [];
-    tempSeoTargets = [];
-  }
+  // Load targets into temporary lists
+  loadEditorTargetsForQuarter(editorActiveQuarter);
 
   // Reset Add form inputs
   document.querySelector("#targetEmployeeInput").value = "";
@@ -3339,7 +3429,7 @@ function renderEditorTargets() {
 
   if (ytmBody) {
     if (!tempYtmTargets.length) {
-      ytmBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 12px; color: var(--muted);">No YTM targets added yet. Use form above to add.</td></tr>`;
+      ytmBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 12px; color: var(--muted);">No YTM targets added yet. Use form above or Copy from another quarter.</td></tr>`;
     } else {
       ytmBody.innerHTML = tempYtmTargets.map((t, idx) => `
         <tr style="border-bottom: 1px solid var(--line);">
@@ -3357,7 +3447,7 @@ function renderEditorTargets() {
 
   if (seoBody) {
     if (!tempSeoTargets.length) {
-      seoBody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 12px; color: var(--muted);">No SEO targets added yet. Use form above to add.</td></tr>`;
+      seoBody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 12px; color: var(--muted);">No SEO targets added yet. Use form above or Copy from another quarter.</td></tr>`;
     } else {
       seoBody.innerHTML = tempSeoTargets.map((t, idx) => `
         <tr style="border-bottom: 1px solid var(--line);">
@@ -3441,8 +3531,9 @@ function addEditorTargetRow() {
 
 async function saveEditorTargets() {
   try {
+    const targetQuarter = editorActiveQuarter || state.activeQuarter;
     const body = {
-      quarter: state.activeQuarter,
+      quarter: targetQuarter,
       ytm: tempYtmTargets.map(t => ({
         id: t.id,
         employee: t.employee,
@@ -3470,8 +3561,9 @@ async function saveEditorTargets() {
       body: JSON.stringify(body)
     });
 
+    state.activeQuarter = targetQuarter;
     if (dialog) dialog.close();
-    await loadTargets();
+    await loadTargets({ force: true });
   } catch (err) {
     alert("Failed to save changes: " + err.message);
   } finally {
@@ -3488,6 +3580,93 @@ document.querySelector("#quarterSelect")?.addEventListener("change", (e) => {
 
 document.querySelector("#manageTargetsButton")?.addEventListener("click", () => {
   openTargetsEditor();
+});
+
+document.querySelector("#addQuarterButton")?.addEventListener("click", () => {
+  const newQuarterDialog = document.querySelector("#newQuarterDialog");
+  if (!newQuarterDialog) return;
+
+  const yearInput = document.querySelector("#newQuarterYear");
+  if (yearInput) {
+    const now = new Date();
+    yearInput.value = now.getFullYear();
+  }
+
+  if (state.targetsData?.allQuarters) {
+    updateQuarterSelectOptions(state.targetsData.allQuarters, state.activeQuarter);
+  }
+
+  newQuarterDialog.showModal();
+});
+
+document.querySelector("#submitCreateQuarterBtn")?.addEventListener("click", async () => {
+  const period = document.querySelector("#newQuarterPeriod")?.value || "OND";
+  const year = parseInt(document.querySelector("#newQuarterYear")?.value, 10);
+  const copyFrom = document.querySelector("#newQuarterCopyFrom")?.value || "";
+
+  if (!year || year < 2020 || year > 2050) {
+    alert("Please enter a valid year.");
+    return;
+  }
+
+  const newQuarterKey = `${period}_${year}`;
+  const submitBtn = document.querySelector("#submitCreateQuarterBtn");
+  if (submitBtn) submitBtn.disabled = true;
+
+  try {
+    await api("/api/targets/quarter", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quarter: newQuarterKey, copyFrom: copyFrom || undefined })
+    });
+
+    const newQuarterDialog = document.querySelector("#newQuarterDialog");
+    if (newQuarterDialog) newQuarterDialog.close();
+
+    state.activeQuarter = newQuarterKey;
+    await loadTargets({ force: true });
+
+    // Open target editor immediately for user convenience
+    openTargetsEditor(newQuarterKey);
+  } catch (err) {
+    alert("Failed to create quarter: " + err.message);
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
+});
+
+document.querySelector("#editorQuarterSelect")?.addEventListener("change", (e) => {
+  editorActiveQuarter = e.target.value;
+  const editorQuarterLabel = document.querySelector("#targetsEditorQuarter");
+  if (editorQuarterLabel) {
+    editorQuarterLabel.textContent = `Quarter Targets for ${editorActiveQuarter.replace("_", " ")}`;
+  }
+  loadEditorTargetsForQuarter(editorActiveQuarter);
+  renderEditorTargets();
+});
+
+document.querySelector("#editorCopyFromBtn")?.addEventListener("click", () => {
+  const copyFromSelect = document.querySelector("#editorCopyFromSelect");
+  const copyFromQuarter = copyFromSelect?.value;
+  if (!copyFromQuarter) return;
+
+  const raw = state.targetsData?.rawTargets?.[copyFromQuarter];
+  if (!raw || (!raw.ytm?.length && !raw.seo?.length)) {
+    alert(`No targets found in ${formatQuarterLabel(copyFromQuarter)} to copy.`);
+    return;
+  }
+
+  if (confirm(`Copy targets from ${formatQuarterLabel(copyFromQuarter)} to ${formatQuarterLabel(editorActiveQuarter)}? This will replace the unsaved targets in this editor.`)) {
+    tempYtmTargets = (raw.ytm || []).map(t => ({
+      ...t,
+      id: "t_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5)
+    }));
+    tempSeoTargets = (raw.seo || []).map(t => ({
+      ...t,
+      id: "t_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5)
+    }));
+    renderEditorTargets();
+  }
 });
 
 document.querySelector("#subTabYtm")?.addEventListener("click", () => {

@@ -1578,9 +1578,33 @@ app.get("/api/targets", async (req, res, next) => {
       hasStarted,
       elapsedDays,
       totalDays,
+      allQuarters: Object.keys(data),
+      rawTargets: data,
       ytm: ytmResults,
       seo: seoResults
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/targets/quarter", async (req, res, next) => {
+  try {
+    const { quarter, copyFrom } = req.body;
+    if (!quarter || !quarter.trim()) {
+      return res.status(400).json({ error: "Quarter name is required (e.g. OND_2026)." });
+    }
+    const qKey = quarter.trim().toUpperCase();
+    const data = await readQuarterTargets();
+    if (!data[qKey]) {
+      if (copyFrom && data[copyFrom]) {
+        data[qKey] = JSON.parse(JSON.stringify(data[copyFrom]));
+      } else {
+        data[qKey] = { ytm: [], seo: [] };
+      }
+      await saveQuarterTargets(data);
+    }
+    res.json({ success: true, quarter: qKey, allQuarters: Object.keys(data), rawTargets: data });
   } catch (error) {
     next(error);
   }
@@ -1593,10 +1617,11 @@ app.post("/api/targets/save", async (req, res, next) => {
       res.status(400).json({ error: "Missing quarter, ytm, or seo configurations." });
       return;
     }
+    const qKey = quarter.trim().toUpperCase();
     const data = await readQuarterTargets();
-    data[quarter] = { ytm, seo };
+    data[qKey] = { ytm, seo };
     await saveQuarterTargets(data);
-    res.json({ success: true });
+    res.json({ success: true, quarter: qKey, allQuarters: Object.keys(data), rawTargets: data });
   } catch (error) {
     next(error);
   }
@@ -1635,9 +1660,6 @@ const rankTrackerYtmMap = {
   "Vivek": [
     "AE JE",
     "SSC",
-    "JAIIB"
-  ],
-  "Govardhan": [
     "Tamil",
     "Telugu"
   ]
@@ -2027,11 +2049,6 @@ app.post("/api/keywords/refresh", async (req, res, next) => {
 app.get("/api/admin/monthly-report", async (req, res, next) => {
   try {
     const viewer = readViewerSession(req);
-    if (!isAuditAdmin(viewer)) {
-      res.status(403).json({ error: "Forbidden. Admin access required." });
-      return;
-    }
-
     const force = req.query.force === "1";
     const range = String(req.query.range || "1y").toLowerCase(); // "1y", "2y", "3m", "custom"
     const entries = await connectedChannelEntries(viewer);
@@ -2949,41 +2966,52 @@ app.delete("/api/competitors/:channelId/:competitorId", async (req, res, next) =
 });
 
 const candidateMappings = {
-  "Vinayak": [
-    "SuperCoaching MPSC by Testbook",
-    "Banking Testbook",
-    "Railway Testbook"
+  "Saijal": [
+    "TET PRT",
+    "TET PRT Testbook",
+    "TGT PGT",
+    "TGT PGT Testbook",
+    "CTET",
+    "CTET Testbook",
+    "UGC NET",
+    "UGC NET Testbook",
+    "NET JRF",
+    "Testbook NET JRF",
+    "Bihar Teaching",
+    "Bihar Teaching Exams by Testbook"
   ],
   "Mohit": [
     "Bihar Testbook",
     "Testbook",
+    "Punjab",
     "Punjab Testbook"
   ],
-  "Saijal": [
-    "UGC NET Testbook",
-    "Testbook NET JRF",
-    "TET PRT Testbook",
-    "TGT PGT Testbook",
-    "CTET Testbook",
-    "Bihar Teaching Exams by Testbook",
-    "Assistant Professor & PhD by Testbook"
+  "Vinayak": [
+    "Banking",
+    "Banking Testbook",
+    "MPSC",
+    "SuperCoaching MPSC by Testbook",
+    "Railways",
+    "Railway Testbook"
   ],
-  "Govardhan": [
-    "Testbook Tamil",
-    "Testbook Telugu"
+  "Aditya": [
+    "Bengali",
+    "Testbook Bengali",
+    "WBPSC",
+    "WBPSC Testbook",
+    "Marathi",
+    "SuperCoaching Marathi by Testbook",
+    "Odisha Teaching",
+    "Odisha Teaching by Testbook",
+    "Odisha Testbook",
+    "TET Factory",
+    "TET Factory by Testbook"
   ],
   "Vivek": [
     "AE JE Testbook",
     "SSC Testbook",
-    "Testbook - JAIIB CAIIB"
-  ],
-  "Aditya": [
-    "Testbook Bengali",
-    "WBPSC Testbook",
-    "SuperCoaching Marathi by Testbook",
-    "TET Factory by Testbook",
-    "Odisha Testbook",
-    "Odisha Teaching by Testbook"
+    "Testbook Tamil",
+    "Testbook Telugu"
   ]
 };
 
@@ -3027,9 +3055,6 @@ const ytmMappings = {
   "Vivek": [
     "AE JE Testbook",
     "SSC Testbook",
-    "Testbook - JAIIB CAIIB"
-  ],
-  "Govardhan": [
     "Testbook Tamil",
     "Testbook Telugu"
   ]
@@ -3038,10 +3063,6 @@ const ytmMappings = {
 app.get("/api/seo/audit", async (req, res, next) => {
   try {
     const viewer = readViewerSession(req);
-    if (!isAuditAdmin(viewer)) {
-      return res.status(403).json({ error: "Access denied. Only authorized admins can run SEO audits." });
-    }
-
     const entries = await connectedChannelEntries();
     if (!entries.length) {
       return res.json({ videos: [] });
@@ -3472,9 +3493,6 @@ app.get("/api/ytm/audit", async (req, res, next) => {
 app.post("/api/seo/suggest", async (req, res, next) => {
   try {
     const viewer = readViewerSession(req);
-    if (!isAuditAdmin(viewer)) {
-      return res.status(403).json({ error: "Access denied. Only authorized admins can run SEO audits." });
-    }
 
     const videoId = String(req.body.videoId || "");
     const channelId = String(req.body.channelId || "");
@@ -5129,13 +5147,7 @@ function isAuditAdmin(viewer) {
 function isAllowedToAddChannel(viewer) {
   if (!teamAuthEnabled()) return true;
   if (!viewer || !viewer.email) return false;
-  if (isAuditAdmin(viewer)) return true;
-  const allowedEmailsStr = process.env.ALLOWED_SEO_EMAILS || process.env.ALLOWED_ADD_CHANNEL_EMAILS || "";
-  if (!allowedEmailsStr) {
-    return true;
-  }
-  const allowed = allowedEmailsStr.split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
-  return allowed.includes(viewer.email.toLowerCase().trim());
+  return true;
 }
 
 function parseCookies(req) {
