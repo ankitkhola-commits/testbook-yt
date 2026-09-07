@@ -203,10 +203,6 @@ document.querySelector("#refreshButton").addEventListener("click", () => {
     loadYtmAudit({ force: true });
     return;
   }
-  if (state.activeView === "keywords") {
-    refreshKeywordRankings();
-    return;
-  }
   if (state.activeView === "targets") {
     loadTargets({ force: true });
     return;
@@ -236,7 +232,6 @@ document.querySelectorAll("[data-view-tab]").forEach((button) => {
     if (state.activeView === "seo") renderSeoAuditView();
     if (state.activeView === "live-automator") loadLiveAutomator();
     if (state.activeView === "targets") loadTargets();
-    if (state.activeView === "keywords") loadKeywords();
     if (state.activeView === "comments") loadComments();
     if (state.activeView === "admin-reports") loadAdminMonthlyReport();
   });
@@ -1142,13 +1137,11 @@ function applyView() {
             ? "YTM Audit"
             : state.activeView === "targets"
               ? "Target Tracker"
-              : state.activeView === "keywords"
-                ? "Rank Tracker"
-                : state.activeView === "comments"
-                  ? "Comments Moderator"
-                  : state.activeView === "admin-reports"
-                    ? "MoM Progress & Export (Aug 2025 - Aug 2026)"
-                    : "Research";
+              : state.activeView === "comments"
+                ? "Comments Moderator"
+                : state.activeView === "admin-reports"
+                  ? (state.adminMonthlyReport?.rangeLabel ? `MoM Progress & Export (${state.adminMonthlyReport.rangeLabel})` : "MoM Progress & Export")
+                  : "Research";
 }
 
 function renderResearchView() {
@@ -3532,30 +3525,55 @@ document.querySelector("#saveTargetsEditorBtn")?.addEventListener("click", () =>
 // ==========================================
 
 state.adminMonthlyReport = null;
+state.adminMonthlyReportKey = "";
 state.adminActiveTab = "views"; // "views" | "subs" | "combined"
 state.adminChannelSearch = "";
+state.adminRange = "1y"; // "1y" | "2y" | "3m" | "custom"
+state.adminStartDate = "2025-08-01";
+state.adminEndDate = "2026-08-31";
 
 async function loadAdminMonthlyReport(options = {}) {
   const container = document.querySelector("#adminMonthlyTableContainer");
   if (!container) return;
 
-  if (state.adminMonthlyReport && !options.force) {
+  const activeRange = state.adminRange || "1y";
+  const rangeKey = activeRange === "custom"
+    ? `custom:${state.adminStartDate || ""}:${state.adminEndDate || ""}`
+    : activeRange;
+
+  if (state.adminMonthlyReport && state.adminMonthlyReportKey === rangeKey && !options.force) {
     renderAdminMonthlyReport();
     return;
   }
 
+  const rangeLabelDesc = activeRange === "2y"
+    ? "2-year"
+    : activeRange === "3m"
+      ? "last 3 months"
+      : activeRange === "custom"
+        ? `${state.adminStartDate || ""} to ${state.adminEndDate || ""}`
+        : "1-year";
+
   container.innerHTML = `
     <div style="padding: 48px; text-align: center; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 12px;">
       <div style="width: 32px; height: 32px; border: 3px solid var(--line); border-top-color: var(--blue, #3c6ee8); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
-      <span style="font-size: 14px; font-weight: 500;">Aggregating 1-year analytics (Aug 2025 - Aug 2026) across all attached channels...</span>
+      <span style="font-size: 14px; font-weight: 500;">Aggregating ${escapeHtml(rangeLabelDesc)} analytics across all attached channels...</span>
       <span style="font-size: 12px; color: var(--muted);">Calculating Organic Views, Hybrid Views, and Net Subscribers...</span>
     </div>
   `;
 
   try {
-    const query = options.force ? "?force=1" : "";
-    const data = await api(`/api/admin/monthly-report${query}`);
+    const params = new URLSearchParams();
+    params.set("range", activeRange);
+    if (activeRange === "custom") {
+      if (state.adminStartDate) params.set("startDate", state.adminStartDate);
+      if (state.adminEndDate) params.set("endDate", state.adminEndDate);
+    }
+    if (options.force) params.set("force", "1");
+
+    const data = await api(`/api/admin/monthly-report?${params.toString()}`);
     state.adminMonthlyReport = data;
+    state.adminMonthlyReportKey = rangeKey;
     renderAdminMonthlyReport();
   } catch (err) {
     container.innerHTML = `
@@ -3579,6 +3597,23 @@ function renderAdminMonthlyKPIs(data) {
   const totals = data.networkTotals || {};
   const totalViewsVal = useHybrid ? (totals.totalOrganicHybridViews || 0) : (totals.totalOrganicViews || 0);
   const totalSubsVal = totals.totalSubscribers || 0;
+
+  // Dynamic header title and KPI labels
+  const headerTitleEl = document.querySelector("#adminMomHeaderTitle");
+  if (headerTitleEl) {
+    headerTitleEl.textContent = `MoM Progress & Export (${data.rangeLabel || ""})`;
+  }
+
+  const rangeShort = data.rangeShortLabel || data.rangeLabel || "";
+  const totalViewsLabelEl = document.querySelector("#adminTotalViewsCardLabel");
+  if (totalViewsLabelEl) {
+    totalViewsLabelEl.textContent = `Total Network Organic Views (${rangeShort})`;
+  }
+
+  const totalSubsLabelEl = document.querySelector("#adminTotalSubsCardLabel");
+  if (totalSubsLabelEl) {
+    totalSubsLabelEl.textContent = `Total Network Subscribers (${rangeShort})`;
+  }
 
   const totalViewsEl = document.querySelector("#admin6mTotalViews");
   if (totalViewsEl) totalViewsEl.textContent = totalViewsVal.toLocaleString();
@@ -3628,12 +3663,23 @@ function renderAdminMonthlyKPIs(data) {
 
   const momTrendEl = document.querySelector("#admin6mMomTrend");
   const momTrendDetailEl = document.querySelector("#admin6mMomTrendDetail");
+  const momTrendLabelEl = document.querySelector("#adminMomTrendCardLabel");
+  if (momTrendLabelEl) {
+    momTrendLabelEl.textContent = latestM && priorM
+      ? `Network MoM Views Trend (${latestM.shortLabel} vs ${priorM.shortLabel})`
+      : "Network MoM Views Trend";
+  }
+
   if (momTrendEl) {
     const isUp = momGrowthVal >= 0;
     momTrendEl.textContent = `${isUp ? "+" : ""}${momGrowthVal}%`;
     momTrendEl.style.color = isUp ? "#16a34a" : "#dc2626";
-    if (momTrendDetailEl && latestM && priorM) {
-      momTrendDetailEl.textContent = `${latestM.label} vs ${priorM.label}`;
+    if (momTrendDetailEl) {
+      if (latestM && priorM) {
+        momTrendDetailEl.textContent = `${latestM.label} vs ${priorM.label}`;
+      } else {
+        momTrendDetailEl.textContent = "-";
+      }
     }
   }
 
@@ -3684,7 +3730,7 @@ function renderAdminMonthlyTable() {
       <tr style="border-bottom: 1px solid var(--line); background: var(--bg-alt, #f8fafc); color: var(--muted); font-size: 11px; text-transform: uppercase; font-weight: 600;">
         <th rowspan="2" style="padding: 12px 14px; text-align: left; vertical-align: middle; position: sticky; left: 0; background: var(--bg-alt, #f8fafc); z-index: 2; border-right: 1px solid var(--line);">Channel Name</th>
         ${months.map(m => `<th colspan="2" style="padding: 8px 10px; text-align: center; border-right: 1px solid var(--line);">${escapeHtml(m.label)}</th>`).join("")}
-        <th colspan="2" style="padding: 8px 12px; text-align: center;">Total (Aug '25 - Aug '26)</th>
+        <th colspan="2" style="padding: 8px 12px; text-align: center;">Total (${escapeHtml(data.rangeShortLabel || data.rangeLabel || "Period")})</th>
       </tr>
       <tr style="border-bottom: 2px solid var(--line); background: var(--bg-alt, #f8fafc); color: var(--muted); font-size: 11px; text-transform: uppercase; font-weight: 600;">
         ${months.map(() => `<th style="padding: 6px 8px; text-align: right; font-size: 10px;">Views</th><th style="padding: 6px 8px; text-align: right; font-size: 10px; border-right: 1px solid var(--line);">Subs</th>`).join("")}
@@ -3889,7 +3935,7 @@ function exportAdminMonthlyCsv() {
     for (const m of months) {
       headers.push(`${m.label} Views`, `${m.label} Subs`);
     }
-    headers.push("Total Views (Aug '25 - Aug '26)", "Total Net Subs (Aug '25 - Aug '26)");
+    headers.push(`Total Views (${data.rangeLabel || "Total"})`, `Total Net Subs (${data.rangeLabel || "Total"})`);
     csvRows.push(headers);
 
     const netRow = ["Network Total (All Channels)"];
@@ -3922,7 +3968,8 @@ function exportAdminMonthlyCsv() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `testbook_mom_export_${activeTab}_aug2025_aug2026_${new Date().toISOString().slice(0, 10)}.csv`;
+  const periodSlug = (data.rangeLabel || state.adminRange || "report").toLowerCase().replace(/[^a-z0-9]+/g, "_");
+  a.download = `testbook_mom_export_${activeTab}_${periodSlug}_${new Date().toISOString().slice(0, 10)}.csv`;
   a.style.visibility = "hidden";
   document.body.appendChild(a);
   a.click();
@@ -3986,7 +4033,7 @@ async function copyAdminMonthlyForSheets(btn) {
     for (const m of months) {
       headers.push(`${m.label} Views`, `${m.label} Subs`);
     }
-    headers.push("Total Views (Aug '25 - Aug '26)", "Total Net Subs (Aug '25 - Aug '26)");
+    headers.push(`Total Views (${data.rangeLabel || "Total"})`, `Total Net Subs (${data.rangeLabel || "Total"})`);
     rows.push(headers);
 
     const netRow = ["Network Total (All Channels)"];
@@ -4027,7 +4074,42 @@ async function copyAdminMonthlyForSheets(btn) {
   }
 }
 
-// Event Listeners for Admin 6M Monthly Report
+// Event Listeners for Admin MoM Monthly Report
+document.querySelectorAll("[data-admin-range]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const selectedRange = btn.dataset.adminRange;
+    document.querySelectorAll("[data-admin-range]").forEach((b) => b.classList.toggle("active", b === btn));
+    const customControls = document.querySelector("#adminCustomDateControls");
+    if (selectedRange === "custom") {
+      if (customControls) customControls.style.display = "flex";
+      return;
+    } else {
+      if (customControls) customControls.style.display = "none";
+    }
+    state.adminRange = selectedRange;
+    loadAdminMonthlyReport();
+  });
+});
+
+document.querySelector("#adminApplyCustomDateBtn")?.addEventListener("click", () => {
+  const startInput = document.querySelector("#adminCustomStartDate");
+  const endInput = document.querySelector("#adminCustomEndDate");
+  const startDate = startInput?.value;
+  const endDate = endInput?.value;
+  if (!startDate || !endDate) {
+    alert("Please select both From and To dates.");
+    return;
+  }
+  if (startDate > endDate) {
+    alert("From date cannot be after To date.");
+    return;
+  }
+  state.adminRange = "custom";
+  state.adminStartDate = startDate;
+  state.adminEndDate = endDate;
+  loadAdminMonthlyReport();
+});
+
 document.querySelector("#adminSubTabViews")?.addEventListener("click", () => {
   state.adminActiveTab = "views";
   updateAdminSubTabsUI();

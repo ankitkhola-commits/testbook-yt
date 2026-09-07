@@ -2033,16 +2033,65 @@ app.get("/api/admin/monthly-report", async (req, res, next) => {
     }
 
     const force = req.query.force === "1";
+    const range = String(req.query.range || "1y").toLowerCase(); // "1y", "2y", "3m", "custom"
     const entries = await connectedChannelEntries(viewer);
 
-    // Calculate months strictly from August 2025 to August 2026 (excluding Sept 2026)
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const months = [];
-    const startYear = 2025;
-    const startMonth = 7; // August (0-indexed)
-    const endYear = 2026;
-    const endMonth = 7; // August (0-indexed)
 
+    // Determine endYear and endMonth (default: latest completed month, excluding ongoing current month)
+    const now = new Date();
+    let endYear = now.getFullYear();
+    let endMonth = now.getMonth() - 1; // 0-indexed (e.g. 7 = August when now is September)
+    if (endMonth < 0) {
+      endMonth = 11;
+      endYear--;
+    }
+
+    let startYear;
+    let startMonth;
+    let customStartDay = null;
+    let customEndDay = null;
+
+    if (range === "2y") {
+      startYear = endYear - 2;
+      startMonth = endMonth; // e.g. Aug 2024 to Aug 2026 (25 months)
+    } else if (range === "3m") {
+      startYear = endYear;
+      startMonth = endMonth - 2; // e.g. Jun 2026 to Aug 2026 (3 months)
+      if (startMonth < 0) {
+        startMonth += 12;
+        startYear--;
+      }
+    } else if (range === "custom") {
+      const sMatch = String(req.query.startDate || "").match(/^(\d{4})-(\d{2})(?:-(\d{2}))?$/);
+      const eMatch = String(req.query.endDate || "").match(/^(\d{4})-(\d{2})(?:-(\d{2}))?$/);
+      if (sMatch && eMatch) {
+        startYear = parseInt(sMatch[1], 10);
+        startMonth = parseInt(sMatch[2], 10) - 1;
+        if (sMatch[3]) customStartDay = sMatch[0]; // full YYYY-MM-DD
+        
+        endYear = parseInt(eMatch[1], 10);
+        endMonth = parseInt(eMatch[2], 10) - 1;
+        if (eMatch[3]) customEndDay = eMatch[0]; // full YYYY-MM-DD
+
+        // Swap if inverted
+        if (startYear > endYear || (startYear === endYear && startMonth > endMonth)) {
+          const ty = startYear; const tm = startMonth; const td = customStartDay;
+          startYear = endYear; startMonth = endMonth; customStartDay = customEndDay;
+          endYear = ty; endMonth = tm; customEndDay = td;
+        }
+      } else {
+        // Fallback to 1y
+        startYear = endYear - 1;
+        startMonth = endMonth;
+      }
+    } else {
+      // Default: "1y" -> Aug 2025 to Aug 2026
+      startYear = endYear - 1;
+      startMonth = endMonth;
+    }
+
+    const months = [];
     let curYear = startYear;
     let curMonth = startMonth;
 
@@ -2067,11 +2116,32 @@ app.get("/api/admin/monthly-report", async (req, res, next) => {
       }
     }
 
-    const overallStartDate = months[0].startDate;
-    const overallEndDate = months[months.length - 1].endDate;
+    if (!months.length) {
+      months.push({
+        key: `${endYear}-${String(endMonth + 1).padStart(2, "0")}`,
+        label: `${monthNames[endMonth]} ${endYear}`,
+        shortLabel: `${monthNames[endMonth]} '${String(endYear).slice(2)}`,
+        year: endYear,
+        monthNum: endMonth + 1,
+        isCurrent: false,
+        startDate: `${endYear}-${String(endMonth + 1).padStart(2, "0")}-01`,
+        endDate: new Date(Date.UTC(endYear, endMonth + 1, 0)).toISOString().slice(0, 10),
+      });
+    }
+
+    const overallStartDate = customStartDay || months[0].startDate;
+    const overallEndDate = customEndDay || months[months.length - 1].endDate;
+
+    const rangeLabel = months.length > 1
+      ? `${months[0].label} - ${months[months.length - 1].label}`
+      : months[0].label;
+    const rangeShortLabel = months.length > 1
+      ? `${months[0].shortLabel} - ${months[months.length - 1].shortLabel}`
+      : months[0].shortLabel;
 
     const cacheKey = makeCacheKey(
-      "admin-1y-monthly-report-v2",
+      "admin-monthly-report-v4",
+      range,
       overallStartDate,
       overallEndDate,
       entries.map(e => e.channel.id).sort().join(",")
@@ -2321,11 +2391,16 @@ app.get("/api/admin/monthly-report", async (req, res, next) => {
         };
 
         return {
+          range,
+          rangeLabel,
+          rangeShortLabel,
+          startDate: overallStartDate,
+          endDate: overallEndDate,
           months,
           channels: channelResults,
           networkTotals,
           latestCompletedMonth: months[months.length - 1],
-          priorMonth: months[months.length - 2],
+          priorMonth: months.length > 1 ? months[months.length - 2] : null,
           generatedAt: new Date().toISOString(),
         };
       },

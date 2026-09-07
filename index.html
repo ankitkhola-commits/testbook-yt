@@ -106,7 +106,6 @@
           <button class="side-nav-button" type="button" data-view-tab="competitors">Competitors</button>
           <button class="side-nav-button" type="button" data-view-tab="targets">Target Tracker</button>
           <button class="side-nav-button" type="button" data-view-tab="comments">Comment AI</button>
-          <button class="side-nav-button" type="button" data-view-tab="keywords">Rank AI</button>
           <button class="side-nav-button" type="button" data-view-tab="research">Research AI</button>
           <button class="side-nav-button" type="button" data-view-tab="seo">SEO Audit</button>
           <button class="side-nav-button" type="button" data-view-tab="live-automator">Live Automator</button>
@@ -511,94 +510,6 @@
             </div>
           </article>
 
-          <!-- Rankings Panel -->
-          <article class="panel page-panel rankings-panel is-hidden" data-view="keywords">
-            <div class="panel-header rankings-header" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; width: 100%;">
-              <div>
-                <p class="eyebrow" id="keywordsLastUpdated" style="margin: 0 0 4px 0;">Last scanned: Never</p>
-                <h2 style="margin: 0;">YouTube Search Rank Tracker</h2>
-              </div>
-              <button class="connect-button" type="button" id="keywordsRefreshButton" style="padding: 8px 16px; font-size: 13px; margin: 0; width: auto; height: 38px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;">Refresh rankings</button>
-            </div>
-
-            <div id="keywordsProgressBarContainer" class="progress-bar-container is-hidden">
-              <div class="progress-bar-label" id="keywordsProgressBarLabel">Scanning keyword rankings... (0%)</div>
-              <div class="progress-bar-track">
-                <div class="progress-bar-fill" id="keywordsProgressBarFill" style="width: 0%"></div>
-              </div>
-            </div>
-
-            <!-- Person / YTM filter row -->
-            <div class="section-row" style="margin-bottom: 12px; margin-top: 8px;">
-              <div class="section-label" style="font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase;">Select Manager / Person</div>
-            </div>
-            <div id="keywordsYtmFilters" class="research-filter-row" style="margin-bottom: 24px; display: flex; gap: 8px; flex-wrap: wrap;"></div>
-
-            <!-- Target Channel Selector for Managers -->
-            <div id="rankTrackerChannelSelectContainer" style="display: none; align-items: flex-end; gap: 12px; margin-bottom: 24px;">
-              <div class="select-wrap" style="margin: 0;">
-                <label for="rankTrackerChannelSelect" style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 4px; display: block;">Target Channel</label>
-                <select id="rankTrackerChannelSelect" style="background: #fff; color: var(--ink); border: 1px solid var(--line); padding: 6px 12px; border-radius: 6px; font-weight: 500; font-size: 13px; height: 38px; outline: none; cursor: pointer; min-width: 250px; box-sizing: border-box;"></select>
-              </div>
-            </div>
-
-            <!-- Rank & Intent filters -->
-            <div style="display: flex; justify-content: space-start; align-items: center; gap: 16px; margin-bottom: 20px; border-bottom: 1px solid var(--line); padding-bottom: 16px;">
-              <div id="keywordsRankSubFilters" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <button class="filter-chip active" type="button" data-rank-filter="all">All Keywords</button>
-                <button class="filter-chip" type="button" data-rank-filter="top3">Top 3 (Dominating)</button>
-                <button class="filter-chip" type="button" data-rank-filter="page1">Page 1 (Rank 4-10)</button>
-                <button class="filter-chip" type="button" data-rank-filter="opportunity">Opportunities (Rank 11-20)</button>
-              </div>
-            </div>
-
-            <!-- Manager Keywords Content Container -->
-            <div id="keywordsManagerContainer" style="display: flex; flex-direction: column; gap: 20px;">
-
-
-              <!-- Manual Keywords section -->
-              <section id="manualKeywordsSection" style="display: flex; flex-direction: column; gap: 12px;">
-                <div class="section-row">
-                  <div class="section-label" style="font-size: 16px; font-weight: 700;">Manual Tracked Keywords</div>
-                </div>
-                <div id="manualKeywordsTableContainer"></div>
-              </section>
-
-              <!-- Automated Keywords section -->
-              <section id="automatedKeywordsSection" style="display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--line); padding-top: 24px;">
-                <div class="section-row">
-                  <div class="section-label" style="font-size: 16px; font-weight: 700;">Top Organic Search Keywords</div>
-                </div>
-                <div id="automatedKeywordsTableContainer"></div>
-              </section>
-            </div>
-
-            <!-- Admin Keywords Content Container -->
-            <div id="keywordsAdminContainer" class="is-hidden" style="display: flex; flex-direction: column; gap: 20px;">
-              <!-- Add admin keyword form -->
-              <div class="manual-keyword-form" style="background: var(--surface); border: 1px solid var(--line); padding: 12px 16px; border-radius: 8px; display: flex; gap: 12px; align-items: flex-end; width: 100%; box-sizing: border-box;">
-                <div class="input-wrap" style="flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 250px;">
-                  <label for="adminKeywordInput" style="font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 600;">Track Cross-Channel Keyword (Max 30)</label>
-                  <input type="text" id="adminKeywordInput" placeholder="e.g. current affairs today" style="background: #fff; color: var(--ink); border: 1px solid var(--line); padding: 8px 12px; border-radius: 6px; font-size: 14px; outline: none; width: 100%; height: 38px; box-sizing: border-box;">
-                </div>
-                <button class="connect-button" type="button" id="addAdminKeywordButton" style="margin: 0; padding: 0 20px; height: 38px; font-size: 14px; font-weight: 600; flex: 0 0 auto; width: auto; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; white-space: nowrap;">Track Keyword</button>
-              </div>
-
-              <!-- Admin Keywords section -->
-              <section style="display: flex; flex-direction: column; gap: 12px;">
-                <div class="section-row">
-                  <div class="section-label" style="font-size: 16px; font-weight: 700;">Admin Tracked Cross-Channel Keywords</div>
-                </div>
-                <div id="adminKeywordsTableContainer"></div>
-              </section>
-            </div>
-
-            <!-- Bottom Export CSV Row -->
-            <div style="display: flex; justify-content: flex-end; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line);">
-              <button class="connect-button" type="button" id="keywordsExportCsvButton" style="margin: 0; padding: 6px 12px; font-size: 12px; background: #fff; color: var(--ink); border: 1px solid var(--line); width: auto; height: auto; display: inline-flex; align-items: center; justify-content: center;">Export CSV</button>
-            </div>
-          </article>
-
           <!-- Comments Moderation Panel -->
           <article class="panel page-panel comments-panel is-hidden" data-view="comments">
             <div class="panel-header rankings-header" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; width: 100%; gap: 24px; flex-wrap: wrap;">
@@ -739,13 +650,13 @@
             </div>
           </article>
  
-          <!-- Admin MoM Export Panel (August 2025 - August 2026) -->
+          <!-- Admin MoM Export Panel -->
           <article class="panel page-panel admin-reports-panel is-hidden" data-view="admin-reports">
             <div class="panel-header" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; width: 100%; gap: 20px; flex-wrap: wrap;">
               <div>
                 <p class="eyebrow" style="color: #6366f1; font-weight: 700; margin: 0 0 4px 0;">Admin Analytics & Google Sheets Export</p>
-                <h2 style="margin: 0;">1-Year MoM Progress & Export (Aug 2025 - Aug 2026)</h2>
-                <p class="setup-lead" style="margin: 4px 0 0 0; font-size: 13px; color: var(--muted);">Track month-on-month Organic Views and Net Subscribers across all connected channels from August 2025 to August 2026 in presentation-ready format.</p>
+                <h2 id="adminMomHeaderTitle" style="margin: 0;">1-Year MoM Progress & Export (Aug 2025 - Aug 2026)</h2>
+                <p class="setup-lead" style="margin: 4px 0 0 0; font-size: 13px; color: var(--muted);">Track month-on-month Organic Views and Net Subscribers across all connected channels in presentation-ready format.</p>
               </div>
 
               <!-- Top Action Buttons -->
@@ -762,15 +673,38 @@
               </div>
             </div>
 
+            <!-- Time Period Filter Bar -->
+            <div class="admin-date-filter-bar" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; background: var(--surface); border: 1px solid var(--line); padding: 12px 16px; border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-right: 4px;">Time Period:</span>
+                <button class="filter-chip active" type="button" data-admin-range="1y">1 Year</button>
+                <button class="filter-chip" type="button" data-admin-range="2y">2 Years</button>
+                <button class="filter-chip" type="button" data-admin-range="3m">Last 3 Months</button>
+                <button class="filter-chip" type="button" data-admin-range="custom">Custom Date</button>
+              </div>
+              
+              <div id="adminCustomDateControls" style="display: none; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <label for="adminCustomStartDate" style="font-size: 12px; font-weight: 600; color: var(--muted);">From:</label>
+                  <input type="date" id="adminCustomStartDate" value="2025-08-01" style="background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; font-size: 12px; outline: none; cursor: pointer;" />
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <label for="adminCustomEndDate" style="font-size: 12px; font-weight: 600; color: var(--muted);">To:</label>
+                  <input type="date" id="adminCustomEndDate" value="2026-08-31" style="background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; font-size: 12px; outline: none; cursor: pointer;" />
+                </div>
+                <button class="connect-button" type="button" id="adminApplyCustomDateBtn" style="margin: 0; padding: 6px 14px; font-size: 12px; height: 32px; width: auto; display: inline-flex; align-items: center; justify-content: center; font-weight: 600;">Apply</button>
+              </div>
+            </div>
+
             <!-- KPI Summary Cards -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
               <div class="stat-card" style="background: var(--surface); border: 1px solid var(--line); padding: 16px; border-radius: 8px;">
-                <p class="eyebrow" style="margin: 0 0 6px 0; font-size: 11px;">Total Network Organic Views (Aug '25 - Aug '26)</p>
+                <p class="eyebrow" id="adminTotalViewsCardLabel" style="margin: 0 0 6px 0; font-size: 11px;">Total Network Organic Views (Aug '25 - Aug '26)</p>
                 <strong id="admin6mTotalViews" style="font-size: 26px; font-weight: 700; color: var(--ink);">-</strong>
                 <p id="admin6mViewsDetail" style="margin: 4px 0 0 0; font-size: 12px; color: var(--muted);">-</p>
               </div>
               <div class="stat-card" style="background: var(--surface); border: 1px solid var(--line); padding: 16px; border-radius: 8px;">
-                <p class="eyebrow" style="margin: 0 0 6px 0; font-size: 11px;">Total Network Subscribers (Aug '25 - Aug '26)</p>
+                <p class="eyebrow" id="adminTotalSubsCardLabel" style="margin: 0 0 6px 0; font-size: 11px;">Total Network Subscribers (Aug '25 - Aug '26)</p>
                 <strong id="admin6mTotalSubs" style="font-size: 26px; font-weight: 700; color: var(--ink);">-</strong>
                 <p id="admin6mSubsDetail" style="margin: 4px 0 0 0; font-size: 12px; color: var(--muted);">-</p>
               </div>
@@ -780,7 +714,7 @@
                 <p id="admin6mTopChannelDetail" style="margin: 4px 0 0 0; font-size: 12px; color: var(--muted);">-</p>
               </div>
               <div class="stat-card" style="background: var(--surface); border: 1px solid var(--line); padding: 16px; border-radius: 8px;">
-                <p class="eyebrow" style="margin: 0 0 6px 0; font-size: 11px;">Network MoM Views Trend (Aug vs Jul '26)</p>
+                <p class="eyebrow" id="adminMomTrendCardLabel" style="margin: 0 0 6px 0; font-size: 11px;">Network MoM Views Trend (Aug vs Jul '26)</p>
                 <strong id="admin6mMomTrend" style="font-size: 26px; font-weight: 700;">-</strong>
                 <p id="admin6mMomTrendDetail" style="margin: 4px 0 0 0; font-size: 12px; color: var(--muted);">-</p>
               </div>
