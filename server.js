@@ -8,6 +8,9 @@ import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 
+import { Readable } from "node:stream";
+import https from "node:https";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const currentFilePath = fileURLToPath(import.meta.url);
 const app = express();
@@ -18,6 +21,71 @@ const profilesPath = path.join(dataDir, "google-profiles.json");
 const competitorPath = path.join(dataDir, "competitors.json");
 const competitorViewHistoryPath = path.join(dataDir, "competitor-view-history.json");
 const removedChannelsPath = path.join(dataDir, "removed-channels.json");
+const channelCourseMapPath = path.join(__dirname, "data", "channelCourseMap.json");
+const channelDefaultsPath = path.join(__dirname, "data", "channel_ops_defaults.json");
+const facultyMasterPath = path.join(__dirname, "data", "faculty_master.json");
+const eventFacultyMemoryPath = path.join(__dirname, "data", "event_faculty_memory.json");
+
+async function readFacultyMaster() {
+  try {
+    return JSON.parse(await readFile(facultyMasterPath, "utf8"));
+  } catch {
+    return [];
+  }
+}
+
+async function saveFacultyMaster(list) {
+  try {
+    await writeFile(facultyMasterPath, JSON.stringify(list, null, 2), "utf8");
+  } catch (err) {
+    console.error("Failed to save faculty master:", err.message);
+  }
+}
+
+async function readEventFacultyMemory() {
+  try {
+    return JSON.parse(await readFile(eventFacultyMemoryPath, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+async function saveEventFacultyMemory(mem) {
+  try {
+    await writeFile(eventFacultyMemoryPath, JSON.stringify(mem, null, 2), "utf8");
+  } catch (err) {
+    console.error("Failed to save event faculty memory:", err.message);
+  }
+}
+
+const channelLanguageDefaultsPath = path.join(__dirname, "data", "channel_language_defaults.json");
+
+async function readChannelLanguageDefaults() {
+  try {
+    return JSON.parse(await readFile(channelLanguageDefaultsPath, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+async function getChannelDefaultLanguage(channelId, channelName = "") {
+  const defaults = await readChannelLanguageDefaults();
+  if (channelId && defaults[channelId]?.defaultLanguage) {
+    return defaults[channelId].defaultLanguage;
+  }
+  const nameLower = (channelName || "").toLowerCase();
+  if (nameLower.includes("tamil")) return "ta";
+  if (nameLower.includes("telugu")) return "te";
+  if (nameLower.includes("marathi") || nameLower.includes("mpsc")) return "mr";
+  if (nameLower.includes("bengali") || nameLower.includes("wb") || nameLower.includes("bangla")) return "bn";
+  if (nameLower.includes("odisha") || nameLower.includes("odia")) return "or";
+  if (nameLower.includes("punjab")) return "pa";
+  if (nameLower.includes("kannada")) return "kn";
+  if (nameLower.includes("malayalam")) return "ml";
+  if (nameLower.includes("english")) return "en";
+  return "hi"; // Default Hindi
+}
+
 const envPath = path.join(__dirname, ".env");
 const assetDir = path.join(__dirname, "assets");
 const maxChannels = Number(process.env.MAX_CONNECTED_CHANNELS || 200);
@@ -33,7 +101,6 @@ const ttl = {
   publicChannels: 24 * 60 * 60 * 1000,
   publicVideos: 12 * 60 * 60 * 1000, // 12 hours
   research: 6 * 60 * 60 * 1000,
-  competitors: 12 * 60 * 60 * 1000, // 12 hours
 };
 const teamScopes = [
   "openid",
@@ -101,15 +168,6 @@ const competitorCategoryMap = {
     { group: "Adda247", ids: ["UC1L2JoMpcY6MRLhFd3gg5Xg"] },
     { group: "Adda247 Bankers", ids: ["UC7DgZZeZD2HKc7JUAsIwe-w"] },
   ],
-  UPSC: [
-    { group: "Testbook PrepLab", ids: ["UC1pJ8ods7vGboH2BXuZVBbQ"] },
-    { group: "Sarthi IAS", ids: ["UChO18r_h8-K_Lf4Hb-bYGDQ"] },
-    { group: "Unacademy", ids: ["UCVOyyXupdtEblFbno_4ibLQ"] },
-    { group: "UPSC Wallah", ids: ["UCqOy6oOu6RPJNHYQ8f_Ybvg"] },
-    { group: "Drishti IAS", ids: ["UCzLqOSZPtUKrmSEnlH4LAvw"] },
-    { group: "DECODE CIVILS With Mudit Jain", ids: ["UC2_GuSyUafdqfL2TFiDbuEg"] },
-    { group: "Khan Global Studies", ids: ["UC7krt1E6XvrywJBu0ZOyq3Q"] },
-  ],
   "AE JE": [
     { group: "Testbook", ids: ["UCFTTIDN58laGeV8DM9D4spg"] },
     { group: "Engineers Wallah", ids: ["UCOGnjpVWVV2ixP2S9Pq5afQ"] },
@@ -167,23 +225,58 @@ const competitorCategoryMap = {
     { group: "Learn with Vignesh", ids: ["UCk-VE43GWfhckqRrnM16kZA"] },
     { group: "Chandru Maths", ids: ["UCGpQ0YuawhirWPKFnXcTh5A"] },
   ],
-  "JAIIB CAIIB": [
-    { group: "Testbook JAIIB CAIIB", ids: ["UCqY1_5OPoTn2QoWL7mbiI_Q"] },
-    { group: "PW JAIIB", ids: ["UC2TJx6PrcReByvidr7-tdSQ"] },
-    { group: "Oliveboard JAIIB", ids: ["UC18uJ0aohtMg5BLRcdwoGkw"] },
-    { group: "Mahesh Sir JAIIB", ids: ["UCkOSmpPtkRc86R9W_iw2TDw"] },
-    { group: "Edutap JAIIB", ids: ["UC922p9PusjDy40qBsmypzYA"] },
-    { group: "Adda247 JAIIB", ids: ["UCxykVmXr1GwZZZxKG8ZRaUg"] },
-  ],
 };
 
 const scopes = [
+  "https://www.googleapis.com/auth/youtube",
+  "https://www.googleapis.com/auth/youtube.upload",
   "https://www.googleapis.com/auth/youtube.readonly",
   "https://www.googleapis.com/auth/youtube.force-ssl",
   "https://www.googleapis.com/auth/yt-analytics.readonly",
+  "https://www.googleapis.com/auth/spreadsheets",
 ];
 
-app.use(express.json());
+app.use(express.json({ limit: "100mb" }));
+app.use(express.urlencoded({ extended: true, limit: "100mb" }));
+
+async function readChannelCourseMap() {
+  try {
+    return JSON.parse(await readFile(channelCourseMapPath, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+async function readChannelOpsDefaults() {
+  if (sql) {
+    try {
+      await ensureStorage();
+      const rows = await sql`select payload from app_state where key = 'channel_ops_defaults' limit 1`;
+      return rows[0]?.payload || {};
+    } catch {
+      return {};
+    }
+  }
+  try {
+    return JSON.parse(await readFile(channelDefaultsPath, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+async function saveChannelOpsDefaults(defaults) {
+  if (sql) {
+    await ensureStorage();
+    await sql`
+      insert into app_state (key, payload)
+      values ('channel_ops_defaults', ${sql.json(defaults)})
+      on conflict (key) do update set payload = excluded.payload, updated_at = now()
+    `;
+    return;
+  }
+  await mkdir(path.join(__dirname, "data"), { recursive: true });
+  await writeFile(channelDefaultsPath, JSON.stringify(defaults, null, 2), "utf8");
+}
 
 app.get("/", (_req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
@@ -448,6 +541,1136 @@ app.delete("/api/channels/:channelId", async (req, res, next) => {
       removedIds.push(channelId);
       await saveRemovedChannelIds(removedIds);
     }
+
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ====================================================
+// YouTube Operations & Event / Video / Shorts Management
+// ====================================================
+
+app.get("/api/youtube-ops/defaults/:channelId", async (req, res, next) => {
+  try {
+    const { channelId } = req.params;
+    const entries = await connectedChannelEntries();
+    const entry = entries.find((e) => e.channel.id === channelId);
+    if (!entry) {
+      return res.status(404).json({ error: "Channel not found or not connected." });
+    }
+
+    const courseMap = await readChannelCourseMap();
+    const channelDefaults = await readChannelOpsDefaults();
+    const courseCode = courseMap[channelId] || "";
+
+    const saved = channelDefaults[channelId] || {};
+    let defaultDescription = saved.defaultDescription || "";
+    let defaultTags = saved.defaultTags || [];
+
+    // Fallback: If no custom default description saved, fetch description from channel's latest video
+    if (!defaultDescription) {
+      try {
+        const youtube = google.youtube({ version: "v3", auth: entry.auth });
+        const uploadsPlaylistId = entry.channel.uploadsPlaylistId || (channelId.startsWith("UC") ? "UU" + channelId.slice(2) : channelId);
+        const listRes = await youtube.playlistItems.list({
+          part: ["snippet"],
+          playlistId: uploadsPlaylistId,
+          maxResults: 1,
+        });
+        const latestItem = listRes.data?.items?.[0];
+        if (latestItem && latestItem.snippet?.description) {
+          defaultDescription = latestItem.snippet.description;
+        }
+      } catch (e) {
+        console.warn(`[YouTube Ops] Could not fetch latest video description for ${channelId}:`, e.message);
+      }
+    }
+
+    res.json({
+      channelId,
+      channelName: entry.channel.name,
+      courseCode,
+      defaultDescription,
+      defaultTags,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/youtube-ops/defaults/:channelId", async (req, res, next) => {
+  try {
+    const { channelId } = req.params;
+    const { defaultDescription, defaultTags } = req.body;
+    const entries = await connectedChannelEntries();
+    const entry = entries.find((e) => e.channel.id === channelId);
+    if (!entry) {
+      return res.status(404).json({ error: "Channel not found or not connected." });
+    }
+
+    const channelDefaults = await readChannelOpsDefaults();
+    channelDefaults[channelId] = {
+      channelId,
+      channelName: entry.channel.name,
+      defaultDescription: String(defaultDescription || ""),
+      defaultTags: Array.isArray(defaultTags) ? defaultTags : String(defaultTags || "").split(",").map(t => t.trim()).filter(Boolean),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await saveChannelOpsDefaults(channelDefaults);
+    res.json({ success: true, message: "Channel default description saved successfully." });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/youtube-ops/channel-languages", async (req, res, next) => {
+  try {
+    const defaults = await readChannelLanguageDefaults();
+    res.json({ success: true, languages: defaults });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/youtube-ops/playlists/:channelId", async (req, res, next) => {
+  try {
+    const { channelId } = req.params;
+    const entries = await connectedChannelEntries();
+    const entry = entries.find((e) => e.channel.id === channelId);
+    if (!entry) {
+      return res.status(404).json({ error: "Channel not found or not connected." });
+    }
+
+    const youtube = google.youtube({ version: "v3", auth: entry.auth });
+    const plRes = await youtube.playlists.list({
+      part: ["snippet"],
+      channelId: channelId,
+      maxResults: 50,
+    });
+
+    const playlists = (plRes.data?.items || []).map((item) => ({
+      id: item.id,
+      title: item.snippet?.title || "Untitled Playlist",
+    }));
+
+    res.json({ playlists });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/youtube-ops/faculty", async (req, res, next) => {
+  try {
+    const list = await readFacultyMaster();
+    res.json({ faculty: list });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/youtube-ops/faculty", async (req, res, next) => {
+  try {
+    const { email, facultyName, facultyCBSid, facultyLMSid, facultyCBScode } = req.body;
+    if (!email || !facultyName) {
+      return res.status(400).json({ error: "Email and Faculty Name are required." });
+    }
+    const list = await readFacultyMaster();
+    const existing = list.find((f) => (f.email || "").toLowerCase() === email.trim().toLowerCase());
+    if (existing) {
+      existing.facultyName = facultyName.trim();
+      if (facultyCBSid) existing.facultyCBSid = facultyCBSid;
+      if (facultyLMSid) existing.facultyLMSid = facultyLMSid;
+      if (facultyCBScode) existing.facultyCBScode = facultyCBScode;
+    } else {
+      list.push({
+        email: email.trim().toLowerCase(),
+        facultyName: facultyName.trim(),
+        facultyCBSid: facultyCBSid || "",
+        facultyLMSid: facultyLMSid || "",
+        facultyCBScode: facultyCBScode || "",
+      });
+    }
+    await saveFacultyMaster(list);
+    res.json({ success: true, faculty: list });
+  } catch (error) {
+    next(error);
+  }
+});
+
+async function getVideoPlaylistMap(youtube, videoIds) {
+  const map = {};
+  if (!videoIds || videoIds.length === 0) return map;
+  try {
+    const plRes = await youtube.playlists.list({
+      part: ["snippet", "id"],
+      mine: true,
+      maxResults: 50,
+    });
+    const playlists = plRes.data?.items || [];
+    for (const pl of playlists) {
+      try {
+        const itemRes = await youtube.playlistItems.list({
+          part: ["snippet"],
+          playlistId: pl.id,
+          maxResults: 50,
+        });
+        (itemRes.data?.items || []).forEach((item) => {
+          const vId = item.snippet?.resourceId?.videoId;
+          if (vId && videoIds.includes(vId)) {
+            map[vId] = pl.id;
+          }
+        });
+      } catch {
+        // Continue if a single playlist fails
+      }
+    }
+  } catch (err) {
+    console.warn("[YouTube Ops] getVideoPlaylistMap warning:", err.message);
+  }
+  return map;
+}
+
+app.get("/api/youtube-ops/events/:channelId", async (req, res, next) => {
+  try {
+    const { channelId } = req.params;
+    const entries = await connectedChannelEntries();
+    const entry = entries.find((e) => e.channel.id === channelId);
+    if (!entry) {
+      return res.status(404).json({ error: "Channel not found or not connected." });
+    }
+
+    const youtube = google.youtube({ version: "v3", auth: entry.auth });
+    const response = await youtube.liveBroadcasts.list({
+      part: ["snippet", "status", "contentDetails"],
+      broadcastStatus: "all",
+      maxResults: 50,
+    });
+
+    const items = response.data?.items || [];
+    const memory = await readEventFacultyMemory();
+    const facultyMaster = await readFacultyMaster();
+
+    const videoIds = items.map((b) => b.id).filter(Boolean);
+    let videoSnippetMap = {};
+
+    if (videoIds.length > 0) {
+      try {
+        const videoResponse = await youtube.videos.list({
+          part: ["snippet", "status"],
+          id: videoIds.slice(0, 50).join(","),
+        });
+
+        videoSnippetMap = (videoResponse.data?.items || []).reduce((acc, video) => {
+          acc[video.id] = video.snippet || {};
+          return acc;
+        }, {});
+      } catch (vidErr) {
+        console.warn("[YouTube Ops] Video snippet list warning:", vidErr.message);
+      }
+    }
+
+    const videoPlaylistMap = await getVideoPlaylistMap(youtube, videoIds);
+
+    const events = items.map((item) => {
+      const mem = memory[item.id] || {};
+      const videoSnippet = videoSnippetMap[item.id] || {};
+      let facultyEmail = mem.facultyEmail || "";
+      let facultyName = mem.facultyName || "";
+      let facultyId = mem.facultyId || "";
+
+      // Fallback: match faculty from title if not previously stored
+      if (!facultyEmail && item.snippet?.title) {
+        const titleLower = item.snippet.title.toLowerCase();
+        for (const f of facultyMaster) {
+          const nameClean = (f.facultyName || "").toLowerCase().replace(/\(.*?\)/g, "").trim();
+          if (nameClean && nameClean.length > 2 && titleLower.includes(nameClean)) {
+            facultyEmail = f.email;
+            facultyName = f.facultyName;
+            facultyId = f.facultyCBSid || "";
+            break;
+          }
+        }
+      }
+
+      // High-res thumbnail URL
+      const thumbs = videoSnippet.thumbnails || item.snippet?.thumbnails || {};
+      const thumbnailUrl = thumbs.maxres?.url || thumbs.standard?.url || thumbs.high?.url || thumbs.medium?.url || thumbs.default?.url || "";
+
+      // Tags formatted
+      const rawTags = videoSnippet.tags || item.snippet?.tags || [];
+      const tagsStr = Array.isArray(rawTags) ? rawTags.join(", ") : String(rawTags || "");
+
+      // Playlist ID
+      const playlistId = videoPlaylistMap[item.id] || mem.playlistId || "";
+
+      return {
+        eventId: item.id,
+        title: item.snippet?.title || "Untitled Broadcast",
+        description: item.snippet?.description || videoSnippet.description || "",
+        scheduledStartTime: item.snippet?.scheduledStartTime || "",
+        scheduledEndTime: item.snippet?.scheduledEndTime || "",
+        privacyStatus: item.status?.privacyStatus || "public",
+        lifeCycleStatus: item.status?.lifeCycleStatus || "",
+        boundStreamId: item.contentDetails?.boundStreamId || "",
+        tags: tagsStr,
+        thumbnailUrl,
+        playlistId,
+        facultyEmail,
+        facultyName,
+        facultyId,
+      };
+    });
+
+    events.sort((a, b) => new Date(b.scheduledStartTime || 0) - new Date(a.scheduledStartTime || 0));
+
+    res.json({ events });
+  } catch (error) {
+    console.warn("[YouTube Ops] Error fetching live events from YouTube API, falling back to stored database events:", error.message);
+    try {
+      const memory = await readEventFacultyMemory();
+      const storedList = Object.values(memory).map((mem) => ({
+        eventId: mem.eventId || "",
+        title: mem.title || mem.eventTitle || "Broadcast Event",
+        description: mem.description || `Live session by ${mem.facultyName || "Testbook Faculty"}`,
+        scheduledStartTime: mem.scheduledStartTime || mem.updatedAt || new Date().toISOString(),
+        scheduledEndTime: mem.scheduledEndTime || "",
+        privacyStatus: "public",
+        lifeCycleStatus: "created",
+        boundStreamId: mem.boundStreamId || "default_stream",
+        tags: mem.tags || "Testbook, Live Class",
+        thumbnailUrl: mem.thumbnailUrl || (mem.eventId ? `https://i.ytimg.com/vi/${mem.eventId}/hqdefault.jpg` : ""),
+        playlistId: mem.playlistId || "",
+        facultyEmail: mem.facultyEmail || "",
+        facultyName: mem.facultyName || "",
+        facultyId: mem.facultyId || "",
+      })).filter((e) => e.eventId);
+
+      if (storedList.length > 0) {
+        return res.json({ events: storedList, fallback: true });
+      }
+    } catch {
+      // ignore
+    }
+    res.status(500).json({ error: "Failed to fetch events from YouTube API", details: error.message });
+  }
+});
+
+const DEFAULT_EVENTS_SPREADSHEET_ID = "1-9hSD9ugLV8rrZq8cOdFULSZ_wFUwilP1LmNzGTmxKo";
+const DEFAULT_EVENTS_SHEET_TAB = "Sheet1";
+
+function formatEventDateTimeIST(isoOrLocalString) {
+  if (!isoOrLocalString) return { startDate: "", startTime: "", dayOfWeek: "" };
+  const d = new Date(isoOrLocalString);
+  if (isNaN(d.getTime())) return { startDate: "", startTime: "", dayOfWeek: "" };
+
+  try {
+    const optionsDate = { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "2-digit" };
+    const dateParts = new Intl.DateTimeFormat("en-IN", optionsDate).formatToParts(d);
+    const day = dateParts.find((p) => p.type === "day")?.value || "";
+    const month = dateParts.find((p) => p.type === "month")?.value || "";
+    const year = dateParts.find((p) => p.type === "year")?.value || "";
+    const startDate = `${day} ${month} ${year}`;
+
+    const optionsTime = { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false };
+    const startTime = new Intl.DateTimeFormat("en-IN", optionsTime).format(d);
+
+    const optionsDay = { timeZone: "Asia/Kolkata", weekday: "long" };
+    const dayOfWeek = new Intl.DateTimeFormat("en-IN", optionsDay).format(d);
+
+    return { startDate, startTime, dayOfWeek };
+  } catch (err) {
+    console.warn("DateTime format error:", err.message);
+    return { startDate: "", startTime: "", dayOfWeek: "" };
+  }
+}
+
+async function appendEventToGoogleSheet({ auth, eventData }) {
+  const { startDate, startTime, dayOfWeek } = formatEventDateTimeIST(eventData.scheduledStartTime);
+  let endTimeStr = "";
+  if (eventData.scheduledEndTime) {
+    const endParts = formatEventDateTimeIST(eventData.scheduledEndTime);
+    endTimeStr = endParts.startTime;
+  }
+
+  // Exact 13 columns matching Sheet1 of "YT Events by Dashboard":
+  // Column A: Faculty Id (stores faculty email)
+  // Column B: YT Channel Id
+  // Column C: YT Channel Name
+  // Column D: Event Title
+  // Column E: Event Playlist
+  // Column F: Event Startdate (e.g. "08 Sept 26")
+  // Column G: Event Starttime (e.g. "14:40")
+  // Column H: Event Endtime
+  // Column I: Event Status ("Created" or "Reused Created")
+  // Column J: Event Day ("Tuesday")
+  // Column K: Event Link (https://www.youtube.com/watch?v=...)
+  // Column L: Stream Key Id
+  // Column M: RTMP Key
+  const row = [
+    eventData.facultyEmail || "",
+    eventData.channelId || "",
+    eventData.channelName || "",
+    eventData.title || "",
+    eventData.playlistId || "",
+    startDate,
+    startTime,
+    endTimeStr,
+    eventData.status || "Created",
+    dayOfWeek,
+    eventData.eventLink || (eventData.eventId ? `https://www.youtube.com/watch?v=${eventData.eventId}` : ""),
+    eventData.streamId || "",
+    eventData.rtmpKey || ""
+  ];
+
+  const results = {
+    webhookSuccess: false,
+    apiSuccess: false,
+    localSaved: false,
+    row,
+  };
+
+  // 1. Google Apps Script Webhook (if GOOGLE_SHEET_WEBHOOK_URL is configured in .env)
+  const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL;
+  if (webhookUrl) {
+    try {
+      const resp = await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        redirect: "follow",
+        body: JSON.stringify({
+          facultyId: row[0],
+          channelId: row[1],
+          channelName: row[2],
+          title: row[3],
+          playlistId: row[4],
+          startDate: row[5],
+          startTime: row[6],
+          endTime: row[7],
+          status: row[8],
+          dayOfWeek: row[9],
+          eventLink: row[10],
+          streamId: row[11],
+          rtmpKey: row[12],
+          rowValues: row,
+        }),
+      });
+      if (resp.ok) {
+        results.webhookSuccess = true;
+        console.log(`[Google Sheet Sync] Successfully posted row via Apps Script Webhook for event ${eventData.eventId}`);
+      } else {
+        console.warn(`[Google Sheet Sync] Apps Script Webhook returned HTTP ${resp.status}`);
+      }
+    } catch (whErr) {
+      console.warn(`[Google Sheet Sync] Webhook error:`, whErr.message);
+    }
+  }
+
+  // 2. Google Sheets API v4 (using channel OAuth credentials or service account)
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID || DEFAULT_EVENTS_SPREADSHEET_ID;
+  if (auth) {
+    try {
+      const sheets = google.sheets({ version: "v4", auth });
+      await sheets.spreadsheets.values.append({
+        spreadsheetId,
+        range: `${DEFAULT_EVENTS_SHEET_TAB}!A:M`,
+        valueInputOption: "USER_ENTERED",
+        insertDataOption: "INSERT_ROWS",
+        requestBody: {
+          values: [row],
+        },
+      });
+      results.apiSuccess = true;
+      console.log(`[Google Sheet Sync] Successfully appended row via Sheets API v4 to ${spreadsheetId}`);
+    } catch (apiErr) {
+      console.warn(`[Google Sheet Sync] Sheets API v4 append warning:`, apiErr.message);
+    }
+  }
+
+  // 3. Local persistence in event memory
+  try {
+    const memory = await readEventFacultyMemory();
+    if (eventData.eventId) {
+      memory[eventData.eventId] = {
+        ...(memory[eventData.eventId] || {}),
+        eventId: eventData.eventId,
+        facultyEmail: eventData.facultyEmail || "",
+        facultyName: eventData.facultyName || "",
+        facultyId: eventData.facultyId || "",
+        channelId: eventData.channelId || "",
+        channelName: eventData.channelName || "",
+        eventTitle: eventData.title || "",
+        playlistId: eventData.playlistId || "",
+        startDate,
+        startTime,
+        endTime: endTimeStr,
+        status: eventData.status || "Created",
+        dayOfWeek,
+        eventLink: row[10],
+        streamId: eventData.streamId || "",
+        rtmpKey: eventData.rtmpKey || "",
+        updatedAt: new Date().toISOString(),
+      };
+      await saveEventFacultyMemory(memory);
+      results.localSaved = true;
+    }
+  } catch (memErr) {
+    console.warn(`[Google Sheet Sync] Local memory save warning:`, memErr.message);
+  }
+
+  return results;
+}
+
+app.get("/api/youtube-ops/sheet-config", (req, res) => {
+  res.json({
+    spreadsheetId: process.env.GOOGLE_SHEET_ID || DEFAULT_EVENTS_SPREADSHEET_ID,
+    sheetTab: DEFAULT_EVENTS_SHEET_TAB,
+    sheetUrl: `https://docs.google.com/spreadsheets/d/${process.env.GOOGLE_SHEET_ID || DEFAULT_EVENTS_SPREADSHEET_ID}/edit?usp=sharing`,
+    hasWebhook: Boolean(process.env.GOOGLE_SHEET_WEBHOOK_URL),
+    scopesConfigured: true,
+  });
+});
+
+app.post("/api/youtube-ops/test-sheet-sync", async (req, res, next) => {
+  try {
+    const entries = await connectedChannelEntries();
+    const firstEntry = entries[0];
+    const testResult = await appendEventToGoogleSheet({
+      auth: firstEntry?.auth,
+      eventData: {
+        eventId: "TEST_" + Date.now().toString().slice(-6),
+        facultyEmail: req.body.facultyEmail || "test.faculty@testbook.com",
+        channelId: firstEntry?.channel?.id || "UC_TEST",
+        channelName: firstEntry?.channel?.title || "Testbook Test Channel",
+        title: req.body.title || "TEST Live Session | Test Event Sync",
+        playlistId: req.body.playlistId || "",
+        scheduledStartTime: new Date().toISOString(),
+        status: "Created",
+        eventLink: "https://www.youtube.com/watch?v=TEST",
+        streamId: "stream_test_key_id",
+        rtmpKey: "test-rtmp-key",
+      },
+    });
+    res.json({ success: true, result: testResult });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post("/api/youtube-ops/create-event", async (req, res, next) => {
+  try {
+    const {
+      channelId,
+      title,
+      description,
+      scheduledStartTime,
+      scheduledEndTime,
+      privacyStatus,
+      tags,
+      playlistId,
+      thumbnailBase64,
+      facultyEmail,
+      facultyName,
+      facultyId,
+    } = req.body;
+
+    if (!channelId || !title || !scheduledStartTime) {
+      return res.status(400).json({ error: "Channel, title, and scheduled start time are required." });
+    }
+
+    const entries = await connectedChannelEntries();
+    const entry = entries.find((e) => e.channel.id === channelId);
+    if (!entry) {
+      return res.status(404).json({ error: "Channel not found or not connected." });
+    }
+
+    const youtube = google.youtube({ version: "v3", auth: entry.auth });
+
+    // Format start and end times to ISO string
+    const finalStartTime = new Date(scheduledStartTime).toISOString();
+    const finalEndTime = scheduledEndTime ? new Date(scheduledEndTime).toISOString() : undefined;
+
+    const parsedTags = Array.isArray(tags)
+      ? tags
+      : String(tags || "").split(",").map((t) => t.trim()).filter(Boolean);
+
+    // 1. Create Broadcast Event
+    const broadcastResponse = await youtube.liveBroadcasts.insert({
+      part: ["snippet", "status", "contentDetails"],
+      requestBody: {
+        snippet: {
+          title,
+          description: description || "",
+          scheduledStartTime: finalStartTime,
+          scheduledEndTime: finalEndTime,
+          categoryId: "27", // Education
+          tags: parsedTags,
+        },
+        status: {
+          privacyStatus: privacyStatus || "public",
+          selfDeclaredMadeForKids: false,
+        },
+        contentDetails: {
+          enableAutoStart: false,
+          enableAutoStop: true,
+          enableDvr: true,
+          recordFromStart: true,
+        },
+      },
+    });
+
+    const broadcastId = broadcastResponse.data.id;
+
+    // 2. Create RTMP Stream
+    const streamResponse = await youtube.liveStreams.insert({
+      part: ["snippet", "cdn"],
+      requestBody: {
+        snippet: {
+          title: `${title} Stream`,
+        },
+        cdn: {
+          frameRate: "30fps",
+          ingestionType: "rtmp",
+          resolution: "720p",
+        },
+      },
+    });
+
+    const streamId = streamResponse.data.id;
+
+    // 3. Bind stream to broadcast
+    await youtube.liveBroadcasts.bind({
+      part: ["id", "contentDetails"],
+      id: broadcastId,
+      streamId: streamId,
+    });
+
+    // 4. Update video snippet for languages and metadata
+    const channelDefaultLang = await getChannelDefaultLanguage(channelId, entry.channel?.title || entry.channel?.name);
+    try {
+      await youtube.videos.update({
+        part: ["snippet"],
+        requestBody: {
+          id: broadcastId,
+          snippet: {
+            title,
+            description: description || "",
+            categoryId: "27",
+            tags: parsedTags,
+            defaultLanguage: channelDefaultLang,
+            defaultAudioLanguage: channelDefaultLang,
+          },
+        },
+      });
+    } catch (e) {
+      console.warn(`[YouTube Ops] Could not update video metadata for broadcast ${broadcastId}:`, e.message);
+    }
+
+    // 5. Add to Playlist if requested
+    if (playlistId) {
+      try {
+        await youtube.playlistItems.insert({
+          part: ["snippet"],
+          requestBody: {
+            snippet: {
+              playlistId,
+              resourceId: {
+                kind: "youtube#video",
+                videoId: broadcastId,
+              },
+            },
+          },
+        });
+      } catch (plErr) {
+        console.warn(`[YouTube Ops] Could not add broadcast ${broadcastId} to playlist ${playlistId}:`, plErr.message);
+      }
+    }
+
+    // 6. Set custom thumbnail if provided
+    if (thumbnailBase64 && typeof thumbnailBase64 === "string" && thumbnailBase64.includes("base64,")) {
+      try {
+        const base64Data = thumbnailBase64.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, "base64");
+        const mime = thumbnailBase64.startsWith("data:image/png") ? "image/png" : "image/jpeg";
+        const thumbStream = Readable.from(buffer);
+
+        await youtube.thumbnails.set({
+          videoId: broadcastId,
+          media: {
+            mimeType: mime,
+            body: thumbStream,
+          },
+        });
+      } catch (thumbErr) {
+        console.error(`[YouTube Ops] Failed to upload thumbnail for broadcast ${broadcastId}:`, thumbErr.message);
+      }
+    }
+
+    // Remember faculty mapping
+    if (facultyEmail) {
+      try {
+        const memory = await readEventFacultyMemory();
+        memory[broadcastId] = {
+          facultyEmail: facultyEmail.trim().toLowerCase(),
+          facultyName: facultyName ? facultyName.trim() : "",
+          facultyId: facultyId ? facultyId.trim() : "",
+          updatedAt: new Date().toISOString(),
+        };
+        await saveEventFacultyMemory(memory);
+      } catch (memErr) {
+        console.warn("[Create Event] Faculty memory save warning:", memErr.message);
+      }
+    }
+
+    const rtmpUrl = streamResponse.data?.cdn?.ingestionInfo?.ingestionAddress || "rtmp://a.rtmp.youtube.com/live2";
+    const rtmpKey = streamResponse.data?.cdn?.ingestionInfo?.streamName || "";
+
+    // Sync to Google Sheet (YT Events by Dashboard)
+    const channelName = entry.channel?.title || entry.channel?.name || "YouTube Channel";
+    const sheetSync = await appendEventToGoogleSheet({
+      auth: entry.auth,
+      eventData: {
+        eventId: broadcastId,
+        facultyEmail: facultyEmail ? facultyEmail.trim().toLowerCase() : "",
+        facultyName: facultyName ? facultyName.trim() : "",
+        facultyId: facultyId || "",
+        channelId,
+        channelName,
+        title,
+        playlistId: playlistId || "",
+        scheduledStartTime: finalStartTime,
+        scheduledEndTime: finalEndTime,
+        status: "Created",
+        eventLink: `https://www.youtube.com/watch?v=${broadcastId}`,
+        streamId,
+        rtmpKey,
+      },
+    });
+
+    res.json({
+      success: true,
+      eventId: broadcastId,
+      eventLink: `https://www.youtube.com/watch?v=${broadcastId}`,
+      studioLink: `https://studio.youtube.com/video/${broadcastId}/livestreaming`,
+      streamId,
+      rtmpUrl,
+      rtmpKey,
+      title,
+      scheduledStartTime: finalStartTime,
+      privacyStatus: privacyStatus || "public",
+      facultyEmail: facultyEmail ? facultyEmail.trim().toLowerCase() : "",
+      facultyName: facultyName ? facultyName.trim() : "",
+      facultyId: facultyId || "",
+      sheetSync: {
+        synced: sheetSync.webhookSuccess || sheetSync.apiSuccess,
+        sheetUrl: `https://docs.google.com/spreadsheets/d/${DEFAULT_EVENTS_SPREADSHEET_ID}/edit?usp=sharing`,
+        details: sheetSync,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/youtube-ops/reuse-event", async (req, res, next) => {
+  try {
+    const {
+      channelId,
+      existingEventId,
+      existingThumbUrl,
+      title,
+      description,
+      scheduledStartTime,
+      scheduledEndTime,
+      privacyStatus,
+      tags,
+      playlistId,
+      thumbnailBase64,
+      facultyEmail,
+      facultyName,
+      facultyId,
+    } = req.body;
+
+    if (!channelId || !existingEventId || !title || !scheduledStartTime) {
+      return res.status(400).json({ error: "Channel, existing event, title, and scheduled start time are required." });
+    }
+
+    const entries = await connectedChannelEntries();
+    const entry = entries.find((e) => e.channel.id === channelId);
+    if (!entry) {
+      return res.status(404).json({ error: "Channel not found or not connected." });
+    }
+
+    const youtube = google.youtube({ version: "v3", auth: entry.auth });
+
+    // 1. Fetch existing broadcast to retrieve its bound stream ID
+    const originalBroadcast = await youtube.liveBroadcasts.list({
+      part: ["contentDetails"],
+      id: [existingEventId],
+    });
+
+    const originalEvent = originalBroadcast.data.items?.[0];
+    const originalStreamId = originalEvent?.contentDetails?.boundStreamId;
+    if (!originalStreamId) {
+      return res.status(400).json({ error: "The selected existing event does not have an active stream key to reuse." });
+    }
+
+    // 2. Fetch original stream details (RTMP stream key and ingestion address)
+    const originalStream = await youtube.liveStreams.list({
+      part: ["cdn"],
+      id: [originalStreamId],
+    });
+
+    const originalStreamData = originalStream.data.items?.[0];
+    const rtmpKey = originalStreamData?.cdn?.ingestionInfo?.streamName || "";
+    const rtmpUrl = originalStreamData?.cdn?.ingestionInfo?.ingestionAddress || "rtmp://a.rtmp.youtube.com/live2";
+
+    // 3. Format start and end times
+    const finalStartTime = new Date(scheduledStartTime).toISOString();
+    const finalEndTime = scheduledEndTime ? new Date(scheduledEndTime).toISOString() : undefined;
+    const parsedTags = Array.isArray(tags) ? tags : String(tags || "").split(",").map((t) => t.trim()).filter(Boolean);
+
+    // 4. Create new broadcast with original metadata defaults
+    const broadcastResponse = await youtube.liveBroadcasts.insert({
+      part: ["snippet", "status", "contentDetails"],
+      requestBody: {
+        snippet: {
+          title,
+          description: description || "",
+          scheduledStartTime: finalStartTime,
+          scheduledEndTime: finalEndTime,
+          categoryId: "27", // Education
+          tags: parsedTags,
+        },
+        status: {
+          privacyStatus: privacyStatus || "public",
+          selfDeclaredMadeForKids: false,
+        },
+        contentDetails: {
+          enableAutoStart: false,
+          enableAutoStop: true,
+          enableDvr: true,
+          recordFromStart: true,
+        },
+      },
+    });
+
+    const newBroadcastId = broadcastResponse.data.id;
+
+    // 5. BIND new broadcast to the ORIGINAL STREAM KEY
+    await youtube.liveBroadcasts.bind({
+      part: ["id", "contentDetails"],
+      id: newBroadcastId,
+      streamId: originalStreamId,
+    });
+
+    // 6. Update video snippet
+    const channelDefaultLang = await getChannelDefaultLanguage(channelId, entry.channel?.title || entry.channel?.name);
+    try {
+      await youtube.videos.update({
+        part: ["snippet"],
+        requestBody: {
+          id: newBroadcastId,
+          snippet: {
+            title,
+            description: description || "",
+            categoryId: "27",
+            tags: parsedTags,
+            defaultLanguage: channelDefaultLang,
+            defaultAudioLanguage: channelDefaultLang,
+          },
+        },
+      });
+    } catch (e) {
+      console.warn("[Reuse Event] Video snippet update warning:", e.message);
+    }
+
+    // 7. Add to Playlist if requested
+    if (playlistId) {
+      try {
+        await youtube.playlistItems.insert({
+          part: ["snippet"],
+          requestBody: {
+            snippet: {
+              playlistId,
+              resourceId: { kind: "youtube#video", videoId: newBroadcastId },
+            },
+          },
+        });
+      } catch (plErr) {
+        console.warn("[Reuse Event] Playlist insert warning:", plErr.message);
+      }
+    }
+
+    // 8. Set custom thumbnail if provided, OR reuse existing pre-thumbnail
+    if (thumbnailBase64 && typeof thumbnailBase64 === "string" && thumbnailBase64.includes("base64,")) {
+      try {
+        const base64Data = thumbnailBase64.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, "base64");
+        const mime = thumbnailBase64.startsWith("data:image/png") ? "image/png" : "image/jpeg";
+        const thumbStream = Readable.from(buffer);
+
+        await youtube.thumbnails.set({
+          videoId: newBroadcastId,
+          media: { mimeType: mime, body: thumbStream },
+        });
+      } catch (thumbErr) {
+        console.error("[Reuse Event] Thumbnail upload warning:", thumbErr.message);
+      }
+    } else if (existingThumbUrl || existingEventId) {
+      try {
+        let urlToFetch = existingThumbUrl;
+        if (!urlToFetch) {
+          const origVidRes = await youtube.videos.list({
+            part: ["snippet"],
+            id: [existingEventId],
+          });
+          const thumbs = origVidRes.data?.items?.[0]?.snippet?.thumbnails;
+          urlToFetch = thumbs?.maxres?.url || thumbs?.standard?.url || thumbs?.high?.url || thumbs?.medium?.url || thumbs?.default?.url;
+        }
+
+        if (urlToFetch) {
+          const imgRes = await fetch(urlToFetch);
+          if (imgRes.ok) {
+            const arrBuf = await imgRes.arrayBuffer();
+            const buffer = Buffer.from(arrBuf);
+            const mime = imgRes.headers.get("content-type") || "image/jpeg";
+            await youtube.thumbnails.set({
+              videoId: newBroadcastId,
+              media: { mimeType: mime, body: Readable.from(buffer) },
+            });
+          }
+        }
+      } catch (thumbCopyErr) {
+        console.warn("[Reuse Event] Pre-thumbnail copy warning:", thumbCopyErr.message);
+      }
+    }
+
+    // Remember faculty mapping for new broadcast
+    const memory = await readEventFacultyMemory();
+    const effectiveFacultyEmail = facultyEmail ? facultyEmail.trim().toLowerCase() : (memory[existingEventId]?.facultyEmail || "");
+    const effectiveFacultyName = facultyName ? facultyName.trim() : (memory[existingEventId]?.facultyName || "");
+    const effectiveFacultyId = facultyId ? facultyId.trim() : (memory[existingEventId]?.facultyId || "");
+    const effectivePlaylistId = playlistId ? playlistId.trim() : (memory[existingEventId]?.playlistId || "");
+
+    if (effectiveFacultyEmail) {
+      try {
+        memory[newBroadcastId] = {
+          facultyEmail: effectiveFacultyEmail,
+          facultyName: effectiveFacultyName,
+          facultyId: effectiveFacultyId,
+          playlistId: effectivePlaylistId,
+          title: title || "",
+          updatedAt: new Date().toISOString(),
+        };
+        await saveEventFacultyMemory(memory);
+      } catch (memErr) {
+        console.warn("[Reuse Event] Faculty memory save warning:", memErr.message);
+      }
+    }
+
+    // Sync to Google Sheet (YT Events by Dashboard)
+    const channelName = entry.channel?.title || entry.channel?.name || "YouTube Channel";
+    const sheetSync = await appendEventToGoogleSheet({
+      auth: entry.auth,
+      eventData: {
+        eventId: newBroadcastId,
+        facultyEmail: effectiveFacultyEmail,
+        facultyName: effectiveFacultyName,
+        facultyId: effectiveFacultyId,
+        channelId,
+        channelName,
+        title,
+        playlistId: effectivePlaylistId,
+        scheduledStartTime: finalStartTime,
+        scheduledEndTime: finalEndTime,
+        status: "Reused Created",
+        eventLink: `https://www.youtube.com/watch?v=${newBroadcastId}`,
+        streamId: originalStreamId,
+        rtmpKey,
+      },
+    });
+
+    res.json({
+      success: true,
+      isReused: true,
+      existingEventId,
+      eventId: newBroadcastId,
+      eventLink: `https://www.youtube.com/watch?v=${newBroadcastId}`,
+      studioLink: `https://studio.youtube.com/video/${newBroadcastId}/livestreaming`,
+      streamId: originalStreamId,
+      rtmpUrl,
+      rtmpKey,
+      title,
+      scheduledStartTime: finalStartTime,
+      privacyStatus: privacyStatus || "public",
+      facultyEmail: effectiveFacultyEmail,
+      facultyName: effectiveFacultyName,
+      facultyId: effectiveFacultyId,
+      sheetSync: {
+        synced: sheetSync.webhookSuccess || sheetSync.apiSuccess,
+        sheetUrl: `https://docs.google.com/spreadsheets/d/${DEFAULT_EVENTS_SPREADSHEET_ID}/edit?usp=sharing`,
+        details: sheetSync,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/youtube-ops/init-upload", async (req, res, next) => {
+  try {
+    const {
+      channelId,
+      title,
+      description,
+      tags,
+      privacyStatus,
+      publishAt,
+      videoMimeType,
+      videoFileSize,
+      isShorts,
+    } = req.body;
+
+    if (!channelId || !title) {
+      return res.status(400).json({ error: "Channel and title are required." });
+    }
+
+    const entries = await connectedChannelEntries();
+    const entry = entries.find((e) => e.channel.id === channelId);
+    if (!entry) {
+      return res.status(404).json({ error: "Channel not found or not connected." });
+    }
+
+    const tokenRes = await entry.auth.getAccessToken();
+    const token = tokenRes.token;
+    if (!token) {
+      return res.status(401).json({ error: "Could not retrieve access token for this channel. Please re-authenticate." });
+    }
+
+    const isScheduled = Boolean(publishAt && new Date(publishAt) > new Date());
+    const effectivePrivacy = isScheduled ? "private" : (privacyStatus || "public");
+    const effectivePublishAt = isScheduled ? new Date(publishAt).toISOString() : undefined;
+
+    let videoTitle = String(title).trim();
+    if (isShorts && !videoTitle.toLowerCase().includes("#shorts")) {
+      videoTitle = `${videoTitle} #Shorts`;
+    }
+
+    const parsedTags = Array.isArray(tags)
+      ? tags
+      : String(tags || "").split(",").map((t) => t.trim()).filter(Boolean);
+
+    if (isShorts && !parsedTags.includes("Shorts")) {
+      parsedTags.push("Shorts");
+    }
+
+    const clientOrigin = req.get("origin") || req.headers.origin || "http://localhost:4173";
+
+    const initRes = await fetch("https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json; charset=UTF-8",
+        "X-Upload-Content-Type": videoMimeType || "video/mp4",
+        "X-Upload-Content-Length": String(videoFileSize || 0),
+        "Origin": clientOrigin,
+      },
+      body: JSON.stringify({
+        snippet: {
+          title: videoTitle,
+          description: description || "",
+          tags: parsedTags,
+          categoryId: "27", // Education
+        },
+        status: {
+          privacyStatus: effectivePrivacy,
+          publishAt: effectivePublishAt,
+          selfDeclaredMadeForKids: false,
+        },
+      }),
+    });
+
+    if (!initRes.ok) {
+      const errText = await initRes.text();
+      return res.status(initRes.status).json({ error: `YouTube API upload initialization failed: ${errText}` });
+    }
+
+    const uploadUrl = initRes.headers.get("location");
+    res.json({ success: true, uploadUrl, isScheduled, effectivePrivacy });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.put("/api/youtube-ops/upload-proxy", (req, res, next) => {
+  try {
+    const uploadUrl = req.query.uploadUrl;
+    if (!uploadUrl) {
+      return res.status(400).json({ error: "uploadUrl query parameter is required." });
+    }
+
+    req.socket.setTimeout(0); // Allow long video upload streams without timing out
+
+    const parsedUrl = new URL(uploadUrl);
+    const options = {
+      protocol: parsedUrl.protocol,
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port || (parsedUrl.protocol === "https:" ? 443 : 80),
+      path: parsedUrl.pathname + parsedUrl.search,
+      method: "PUT",
+      headers: {
+        "Content-Type": req.headers["content-type"] || "video/mp4",
+        "Content-Length": req.headers["content-length"] || req.headers["x-upload-content-length"],
+      },
+    };
+
+    const proxyReq = https.request(options, (proxyRes) => {
+      res.status(proxyRes.statusCode);
+      proxyRes.pipe(res);
+    });
+
+    proxyReq.on("error", (err) => {
+      console.error("[Upload Proxy] Error streaming to YouTube:", err.message);
+      if (!res.headersSent) {
+        res.status(502).json({ error: "Failed to stream video to YouTube: " + err.message });
+      }
+    });
+
+    req.pipe(proxyReq);
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post("/api/youtube-ops/set-thumbnail", async (req, res, next) => {
+  try {
+    const { channelId, videoId, thumbnailBase64 } = req.body;
+    if (!channelId || !videoId || !thumbnailBase64) {
+      return res.status(400).json({ error: "channelId, videoId, and thumbnailBase64 are required." });
+    }
+
+    const entries = await connectedChannelEntries();
+    const entry = entries.find((e) => e.channel.id === channelId);
+    if (!entry) {
+      return res.status(404).json({ error: "Channel not found." });
+    }
+
+    const youtube = google.youtube({ version: "v3", auth: entry.auth });
+    const base64Data = thumbnailBase64.replace(/^data:image\/\w+;base64,/, "");
+    const buffer = Buffer.from(base64Data, "base64");
+    const mime = thumbnailBase64.startsWith("data:image/png") ? "image/png" : "image/jpeg";
+    const thumbStream = Readable.from(buffer);
+
+    await youtube.thumbnails.set({
+      videoId,
+      media: {
+        mimeType: mime,
+        body: thumbStream,
+      },
+    });
 
     res.json({ success: true });
   } catch (error) {
@@ -5448,7 +6671,15 @@ async function hydrateEnvFromFile() {
 }
 
 async function writeEnvFile(values) {
-  const orderedKeys = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URI", "YOUTUBE_API_KEY", "ANTHROPIC_API_KEY"];
+  const orderedKeys = [
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "GOOGLE_REDIRECT_URI",
+    "YOUTUBE_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "GOOGLE_SHEET_WEBHOOK_URL",
+    "GOOGLE_SHEET_ID"
+  ];
   const body = orderedKeys
     .filter((key) => values[key])
     .map((key) => `${key}=${values[key]}`)

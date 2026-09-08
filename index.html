@@ -105,11 +105,11 @@
           <button class="side-nav-button active" type="button" data-view-tab="dashboard">Dashboard</button>
           <button class="side-nav-button" type="button" data-view-tab="competitors">Competitors</button>
           <button class="side-nav-button" type="button" data-view-tab="targets">Target Tracker</button>
-          <button class="side-nav-button" type="button" data-view-tab="comments">Comment AI</button>
-          <button class="side-nav-button" type="button" data-view-tab="research">Research AI</button>
+          <button class="side-nav-button" id="youtubeOpsNavBtn" type="button" data-view-tab="youtube-ops">YouTube Ops</button>
           <button class="side-nav-button" type="button" data-view-tab="seo">SEO Audit</button>
-          <button class="side-nav-button" type="button" data-view-tab="live-automator">Live Automator</button>
-          <button class="side-nav-button" id="adminReportsNavBtn" type="button" data-view-tab="admin-reports">📊 MoM Export</button>
+          <button class="side-nav-button" type="button" data-view-tab="comments">Negative Comment</button>
+          <button class="side-nav-button" type="button" data-view-tab="research">Research</button>
+          <button class="side-nav-button" id="adminReportsNavBtn" type="button" data-view-tab="admin-reports">MOM Export</button>
         </nav>
 
         <button class="connect-button" id="connectChannelButton" data-sidebar-view="dashboard">
@@ -149,14 +149,6 @@
               <div class="select-wrap" id="monthPickerWrap" style="display: none;">
                 <label for="monthSelectInput">Select Month</label>
                 <input type="month" id="monthSelectInput">
-              </div>
-              <div class="select-wrap" id="datePickerWrapStart" style="display: none;">
-                <label for="customStartDateInput">Start Date</label>
-                <input type="date" id="customStartDateInput">
-              </div>
-              <div class="select-wrap" id="datePickerWrapEnd" style="display: none;">
-                <label for="customEndDateInput">End Date</label>
-                <input type="date" id="customEndDateInput">
               </div>
               <button class="apply-button" id="applyCustomRangeBtn" type="button">Apply</button>
             </div>
@@ -438,76 +430,7 @@
             <div id="seoResults" class="seo-results"></div>
           </article>
 
-          <!-- Live Automator Panel -->
-          <article class="panel page-panel live-automator-panel is-hidden" data-view="live-automator">
-            <div class="panel-header live-automator-header">
-              <div>
-                <p class="eyebrow">Live Automator</p>
-                <h2>Publish comments automatically when live streams end</h2>
-              </div>
-            </div>
-            
-            <div class="seo-toolbar">
-              <div class="select-wrap">
-                <label for="liveAutomatorChannelSelect">Channel</label>
-                <select id="liveAutomatorChannelSelect">
-                  <!-- Will be populated dynamically -->
-                </select>
-              </div>
-              <button class="connect-button" type="button" id="liveAutomatorLoadButton">Load Streams</button>
-            </div>
-            
-            <div id="liveAutomatorProgressBarContainer" class="progress-bar-container is-hidden">
-              <div class="progress-bar-label" id="liveAutomatorProgressBarLabel">Loading streams... (0%)</div>
-              <div class="progress-bar-track">
-                <div class="progress-bar-fill" id="liveAutomatorProgressBarFill" style="width: 0%"></div>
-              </div>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 280px 1fr 1fr; gap: 20px; margin-top: 20px; align-items: start; max-width: 100%;">
-              <!-- Left side: Keyword Rules Manager -->
-              <div style="background: #fff; padding: 20px; border-radius: 8px; border: 1px solid var(--line); display: flex; flex-direction: column; gap: 16px; min-width: 0;">
-                <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--ink);">Auto-Comment Rules</h3>
-                
-                <!-- Rule Create Form -->
-                <div style="display: flex; flex-direction: column; gap: 10px; padding-bottom: 16px; border-bottom: 1px solid var(--line);">
-                  <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--ink);">
-                    Keyword (e.g. krati)
-                    <input id="liveAutomatorRuleKeyword" type="text" placeholder="Enter keyword to match stream title..." style="width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 8px; font-size: 13px; outline: none; box-sizing: border-box;" />
-                  </label>
-                  <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--ink);">
-                    Comment Text
-                    <textarea id="liveAutomatorRuleCommentText" rows="4" placeholder="Type automated comment text..." style="width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 8px; font-size: 13px; font-family: inherit; line-height: 1.4; resize: vertical; outline: none; box-sizing: border-box;"></textarea>
-                  </label>
-                  <button class="connect-button" id="liveAutomatorRuleSaveBtn" type="button" style="margin: 0; padding: 8px; font-size: 12px; height: auto;">Save Auto-Rule</button>
-                </div>
 
-                <!-- Rules List -->
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                  <h4 style="margin: 0; font-size: 13px; font-weight: 600; color: var(--muted);">Active Rules</h4>
-                  <div id="liveAutomatorRulesList" class="live-automator-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 350px; overflow-y: auto;">
-                    <!-- Dynamically populated rules -->
-                  </div>
-                </div>
-              </div>
-
-              <!-- Middle side: Streams List -->
-              <div style="background: #fff; padding: 20px; border-radius: 8px; border: 1px solid var(--line); min-width: 0;">
-                <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 15px; font-weight: 700; color: var(--ink);">Upcoming Streams</h3>
-                <div id="liveAutomatorStreamsList" class="live-automator-list">
-                  <!-- Dynamically populated streams -->
-                </div>
-              </div>
-              
-              <!-- Right side: Saved Comment Tasks -->
-              <div style="background: #fff; padding: 20px; border-radius: 8px; border: 1px solid var(--line); min-width: 0;">
-                <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 15px; font-weight: 700; color: var(--ink);">Saved Comment Automations</h3>
-                <div id="liveAutomatorTasksList" class="live-automator-list">
-                  <!-- Dynamically populated tasks -->
-                </div>
-              </div>
-            </div>
-          </article>
 
           <!-- Comments Moderation Panel -->
           <article class="panel page-panel comments-panel is-hidden" data-view="comments">
@@ -741,6 +664,851 @@
               <div style="padding: 40px; text-align: center; color: var(--muted);">Click to load 1-year channel analytics.</div>
             </div>
           </article>
+
+          <!-- YouTube Ops Panel -->
+          <article class="panel page-panel youtube-ops-panel is-hidden" data-view="youtube-ops">
+            <div class="panel-header ops-header">
+              <div>
+                <p class="eyebrow">Studio Workspace</p>
+                <h2 style="margin: 4px 0 0 0; font-size: 24px; font-weight: 700;">🚀 YouTube Operations</h2>
+                <p style="margin: 4px 0 0 0; color: var(--muted); font-size: 13px;">Manage Live Broadcasting events, publish 16:9 videos, and upload vertical Shorts with channel defaults.</p>
+              </div>
+              <div id="opsTopActions">
+                <button id="opsBackToHubBtn" class="ghost-button is-hidden" type="button" style="display: flex; align-items: center; gap: 8px; font-weight: 600; padding: 8px 16px;">
+                  <span>←</span> Back to Ops Hub
+                </button>
+              </div>
+            </div>
+
+            <!-- 1. HUB VIEW: 3 Main Cards -->
+            <div id="opsHubView" class="ops-hub-section">
+              <div class="ops-hub-intro">
+                <h3>Select an Operation Mode</h3>
+                <p>Choose an action below to get started. Each workflow connects directly to your verified YouTube channel credentials.</p>
+              </div>
+
+              <div class="ops-hub-grid">
+                <!-- Card 1: Create YT Event -->
+                <div class="ops-hub-card" data-ops-mode="event">
+                  <div class="ops-card-badge event-badge">Live Broadcast</div>
+                  <div class="ops-card-icon">🔴</div>
+                  <h4>Create / Reuse YT Event</h4>
+                  <p>Schedule a new broadcast or <strong>reuse an existing event & OBS stream key</strong>. Auto-fills metadata, binds RTMP stream key without changing OBS settings, and assigns playlists.</p>
+                  <div class="ops-card-cta">
+                    <span>Open Event Creator</span>
+                    <span class="arrow">→</span>
+                  </div>
+                </div>
+
+                <!-- Card 2: Upload Video -->
+                <div class="ops-hub-card" data-ops-mode="video">
+                  <div class="ops-card-badge video-badge">16:9 Long-Form</div>
+                  <div class="ops-card-icon">📹</div>
+                  <h4>Upload Video</h4>
+                  <p>3-Step long-form video publisher: Pick channel & video with live playback preview, auto-fill channel default description & tags, set visibility/schedule, and upload custom thumbnail.</p>
+                  <div class="ops-card-cta">
+                    <span>Launch Video Wizard</span>
+                    <span class="arrow">→</span>
+                  </div>
+                </div>
+
+                <!-- Card 3: Upload Shorts -->
+                <div class="ops-hub-card" data-ops-mode="shorts">
+                  <div class="ops-card-badge shorts-badge">9:16 Short-Form</div>
+                  <div class="ops-card-icon">⚡</div>
+                  <h4>Upload Shorts</h4>
+                  <p>3-Step vertical short-form publisher: Built-in &lt;60s duration verification, automatic #Shorts tag integration, channel defaults, and scheduled publishing with thumbnail preview.</p>
+                  <div class="ops-card-cta">
+                    <span>Launch Shorts Wizard</span>
+                    <span class="arrow">→</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. CREATE YT EVENT VIEW -->
+            <div id="opsEventView" class="ops-mode-container is-hidden">
+              <!-- Active Channel Bar (NO connect button) -->
+              <div class="ops-channel-bar-bold">
+                <div class="ops-channel-bar-left">
+                  <span class="ops-channel-icon-badge">📺</span>
+                  <div class="ops-channel-selector-wrap">
+                    <label for="opsEventChannelSelect" class="ops-channel-title-label">ACTIVE YOUTUBE CHANNEL</label>
+                    <select id="opsEventChannelSelect" class="ops-channel-bold-select" required>
+                      <option value="">-- Select Connected Channel --</option>
+                    </select>
+                  </div>
+                  <span class="ops-channel-count-pill" id="opsChannelCountBadge">Connected</span>
+                </div>
+                <div class="ops-channel-bar-right">
+                  <button type="button" id="opsRefreshChannelsBtn" class="ops-refresh-bold-btn" title="Refresh channel data, events and playlists">
+                    🔄 Refresh Channel Data
+                  </button>
+                </div>
+              </div>
+
+              <!-- Mode Switcher: Create New Event vs Reuse Existing -->
+              <div class="ops-mode-switch-card">
+                <button type="button" id="opsEventSubtabNew" class="ops-mode-tab-btn active">
+                  <span class="tab-btn-icon">✨</span>
+                  <div class="tab-btn-content">
+                    <strong class="tab-btn-title">Create New Event</strong>
+                    <span class="tab-btn-desc">Schedule a fresh broadcast with new stream key</span>
+                  </div>
+                </button>
+                <button type="button" id="opsEventSubtabReuse" class="ops-mode-tab-btn">
+                  <span class="tab-btn-icon">🔁</span>
+                  <div class="tab-btn-content">
+                    <strong class="tab-btn-title">Reuse Existing Event</strong>
+                    <span class="tab-btn-desc">Auto-fill all metadata & reuse original OBS stream key</span>
+                  </div>
+                </button>
+              </div>
+
+              <!-- Reuse Event Selector Box (Shown in Reuse Mode) -->
+              <div id="opsReusePickerWrap" class="ops-reuse-bold-card is-hidden">
+                <div class="ops-reuse-card-header">
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 26px;">🔁</span>
+                    <div>
+                      <h4 style="margin: 0; font-size: 16px; font-weight: 800; color: #0f172a;">Select Previous Broadcast to Reuse</h4>
+                      <p style="margin: 3px 0 0; font-size: 13px; color: #475569;">Pulls title, description, tags, thumbnail, playlist, and faculty automatically.</p>
+                    </div>
+                  </div>
+                  <button type="button" id="opsFetchExistingEventsBtn" class="ops-fetch-events-bold-btn">
+                    🔄 Fetch Existing Events
+                  </button>
+                </div>
+                <div style="margin-top: 14px;">
+                  <select id="opsReuseEventSelect" class="ops-reuse-dropdown-bold">
+                    <option value="">-- Choose an existing broadcast to auto-fill details --</option>
+                  </select>
+                </div>
+                <div class="ops-reuse-badge-note">
+                  <span>⚡ <strong>OBS Studio Stream Key Reused:</strong> The original stream key is preserved. You will NOT need to change your stream key in OBS Studio.</span>
+                </div>
+              </div>
+
+              <!-- Clean Bold Event Form -->
+              <form id="opsCreateEventForm" class="ops-bold-form" novalidate>
+                <!-- CARD 1: FACULTY ASSIGNMENT -->
+                <div class="ops-form-section-card">
+                  <div class="ops-section-header">
+                    <span class="ops-section-num">1</span>
+                    <div class="ops-section-header-text">
+                      <h4 class="ops-section-title">Instructor / Faculty Assignment <span class="required-star">*</span></h4>
+                      <p class="ops-section-desc">Assign the verified Testbook faculty instructor for this session</p>
+                    </div>
+                    <span id="opsFacultySelectedStatus" class="ops-assigned-badge" style="display: none;">✓ Assigned</span>
+                  </div>
+
+                  <div class="ops-faculty-picker-wrap">
+                    <div class="ops-faculty-inputs-row">
+                      <div style="position: relative; flex: 1;">
+                        <input
+                          id="opsFacultySearchInput"
+                          type="text"
+                          placeholder="🔍 Search faculty by name or type email (e.g. aditya.ashtikar@testbook.com)..."
+                          class="ops-bold-input"
+                          autocomplete="off"
+                          style="padding-right: 36px;"
+                        />
+                        <button type="button" id="opsFacultyClearBtn" class="ops-faculty-clear-btn is-hidden" title="Clear faculty">×</button>
+                        <!-- Autocomplete Dropdown List -->
+                        <div id="opsFacultyDropdown" class="ops-faculty-dropdown is-hidden"></div>
+                      </div>
+                      <select id="opsFacultyQuickSelect" class="ops-bold-select" style="max-width: 270px;">
+                        <option value="">-- Quick Pick Faculty (776) --</option>
+                      </select>
+                    </div>
+
+                    <!-- Hidden inputs for form submission -->
+                    <input type="hidden" id="opsFacultyEmail" name="facultyEmail" />
+                    <input type="hidden" id="opsFacultyName" name="facultyName" />
+                    <input type="hidden" id="opsFacultyId" name="facultyId" />
+
+                    <!-- Active Faculty Chip / Selected Summary -->
+                    <div id="opsFacultySelectedBadge" class="ops-faculty-chip-bold is-hidden">
+                      <div class="chip-content">
+                        <span class="chip-icon">👨‍🏫</span>
+                        <div class="chip-info">
+                          <strong id="opsFacultyChipName">Faculty Name</strong>
+                          <span id="opsFacultyChipEmail">faculty.email@testbook.com</span>
+                        </div>
+                      </div>
+                      <button type="button" class="chip-remove-bold" id="opsFacultyChipRemove" title="Change faculty">✕ Change Faculty</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- CARD 2: BROADCAST CONTENT (TITLE & DESCRIPTION) -->
+                <div class="ops-form-section-card">
+                  <div class="ops-section-header">
+                    <span class="ops-section-num">2</span>
+                    <div class="ops-section-header-text">
+                      <h4 class="ops-section-title">Broadcast Content (Title & Description) <span class="required-star">*</span></h4>
+                      <p class="ops-section-desc">Craft an attractive YouTube broadcast title and full video description</p>
+                    </div>
+                  </div>
+
+                  <div class="ops-bold-field-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                      <label for="opsEventTitleInput" class="ops-bold-label">META TITLE / EVENT TITLE <span class="required-star">*</span></label>
+                      <span id="opsEventTitleCount" class="ops-char-counter">0 / 100 characters</span>
+                    </div>
+                    <input
+                      id="opsEventTitleInput"
+                      type="text"
+                      maxlength="100"
+                      placeholder="e.g. CTET 2026 CDP Marathon Class | Top 100 MCQs Live"
+                      required
+                      class="ops-bold-input ops-input-lg"
+                    />
+                  </div>
+
+                  <div class="ops-bold-field-group" style="margin-top: 16px;">
+                    <label for="opsEventDescInput" class="ops-bold-label" style="margin-bottom: 8px;">META DESCRIPTION</label>
+                    <textarea
+                      id="opsEventDescInput"
+                      rows="5"
+                      placeholder="Enter full video description or load channel defaults below..."
+                      class="ops-bold-textarea"
+                    ></textarea>
+                    <div class="ops-desc-actions-bar">
+                      <button type="button" id="opsEventResetDescBtn" class="ops-btn-desc-action">
+                        ↺ Load Channel Default
+                      </button>
+                      <button type="button" id="opsEventSaveDescBtn" class="ops-btn-desc-action">
+                        💾 Save as Channel Default
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- CARD 3: SCHEDULE & THUMBNAIL -->
+                <div class="ops-form-section-card">
+                  <div class="ops-section-header">
+                    <span class="ops-section-num">3</span>
+                    <div class="ops-section-header-text">
+                      <h4 class="ops-section-title">Schedule & Thumbnail Media <span class="required-star">*</span></h4>
+                      <p class="ops-section-desc">Pick start date & time and provide a custom 16:9 thumbnail</p>
+                    </div>
+                  </div>
+
+                  <div class="ops-bold-grid-2">
+                    <!-- Left: THUMBNAIL -->
+                    <div class="ops-bold-field-group">
+                      <label class="ops-bold-label">CUSTOM THUMBNAIL (1280 × 720)</label>
+                      <div class="ops-bold-dropzone" id="opsEventThumbDropzone">
+                        <input type="file" id="opsEventThumbFile" accept="image/png, image/jpeg, image/webp" class="file-hidden-input" />
+                        <div id="opsEventThumbPrompt" class="ops-dropzone-prompt-bold">
+                          <span class="dropzone-icon">🖼️</span>
+                          <strong>Click to Choose Image or Drag & Drop</strong>
+                          <span class="dropzone-sub">PNG, JPG, or WEBP (Recommended 1280 × 720)</span>
+                        </div>
+                        <div id="opsEventThumbPreviewWrap" class="ops-thumb-preview-bold is-hidden">
+                          <img id="opsEventThumbImg" src="" alt="Thumbnail preview" />
+                          <div class="ops-thumb-overlay-bar">
+                            <span class="ops-clean-thumb-text">Thumbnail Loaded</span>
+                            <button type="button" id="opsEventThumbRemoveBtn" class="ops-btn-remove-thumb" title="Remove thumbnail">✕ Remove</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Right: YOUTUBE STUDIO NATIVE SCHEDULE PICKER -->
+                    <div class="ops-bold-field-group">
+                      <div class="yt-schedule-block" id="opsEventScheduleBlock" data-yt-schedule-target="opsEventStartTime">
+                        <div class="yt-schedule-header">
+                          <label class="yt-schedule-title">SCHEDULE <span class="required-star">*</span></label>
+                          <span class="yt-schedule-subtitle">Select the date and time you want to go live</span>
+                        </div>
+                        <div class="yt-schedule-row">
+                          <!-- Date Selector Box -->
+                          <div class="yt-date-picker-anchor">
+                            <div class="yt-schedule-box yt-date-box" role="button" tabindex="0">
+                              <span class="yt-date-label">Sep 8, 2026</span>
+                              <svg class="yt-chevron-icon" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+                            </div>
+                            <div class="yt-calendar-dropdown is-hidden"></div>
+                          </div>
+
+                          <!-- Time Selector Box -->
+                          <div class="yt-time-picker-anchor">
+                            <div class="yt-schedule-box yt-time-box">
+                              <input type="text" class="yt-time-input" value="12:30 PM" spellcheck="false" autocomplete="off" />
+                              <svg class="yt-chevron-icon" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+                            </div>
+                            <div class="yt-time-dropdown is-hidden"></div>
+                          </div>
+                        </div>
+
+                        <!-- Underlying Synchronized ISO Input (keeps form submission intact) -->
+                        <input type="hidden" id="opsEventStartTime" name="scheduledStartTime" required />
+
+                        <div class="yt-schedule-tz-note">
+                          <span class="yt-tz-badge">🌐 India Standard Time (GMT+5:30)</span>
+                          <span class="yt-relative-schedule-text">Starts in 30 minutes</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- CARD 4: DISTRIBUTION & STREAM CONFIGURATION -->
+                <div class="ops-form-section-card">
+                  <div class="ops-section-header">
+                    <span class="ops-section-num">4</span>
+                    <div class="ops-section-header-text">
+                      <h4 class="ops-section-title">Distribution & Stream Configuration</h4>
+                      <p class="ops-section-desc">Attach to playlists, define YouTube privacy visibility and search tags</p>
+                    </div>
+                  </div>
+
+                  <div class="ops-bold-grid-2">
+                    <div class="ops-bold-field-group">
+                      <label for="opsEventPlaylistSelect" class="ops-bold-label">ATTACH TO PLAYLIST</label>
+                      <select id="opsEventPlaylistSelect" class="ops-bold-select">
+                        <option value="">Select Playlist</option>
+                      </select>
+                    </div>
+
+                    <div class="ops-bold-field-group">
+                      <label for="opsEventPrivacySelect" class="ops-bold-label">PRIVACY VISIBILITY</label>
+                      <select id="opsEventPrivacySelect" class="ops-bold-select">
+                        <option value="public" selected>🌐 Public (Visible to everyone)</option>
+                        <option value="unlisted">🔗 Unlisted (Anyone with link)</option>
+                        <option value="private">🔒 Private (Only channel owners)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="ops-bold-grid-2" style="margin-top: 16px;">
+                    <div class="ops-bold-field-group">
+                      <label for="opsEventTypeSelect" class="ops-bold-label">SCHEDULED TYPE</label>
+                      <select id="opsEventTypeSelect" class="ops-bold-select">
+                        <option value="Live Class" selected>🎓 Live Class</option>
+                        <option value="Webinar">💻 Webinar</option>
+                        <option value="Marathon">🏃 Marathon Session</option>
+                        <option value="Practice Session">📝 Practice & Mock Test</option>
+                        <option value="Special Session">⭐ Special Session</option>
+                      </select>
+                    </div>
+
+                    <div class="ops-bold-field-group">
+                      <label for="opsEventTagsInput" class="ops-bold-label">SEARCH TAGS (COMMA-SEPARATED)</label>
+                      <input id="opsEventTagsInput" type="text" placeholder="e.g. CTET, Testbook, SuperCoaching, Live Class" class="ops-bold-input" />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- CARD 5: ACTION BUTTONS BAR -->
+                <div class="ops-bottom-actions-card">
+                  <button type="submit" id="opsCreateEventSubmitBtn" class="ops-btn-submit-bold">
+                    🚀 Create Live Event & Generate Stream Key <span class="ops-kbd-badge-bold">CTRL+ENTER</span>
+                  </button>
+                  <button type="button" id="opsEventClearBtn" class="ops-btn-clear-bold">
+                    ✕ Clear Form <span class="ops-kbd-badge-bold-light">ESC</span>
+                  </button>
+                </div>
+              </form>
+
+              <!-- RTMP Output Success Box -->
+              <div id="opsEventResultBox" class="ops-result-box is-hidden">
+                <!-- Populated upon event creation -->
+              </div>
+            </div>
+
+            <!-- 3. UPLOAD VIDEO VIEW (3-Step Wizard) -->
+            <div id="opsVideoView" class="ops-mode-container is-hidden">
+              <div class="ops-mode-header">
+                <div class="ops-mode-title-wrap">
+                  <span class="ops-mode-tag video-tag">📹 Video Publisher (16:9)</span>
+                  <h3 style="margin: 4px 0;">Upload Long-Form Video</h3>
+                  <p style="margin: 0; color: var(--muted); font-size: 13px;">Publish standard widescreen video content in 3 structured steps.</p>
+                </div>
+                <!-- Step Indicator -->
+                <div class="ops-wizard-stepper">
+                  <div class="ops-step active" data-video-step="1">
+                    <span class="step-num">1</span>
+                    <span class="step-label">Channel & File</span>
+                  </div>
+                  <div class="step-connector"></div>
+                  <div class="ops-step" data-video-step="2">
+                    <span class="step-num">2</span>
+                    <span class="step-label">Title & Details</span>
+                  </div>
+                  <div class="step-connector"></div>
+                  <div class="ops-step" data-video-step="3">
+                    <span class="step-num">3</span>
+                    <span class="step-label">Visibility & Thumbnail</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Video Step 1: Channel & File -->
+              <div id="opsVideoStep1" class="ops-wizard-content">
+                <div class="ops-step-card">
+                  <h4>Step 1: Select Channel & Media File</h4>
+                  <div class="ops-form-group">
+                    <label for="opsVideoChannelSelect">Target YouTube Channel <span class="required" style="color: var(--red);">*</span></label>
+                    <select id="opsVideoChannelSelect" class="ops-input">
+                      <option value="">-- Select Connected Channel --</option>
+                    </select>
+                  </div>
+
+                  <div class="ops-form-group">
+                    <label>Select Video File (.mp4, .mov, .mkv, .webm) <span class="required" style="color: var(--red);">*</span></label>
+                    <div class="ops-video-dropzone" id="opsVideoDropzone">
+                      <input type="file" id="opsVideoFileInput" accept="video/mp4, video/quicktime, video/webm, video/x-matroska" class="file-hidden-input" />
+                      <div id="opsVideoDropPrompt" class="ops-dropzone-prompt">
+                        <span style="font-size: 36px;">🎬</span>
+                        <p style="margin: 6px 0;"><strong>Click to choose video file</strong> or drag & drop</p>
+                        <span style="font-size: 12px; color: var(--muted);">Supports standard 16:9 HD / 4K videos</span>
+                      </div>
+                      <div id="opsVideoPreviewWrap" class="ops-video-preview-wrap is-hidden">
+                        <video id="opsVideoPlayer" controls class="ops-video-player"></video>
+                        <div class="ops-video-meta-bar">
+                          <span id="opsVideoMetaName" class="meta-name"></span>
+                          <span id="opsVideoMetaSize" class="meta-badge"></span>
+                          <span id="opsVideoMetaDuration" class="meta-badge"></span>
+                          <button type="button" id="opsVideoChangeFileBtn" class="mini-button">Change Video</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="ops-step-footer">
+                    <div></div>
+                    <button type="button" id="opsVideoStep1NextBtn" class="connect-button" disabled>
+                      Continue to Step 2: Metadata →
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Video Step 2: Metadata -->
+              <div id="opsVideoStep2" class="ops-wizard-content is-hidden">
+                <div class="ops-step-card">
+                  <h4>Step 2: Video Title, Description & Tags</h4>
+                  <div class="ops-form-group">
+                    <label for="opsVideoTitleInput">Video Title <span class="required" style="color: var(--red);">*</span></label>
+                    <input id="opsVideoTitleInput" type="text" maxlength="100" placeholder="Enter clear, searchable video title..." class="ops-input" />
+                    <div class="ops-field-meta">
+                      <span id="opsVideoTitleCount">0 / 100</span>
+                    </div>
+                  </div>
+
+                  <div class="ops-form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                      <label for="opsVideoDescInput" style="margin: 0;">Video Description (Channel Default Applied)</label>
+                      <div style="display: flex; gap: 8px;">
+                        <button type="button" id="opsVideoResetDescBtn" class="mini-button" title="Load default description for this channel">↺ Use Default</button>
+                        <button type="button" id="opsVideoSaveDescBtn" class="mini-button" title="Save current description as default template">💾 Save as Default</button>
+                      </div>
+                    </div>
+                    <textarea id="opsVideoDescInput" rows="8" placeholder="Enter description..." class="ops-input"></textarea>
+                  </div>
+
+                  <div class="ops-form-group">
+                    <label for="opsVideoTagsInput">Tags (Comma-separated)</label>
+                    <input id="opsVideoTagsInput" type="text" placeholder="e.g. Testbook, SSC CGL 2026, Reasoning, Practice Set" class="ops-input" />
+                  </div>
+
+                  <div class="ops-step-footer">
+                    <button type="button" id="opsVideoStep2BackBtn" class="ghost-button">← Back to File</button>
+                    <button type="button" id="opsVideoStep2NextBtn" class="connect-button">Continue to Step 3: Visibility & Thumbnail →</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Video Step 3: Visibility, Scheduling & Thumbnail -->
+              <div id="opsVideoStep3" class="ops-wizard-content is-hidden">
+                <div class="ops-step-card">
+                  <h4>Step 3: Visibility, Scheduling & Custom Thumbnail</h4>
+                  
+                  <div class="ops-form-row" style="align-items: flex-start; gap: 24px;">
+                    <!-- Visibility Column -->
+                    <div class="ops-form-column" style="flex: 1.2;">
+                      <div class="ops-form-group">
+                        <label style="margin-bottom: 8px; font-weight: 600;">Visibility Setting <span class="required" style="color: var(--red);">*</span></label>
+                        <div class="ops-visibility-options">
+                          <label class="ops-radio-card active">
+                            <input type="radio" name="opsVideoVisibility" value="public" checked />
+                            <div class="radio-card-content">
+                              <div class="radio-card-title">🌐 Direct Publish (Public)</div>
+                              <div class="radio-card-desc">Everyone can see and search for your video immediately upon upload.</div>
+                            </div>
+                          </label>
+
+                          <label class="ops-radio-card">
+                            <input type="radio" name="opsVideoVisibility" value="unlisted" />
+                            <div class="radio-card-content">
+                              <div class="radio-card-title">🔗 Unlisted</div>
+                              <div class="radio-card-desc">Only people with the video link can watch. Doesn't appear in search results.</div>
+                            </div>
+                          </label>
+
+                          <label class="ops-radio-card">
+                            <input type="radio" name="opsVideoVisibility" value="private" />
+                            <div class="radio-card-content">
+                              <div class="radio-card-title">🔒 Private</div>
+                              <div class="radio-card-desc">Only authorized managers of your channel can view the video.</div>
+                            </div>
+                          </label>
+
+                          <label class="ops-radio-card">
+                            <input type="radio" name="opsVideoVisibility" value="schedule" />
+                            <div class="radio-card-content">
+                              <div class="radio-card-title">⏰ Schedule for Later</div>
+                              <div class="radio-card-desc">Video stays private until your specified release date & time, then goes public automatically.</div>
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+
+                      <div id="opsVideoSchedulePickerWrap" class="ops-form-group is-hidden" style="margin-top: 14px; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1.5px solid #cbd5e1;">
+                        <div class="yt-schedule-block" id="opsVideoScheduleBlock" data-yt-schedule-target="opsVideoScheduleTime">
+                          <div class="yt-schedule-header">
+                            <label class="yt-schedule-title">SCHEDULE <span class="required-star">*</span></label>
+                            <span class="yt-schedule-subtitle">Select a date to make your video public</span>
+                          </div>
+                          <div class="yt-schedule-row">
+                            <div class="yt-date-picker-anchor">
+                              <div class="yt-schedule-box yt-date-box" role="button" tabindex="0">
+                                <span class="yt-date-label">Sep 8, 2026</span>
+                                <svg class="yt-chevron-icon" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+                              </div>
+                              <div class="yt-calendar-dropdown is-hidden"></div>
+                            </div>
+                            <div class="yt-time-picker-anchor">
+                              <div class="yt-schedule-box yt-time-box">
+                                <input type="text" class="yt-time-input" value="12:30 PM" spellcheck="false" autocomplete="off" />
+                                <svg class="yt-chevron-icon" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+                              </div>
+                              <div class="yt-time-dropdown is-hidden"></div>
+                            </div>
+                          </div>
+                          <input type="hidden" id="opsVideoScheduleTime" />
+                          <div class="yt-schedule-tz-note">
+                            <span class="yt-tz-badge">🌐 India Standard Time (GMT+5:30)</span>
+                            <span class="yt-relative-schedule-text">Releases in 2 hours</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Thumbnail Column -->
+                    <div class="ops-form-column" style="flex: 1;">
+                      <div class="ops-form-group">
+                        <label style="font-weight: 600;">Custom Thumbnail (1280x720 Recommended)</label>
+                        <div class="ops-thumb-dropzone" id="opsVideoThumbDropzone">
+                          <input type="file" id="opsVideoThumbFile" accept="image/png, image/jpeg, image/webp" class="file-hidden-input" />
+                          <div id="opsVideoThumbPrompt" class="ops-dropzone-prompt">
+                            <span style="font-size: 28px;">🖼️</span>
+                            <p style="margin: 4px 0;"><strong>Click to choose thumbnail</strong></p>
+                            <span style="font-size: 11px; color: var(--muted);">JPG, PNG, or WEBP (Max 2MB)</span>
+                          </div>
+                          <div id="opsVideoThumbPreviewWrap" class="ops-thumb-preview-wrap is-hidden">
+                            <img id="opsVideoThumbImg" src="" alt="Thumbnail preview" />
+                            <button type="button" id="opsVideoThumbRemoveBtn" class="ops-thumb-remove-btn" title="Remove thumbnail">×</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Real-Time YouTube Card Preview Mockup -->
+                      <div class="ops-preview-mockup-card">
+                        <div class="mockup-label">YouTube Preview Mockup</div>
+                        <div class="mockup-screen">
+                          <div class="mockup-thumb-area" id="opsVideoMockupThumbArea">
+                            <span class="mockup-placeholder-icon" id="opsVideoMockupPlaceholder">📺 16:9 Thumbnail Preview</span>
+                            <img id="opsVideoMockupImg" class="mockup-actual-img is-hidden" src="" alt="" />
+                            <span class="mockup-duration-pill" id="opsVideoMockupDuration">--:--</span>
+                          </div>
+                          <div class="mockup-details">
+                            <div class="mockup-title" id="opsVideoMockupTitle">Video Title Preview</div>
+                            <div class="mockup-channel" id="opsVideoMockupChannel">Channel Name • Just now</div>
+                            <span class="mockup-badge" id="opsVideoMockupVisibility">Public</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Upload Progress / Status UI -->
+                  <div id="opsVideoProgressCard" class="ops-progress-card is-hidden">
+                    <div class="progress-header">
+                      <span id="opsVideoProgressStatus">Uploading video to YouTube...</span>
+                      <span id="opsVideoProgressPercent" style="font-weight: 700; font-size: 15px;">0%</span>
+                    </div>
+                    <div class="progress-track">
+                      <div id="opsVideoProgressBar" class="progress-fill" style="width: 0%;"></div>
+                    </div>
+                    <div id="opsVideoProgressSubtext" class="progress-subtext">Connecting to Google Resumable Upload Server...</div>
+                  </div>
+
+                  <!-- Success Box -->
+                  <div id="opsVideoSuccessBox" class="ops-result-box is-hidden">
+                    <!-- Populated on completion -->
+                  </div>
+
+                  <div class="ops-step-footer" id="opsVideoStep3Footer">
+                    <button type="button" id="opsVideoStep3BackBtn" class="ghost-button">← Back to Details</button>
+                    <button type="button" id="opsVideoUploadSubmitBtn" class="connect-button" style="padding: 10px 24px; font-weight: 700; background: var(--blue);">
+                      🚀 Start Video Upload
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. UPLOAD SHORTS VIEW (3-Step Wizard) -->
+            <div id="opsShortsView" class="ops-mode-container is-hidden">
+              <div class="ops-mode-header">
+                <div class="ops-mode-title-wrap">
+                  <span class="ops-mode-tag shorts-tag">⚡ Shorts Publisher (9:16)</span>
+                  <h3 style="margin: 4px 0;">Upload YouTube Short</h3>
+                  <p style="margin: 0; color: var(--muted); font-size: 13px;">Publish vertical short-form videos (&le; 60 seconds) with automated #Shorts optimization.</p>
+                </div>
+                <!-- Step Indicator -->
+                <div class="ops-wizard-stepper">
+                  <div class="ops-step active" data-shorts-step="1">
+                    <span class="step-num">1</span>
+                    <span class="step-label">Channel & File</span>
+                  </div>
+                  <div class="step-connector"></div>
+                  <div class="ops-step" data-shorts-step="2">
+                    <span class="step-num">2</span>
+                    <span class="step-label">Title & Details</span>
+                  </div>
+                  <div class="step-connector"></div>
+                  <div class="ops-step" data-shorts-step="3">
+                    <span class="step-num">3</span>
+                    <span class="step-label">Visibility & Thumbnail</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Shorts Step 1: Channel & File -->
+              <div id="opsShortsStep1" class="ops-wizard-content">
+                <div class="ops-step-card">
+                  <h4>Step 1: Select Channel & Short-Form Video</h4>
+                  <div class="ops-form-group">
+                    <label for="opsShortsChannelSelect">Target YouTube Channel <span class="required" style="color: var(--red);">*</span></label>
+                    <select id="opsShortsChannelSelect" class="ops-input">
+                      <option value="">-- Select Connected Channel --</option>
+                    </select>
+                  </div>
+
+                  <div class="ops-form-group">
+                    <label>Select Vertical Video File (.mp4, .mov) <span class="required" style="color: var(--red);">*</span></label>
+                    <div class="ops-video-dropzone shorts-dropzone" id="opsShortsDropzone">
+                      <input type="file" id="opsShortsFileInput" accept="video/mp4, video/quicktime, video/webm" class="file-hidden-input" />
+                      <div id="opsShortsDropPrompt" class="ops-dropzone-prompt">
+                        <span style="font-size: 36px;">📱</span>
+                        <p style="margin: 6px 0;"><strong>Click to choose Short video</strong> or drag & drop</p>
+                        <span style="font-size: 12px; color: var(--muted);">Vertical 9:16 aspect ratio &bull; Maximum 60 seconds</span>
+                      </div>
+                      <div id="opsShortsPreviewWrap" class="ops-shorts-preview-wrap is-hidden">
+                        <video id="opsShortsPlayer" controls class="ops-shorts-player"></video>
+                        <div class="ops-video-meta-bar">
+                          <span id="opsShortsMetaName" class="meta-name"></span>
+                          <span id="opsShortsMetaSize" class="meta-badge"></span>
+                          <span id="opsShortsMetaDuration" class="meta-badge"></span>
+                          <button type="button" id="opsShortsChangeFileBtn" class="mini-button">Change Short</button>
+                        </div>
+                      </div>
+                    </div>
+                    <div id="opsShortsDurationAlert" class="ops-alert warning is-hidden" style="margin-top: 10px;">
+                      ⚠️ <strong>Duration Alert:</strong> YouTube Shorts must be 60 seconds or less. Your video is <span id="opsShortsAlertSeconds">--</span> seconds. Please trim it or publish as regular video.
+                    </div>
+                  </div>
+
+                  <div class="ops-step-footer">
+                    <div></div>
+                    <button type="button" id="opsShortsStep1NextBtn" class="connect-button" disabled>
+                      Continue to Step 2: Metadata →
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Shorts Step 2: Metadata -->
+              <div id="opsShortsStep2" class="ops-wizard-content is-hidden">
+                <div class="ops-step-card">
+                  <h4>Step 2: Shorts Title, Description & Tags</h4>
+                  <div class="ops-form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                      <label for="opsShortsTitleInput" style="margin: 0;">Short Title <span class="required" style="color: var(--red);">*</span></label>
+                      <button type="button" id="opsShortsAddTagBtn" class="mini-button" style="font-weight: 600; color: #059669;">+ Add #Shorts</button>
+                    </div>
+                    <input id="opsShortsTitleInput" type="text" maxlength="100" placeholder="Catchy title for your Short..." class="ops-input" />
+                    <div class="ops-field-meta">
+                      <span id="opsShortsTitleCount">0 / 100</span>
+                    </div>
+                  </div>
+
+                  <div class="ops-form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                      <label for="opsShortsDescInput" style="margin: 0;">Description (Channel Default Applied)</label>
+                      <div style="display: flex; gap: 8px;">
+                        <button type="button" id="opsShortsResetDescBtn" class="mini-button" title="Load default description for this channel">↺ Use Default</button>
+                        <button type="button" id="opsShortsSaveDescBtn" class="mini-button" title="Save current description as default template">💾 Save as Default</button>
+                      </div>
+                    </div>
+                    <textarea id="opsShortsDescInput" rows="7" placeholder="Enter Short description..." class="ops-input"></textarea>
+                  </div>
+
+                  <div class="ops-form-group">
+                    <label for="opsShortsTagsInput">Tags (Comma-separated)</label>
+                    <input id="opsShortsTagsInput" type="text" placeholder="Shorts, Viral, Testbook, SuperCoaching" class="ops-input" />
+                  </div>
+
+                  <div class="ops-step-footer">
+                    <button type="button" id="opsShortsStep2BackBtn" class="ghost-button">← Back to File</button>
+                    <button type="button" id="opsShortsStep2NextBtn" class="connect-button">Continue to Step 3: Visibility & Thumbnail →</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Shorts Step 3: Visibility, Scheduling & Thumbnail -->
+              <div id="opsShortsStep3" class="ops-wizard-content is-hidden">
+                <div class="ops-step-card">
+                  <h4>Step 3: Visibility, Scheduling & Thumbnail</h4>
+                  
+                  <div class="ops-form-row" style="align-items: flex-start; gap: 24px;">
+                    <!-- Visibility Column -->
+                    <div class="ops-form-column" style="flex: 1.2;">
+                      <div class="ops-form-group">
+                        <label style="margin-bottom: 8px; font-weight: 600;">Visibility Setting <span class="required" style="color: var(--red);">*</span></label>
+                        <div class="ops-visibility-options">
+                          <label class="ops-radio-card active">
+                            <input type="radio" name="opsShortsVisibility" value="public" checked />
+                            <div class="radio-card-content">
+                              <div class="radio-card-title">🌐 Direct Publish (Public)</div>
+                              <div class="radio-card-desc">Publish directly to Shorts feed and your channel right away.</div>
+                            </div>
+                          </label>
+
+                          <label class="ops-radio-card">
+                            <input type="radio" name="opsShortsVisibility" value="unlisted" />
+                            <div class="radio-card-content">
+                              <div class="radio-card-title">🔗 Unlisted</div>
+                              <div class="radio-card-desc">Only people with the link can view your Short.</div>
+                            </div>
+                          </label>
+
+                          <label class="ops-radio-card">
+                            <input type="radio" name="opsShortsVisibility" value="private" />
+                            <div class="radio-card-content">
+                              <div class="radio-card-title">🔒 Private</div>
+                              <div class="radio-card-desc">Only channel managers can view.</div>
+                            </div>
+                          </label>
+
+                          <label class="ops-radio-card">
+                            <input type="radio" name="opsShortsVisibility" value="schedule" />
+                            <div class="radio-card-content">
+                              <div class="radio-card-title">⏰ Schedule for Later</div>
+                              <div class="radio-card-desc">Schedule your Short to release at optimal viewing hours.</div>
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+
+                      <div id="opsShortsSchedulePickerWrap" class="ops-form-group is-hidden" style="margin-top: 14px; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1.5px solid #cbd5e1;">
+                        <div class="yt-schedule-block" id="opsShortsScheduleBlock" data-yt-schedule-target="opsShortsScheduleTime">
+                          <div class="yt-schedule-header">
+                            <label class="yt-schedule-title">SCHEDULE <span class="required-star">*</span></label>
+                            <span class="yt-schedule-subtitle">Select a date to make your Short public</span>
+                          </div>
+                          <div class="yt-schedule-row">
+                            <div class="yt-date-picker-anchor">
+                              <div class="yt-schedule-box yt-date-box" role="button" tabindex="0">
+                                <span class="yt-date-label">Sep 8, 2026</span>
+                                <svg class="yt-chevron-icon" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+                              </div>
+                              <div class="yt-calendar-dropdown is-hidden"></div>
+                            </div>
+                            <div class="yt-time-picker-anchor">
+                              <div class="yt-schedule-box yt-time-box">
+                                <input type="text" class="yt-time-input" value="12:30 PM" spellcheck="false" autocomplete="off" />
+                                <svg class="yt-chevron-icon" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+                              </div>
+                              <div class="yt-time-dropdown is-hidden"></div>
+                            </div>
+                          </div>
+                          <input type="hidden" id="opsShortsScheduleTime" />
+                          <div class="yt-schedule-tz-note">
+                            <span class="yt-tz-badge">🌐 India Standard Time (GMT+5:30)</span>
+                            <span class="yt-relative-schedule-text">Releases in 1 hour</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Thumbnail Column -->
+                    <div class="ops-form-column" style="flex: 1;">
+                      <div class="ops-form-group">
+                        <label style="font-weight: 600;">Custom Thumbnail (Optional)</label>
+                        <div class="ops-thumb-dropzone" id="opsShortsThumbDropzone">
+                          <input type="file" id="opsShortsThumbFile" accept="image/png, image/jpeg, image/webp" class="file-hidden-input" />
+                          <div id="opsShortsThumbPrompt" class="ops-dropzone-prompt">
+                            <span style="font-size: 28px;">🖼️</span>
+                            <p style="margin: 4px 0;"><strong>Click to choose thumbnail</strong></p>
+                            <span style="font-size: 11px; color: var(--muted);">JPG, PNG, or WEBP</span>
+                          </div>
+                          <div id="opsShortsThumbPreviewWrap" class="ops-thumb-preview-wrap is-hidden">
+                            <img id="opsShortsThumbImg" src="" alt="Thumbnail preview" />
+                            <button type="button" id="opsShortsThumbRemoveBtn" class="ops-thumb-remove-btn" title="Remove thumbnail">×</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Vertical Shorts Mockup -->
+                      <div class="ops-preview-mockup-card">
+                        <div class="mockup-label">Shorts Feed Mockup</div>
+                        <div class="mockup-screen-vertical">
+                          <div class="mockup-shorts-bg" id="opsShortsMockupBg">
+                            <span class="mockup-placeholder-icon" id="opsShortsMockupPlaceholder">⚡ Vertical 9:16 Preview</span>
+                            <img id="opsShortsMockupImg" class="mockup-actual-img is-hidden" src="" alt="" />
+                            <div class="mockup-shorts-overlay">
+                              <div class="mockup-title" id="opsShortsMockupTitle">Short Title #Shorts</div>
+                              <div class="mockup-channel" id="opsShortsMockupChannel">@channel • Public</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Upload Progress / Status UI -->
+                  <div id="opsShortsProgressCard" class="ops-progress-card is-hidden">
+                    <div class="progress-header">
+                      <span id="opsShortsProgressStatus">Uploading Short to YouTube...</span>
+                      <span id="opsShortsProgressPercent" style="font-weight: 700; font-size: 15px;">0%</span>
+                    </div>
+                    <div class="progress-track">
+                      <div id="opsShortsProgressBar" class="progress-fill" style="width: 0%;"></div>
+                    </div>
+                    <div id="opsShortsProgressSubtext" class="progress-subtext">Connecting to Google Resumable Upload Server...</div>
+                  </div>
+
+                  <!-- Success Box -->
+                  <div id="opsShortsSuccessBox" class="ops-result-box is-hidden">
+                    <!-- Populated on completion -->
+                  </div>
+
+                  <div class="ops-step-footer" id="opsShortsStep3Footer">
+                    <button type="button" id="opsShortsStep3BackBtn" class="ghost-button">← Back to Details</button>
+                    <button type="button" id="opsShortsUploadSubmitBtn" class="connect-button" style="padding: 10px 24px; font-weight: 700; background: #059669;">
+                      ⚡ Start Shorts Upload
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
         </section>
       </main>
     </div>
@@ -848,30 +1616,7 @@
       </form>
     </dialog>
 
-    <dialog id="liveAutomatorDialog" class="modal" style="width: 100%; max-width: 500px;">
-      <form method="dialog" id="liveAutomatorForm">
-        <div class="modal-header">
-          <div>
-            <p class="eyebrow">Comment Automator</p>
-            <h2 id="liveAutomatorDialogStreamTitle">Save Stream Comment</h2>
-          </div>
-          <button value="cancel" class="icon-button" aria-label="Close">×</button>
-        </div>
-        <div class="modal-body" style="padding: 16px 0; display: flex; flex-direction: column; gap: 16px;">
-          <p style="font-size: 13px; color: var(--muted); margin: 0; line-height: 1.4;">
-            Type a comment below. Once this stream transitions from **live** to **ended**, this comment will automatically be published to the comment section.
-          </p>
-          <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink);">
-            Comment Text
-            <textarea id="liveAutomatorCommentText" rows="5" placeholder="Type your comment to post at the end of the stream..." style="width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; font-size: 13px; font-family: inherit; line-height: 1.4; resize: vertical; box-sizing: border-box; outline: none;"></textarea>
-          </label>
-        </div>
-        <div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end; border-top: 1px solid var(--line); padding-top: 16px;">
-          <button value="cancel" class="ghost-button" type="button" id="liveAutomatorCancelBtn">Cancel</button>
-          <button class="connect-button" type="button" id="liveAutomatorSaveBtn">Save Automation</button>
-        </div>
-      </form>
-    </dialog>
+
 
     <dialog id="facultyKeywordsDialog" class="modal" style="width: 100%; max-width: 500px;">
       <form method="dialog" id="facultyKeywordsForm">

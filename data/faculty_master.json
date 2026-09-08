@@ -1,0 +1,6210 @@
+[
+  {
+    "facultyName": "Akshay Gupta",
+    "email": "akshay.gupta@testbook.com",
+    "facultyLMSid": "5b4ee9e54f198e0c298a779d",
+    "facultyCBSid": "2",
+    "facultyCBScode": "A",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Abhinav Singh",
+    "email": "abhinav.singh@testbook.com",
+    "facultyLMSid": "5d298b7bfdb8bb0ac81315fb",
+    "facultyCBSid": "3",
+    "facultyCBScode": "AS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pankaj Chaubey",
+    "email": "pankaj.chaubey@testbook.com",
+    "facultyLMSid": "5d4aa595fdb8bb4cf6d682ec",
+    "facultyCBSid": "4",
+    "facultyCBScode": "PC",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pratibha Singh",
+    "email": "pratibha.singh@testbook.com",
+    "facultyLMSid": "5ac746b226018a28e365cd9f",
+    "facultyCBSid": "5",
+    "facultyCBScode": "PS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vineet Singh",
+    "email": "vineet.singh@testbook.com",
+    "facultyLMSid": "5bf26982ccb0e75891aaa39d",
+    "facultyCBSid": "6",
+    "facultyCBScode": "VS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sumit Jaiswal",
+    "email": "sumit.jaiswal@testbook.com",
+    "facultyLMSid": "5badce556cbc7f0ca6ec34b6",
+    "facultyCBSid": "7",
+    "facultyCBScode": "SJ",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anjali Pratap",
+    "email": "anjali.pratap@testbook.com",
+    "facultyLMSid": "5d4a603afdb8bb4cf6d681b9",
+    "facultyCBSid": "8",
+    "facultyCBScode": "AP",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Riturajaditya Awasthi",
+    "email": "riturajaditya.awasthi@testbook.com",
+    "facultyLMSid": "5d4a8a27fdb8bb4cf6d68294",
+    "facultyCBSid": "9",
+    "facultyCBScode": "RA",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Aditya Ashtikar",
+    "email": "aditya.ashtikar@testbook.com",
+    "facultyLMSid": "5d5bacdffdb8bb43d98405a6",
+    "facultyCBSid": "10",
+    "facultyCBScode": "AA",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sachin Adekar",
+    "email": "sachin.adekar@testbook.com",
+    "facultyLMSid": "5d4a6158fdb8bb4cf6d681bb",
+    "facultyCBSid": "11",
+    "facultyCBScode": "SA",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mahesh Singh",
+    "email": "mahesh.singh@testbook.com",
+    "facultyLMSid": "5d4068cafdb8bb03a70b1dfa",
+    "facultyCBSid": "12",
+    "facultyCBScode": "MS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pushpak Pandav",
+    "email": "pushpak.pandav@testbook.com",
+    "facultyLMSid": "5e5f68caf60d5d1f77314cf6",
+    "facultyCBSid": "13",
+    "facultyCBScode": "PP",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dr. Sudhir Azad",
+    "email": "sudhir.nema@testbook.com",
+    "facultyLMSid": "5e4a723cf60d5d5c20000f1f",
+    "facultyCBSid": "15",
+    "facultyCBScode": "SN",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Akhil Roy",
+    "email": "akhil.roy@testbook.com",
+    "facultyLMSid": "5ed754d3f60d5d7fbf5fab3c",
+    "facultyCBSid": "16",
+    "facultyCBScode": "AR",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Satyendra Kumar",
+    "email": "satyendra.kumar@testbook.com",
+    "facultyLMSid": "5ed755ebf60d5d7fbf5fad01",
+    "facultyCBSid": "17",
+    "facultyCBScode": "SK",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Parvind Agarwal",
+    "email": "parvind.agarwal@testbook.com",
+    "facultyLMSid": "5e4e5f36f60d5d2ac569d060",
+    "facultyCBSid": "19",
+    "facultyCBScode": "PA",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sastry",
+    "email": "sastry@testbook.com",
+    "facultyLMSid": "5df74cb6f60d5d055b9df620",
+    "facultyCBSid": "20",
+    "facultyCBScode": "S",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anirudh Mathur",
+    "email": "anirudh.mathur@testbook.com",
+    "facultyLMSid": "5f291a1b714af80d0d42fcaa",
+    "facultyCBSid": "21",
+    "facultyCBScode": "AM",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sushil Kumar",
+    "email": "sushil.kumar@testbook.com",
+    "facultyLMSid": "6274c58e6e08d3aa09f7129a",
+    "facultyCBSid": "22",
+    "facultyCBScode": "SS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rahul Tiwari",
+    "email": "rahul.tiwari@testbook.com",
+    "facultyLMSid": "5f3a88c4f899190d0f343b27",
+    "facultyCBSid": "23",
+    "facultyCBScode": "RT",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pranshu Mahajan",
+    "email": "pranshu.mahajan@testbook.com",
+    "facultyLMSid": "5f361a8173b04f0d0952e825",
+    "facultyCBSid": "24",
+    "facultyCBScode": "PM",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dhiraj Dvivedi",
+    "email": "dhiraj.dvivedi@testbook.com",
+    "facultyLMSid": "5f361add0c40e00d13ee27ea",
+    "facultyCBSid": "25",
+    "facultyCBScode": "DD",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nandula Saran",
+    "email": "nandula.saran@testbook.com",
+    "facultyLMSid": "5f12ae7d85dc520d0ebe8384",
+    "facultyCBSid": "26",
+    "facultyCBScode": "NS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Swapnil Kunde",
+    "email": "swapnil.kunde@testbook.com",
+    "facultyLMSid": "62c7d0ca56c7a88929b52cf6",
+    "facultyCBSid": "28",
+    "facultyCBScode": "Swapnil",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Prabhakar Kumar",
+    "email": "prabhakar.kumar@testbook.com",
+    "facultyLMSid": "62cfa987ad2f6912c9448fc3",
+    "facultyCBSid": "34",
+    "facultyCBScode": "Prabhakar",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Gunjan Gandhi",
+    "email": "gunjan.gandhi@testbook.com",
+    "facultyLMSid": "5f476b6a3bf9cf7646161099",
+    "facultyCBSid": "35",
+    "facultyCBScode": "GG",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Abhimanyu",
+    "email": "abhimanyu@testbook.com",
+    "facultyLMSid": "5f59b12f1a085c6f609536bf",
+    "facultyCBSid": "36",
+    "facultyCBScode": "AB",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anurag Dubey",
+    "email": "anurag.dubey@testbook.com",
+    "facultyLMSid": "6112911118e23755e12a572c",
+    "facultyCBSid": "38",
+    "facultyCBScode": "CMAD",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rishabh Pandey",
+    "email": "rishabh.pandey@testbook.com",
+    "facultyLMSid": "5f59b1c8074b4978ddd4e8b2",
+    "facultyCBSid": "39",
+    "facultyCBScode": "RP",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Abhishek Chaudhary",
+    "email": "abhishek.narayan@testbook.com",
+    "facultyLMSid": "5ebf7c41f60d5d399ec55cea",
+    "facultyCBSid": "40",
+    "facultyCBScode": "CAN",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kaustubh Mahadik",
+    "email": "kaustubh.mahadik@testbook.com",
+    "facultyLMSid": "5f59bfb4d06f9b1068e7e023",
+    "facultyCBSid": "41",
+    "facultyCBScode": "KM",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anoop Raut",
+    "email": "anoop.raut@testbook.com",
+    "facultyLMSid": "62c6efe7d0abcc4868f97a73",
+    "facultyCBSid": "42",
+    "facultyCBScode": "Anoop",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Deepak Misra",
+    "email": "deepak.misra@testbook.com",
+    "facultyLMSid": "5ead746cf60d5d77912db5d8",
+    "facultyCBSid": "43",
+    "facultyCBScode": "CDM",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Praveet Dixit",
+    "email": "praveet.dixit@testbook.com",
+    "facultyLMSid": "5f202ae3a428a00d0ce07aa4",
+    "facultyCBSid": "44",
+    "facultyCBScode": "CPD",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Yogendra Kumar",
+    "email": "yogendra.kumar@testbook.com",
+    "facultyLMSid": "5f4a00e3e4a96744a4a50c99",
+    "facultyCBSid": "45",
+    "facultyCBScode": "CYK",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mohammad Dilshad",
+    "email": "mohammad.dilshad@testbook.com",
+    "facultyLMSid": "5f1bc81ee48adc0d104e2e23",
+    "facultyCBSid": "46",
+    "facultyCBScode": "CMD",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Hemant Kumar",
+    "email": "hemant.kumar@testbook.com",
+    "facultyLMSid": "5ed4eb8cf60d5d1d24cae7fa",
+    "facultyCBSid": "47",
+    "facultyCBScode": "CHK",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nishant Rana",
+    "email": "nishant.rana@testbook.com",
+    "facultyLMSid": "5f3a692eeebea50d0df37e4b",
+    "facultyCBSid": "48",
+    "facultyCBScode": "CNR",
+    "status": "Active"
+  },
+  {
+    "facultyName": "DP Sharma",
+    "email": "dp.sharma@testbook.com",
+    "facultyLMSid": "5f684a36fd8b9d3d252c3cbf",
+    "facultyCBSid": "49",
+    "facultyCBScode": "DPS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Chirag Mutreja",
+    "email": "chirag.mutreja@testbook.com",
+    "facultyLMSid": "5f6b1a87b238fb5b88cdc94a",
+    "facultyCBSid": "50",
+    "facultyCBScode": "CM",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ankur Tripathi",
+    "email": "ankur.tripathi@testbook.com",
+    "facultyLMSid": "5ee8ce1bfebafd468f3c42dc",
+    "facultyCBSid": "51",
+    "facultyCBScode": "CAT",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sajid",
+    "email": "sajid.shafi@testbook.com",
+    "facultyLMSid": "5ead704bf60d5d77912db4c9",
+    "facultyCBSid": "52",
+    "facultyCBScode": "CSS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ajay Choudhary",
+    "email": "ajay.choudhary@testbook.com",
+    "facultyLMSid": "5f61bec186ab3f1f04d5c8dd",
+    "facultyCBSid": "53",
+    "facultyCBScode": "CAC",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sagar Sharma (Not)",
+    "email": "sagar.sharma@testbook.com",
+    "facultyLMSid": "5f805e94899fb59b2de9d06a",
+    "facultyCBSid": "54",
+    "facultyCBScode": "SSH",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Juhi Kumari",
+    "email": "juhi.kumari@testbook.com",
+    "facultyLMSid": "5f60a637a6283208bc422cf7",
+    "facultyCBSid": "55",
+    "facultyCBScode": "CJK",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Lavanya Kapoor",
+    "email": "lavanya.kapoor@testbook.com",
+    "facultyLMSid": "5f7f2ad162e4c50fd90fa5d0",
+    "facultyCBSid": "56",
+    "facultyCBScode": "LK",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anshuman Datta",
+    "email": "anshuman.datta@testbook.com",
+    "facultyLMSid": "5eea103267041a0d085dd26f",
+    "facultyCBSid": "57",
+    "facultyCBScode": "CAD",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ankush Kaira",
+    "email": "ankush.kaira@testbook.com",
+    "facultyLMSid": "5f5b1752e6d65132c49946bd",
+    "facultyCBSid": "58",
+    "facultyCBScode": "CAK",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ankush Tripathi",
+    "email": "ankush.tripathi@testbook.com",
+    "facultyLMSid": "5f856b0b4525970ca37c0578",
+    "facultyCBSid": "59",
+    "facultyCBScode": "CATR",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rohit Singh",
+    "email": "rohit.singh@testbook.com",
+    "facultyLMSid": "5f4c9f40fea5843465d1f736",
+    "facultyCBSid": "60",
+    "facultyCBScode": "CRS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Priyanka Gaidhane",
+    "email": "priyanka.gaidhane@testbook.com",
+    "facultyLMSid": "5f251427ba198d0d0b532097",
+    "facultyCBSid": "61",
+    "facultyCBScode": "PG",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Gaurav Gautam",
+    "email": "gaurav.gautam@testbook.com",
+    "facultyLMSid": "5f89739653eeecb6cd2f138b",
+    "facultyCBSid": "62",
+    "facultyCBScode": "GaG",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sugandha Madaan",
+    "email": "sugandha.madaan@testbook.com",
+    "facultyLMSid": "5ed74888f60d5d7fbf5f948a",
+    "facultyCBSid": "63",
+    "facultyCBScode": "CSM",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anshul Sharma",
+    "email": "anshul.sharma@testbook.com",
+    "facultyLMSid": "629e1091375bee0e6548dfd0",
+    "facultyCBSid": "64",
+    "facultyCBScode": "CA",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Deepak Varshney",
+    "email": "deepak.varshney@testbook.com",
+    "facultyLMSid": "5f89740e2f1a2cdd69572242",
+    "facultyCBSid": "65",
+    "facultyCBScode": "DV",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Khushboo Chaturvedi",
+    "email": "khushboo.chaturvedi@testbook.com",
+    "facultyLMSid": "5f94055d1b31db7b005c6792",
+    "facultyCBSid": "66",
+    "facultyCBScode": "KC",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Abhishek Sharma",
+    "email": "abhishek.sharma@testbook.com",
+    "facultyLMSid": "5ead830bf60d5d2459766dd6",
+    "facultyCBSid": "67",
+    "facultyCBScode": "CAS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mohamed Rameez",
+    "email": "mohamed.rameez@testbook.com",
+    "facultyLMSid": "5ed74744f60d5d7fbf5f9236",
+    "facultyCBSid": "68",
+    "facultyCBScode": "CMR",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Arun Singh",
+    "email": "arun.singh@testbook.com",
+    "facultyLMSid": "5ead8715f60d5d2459766edb",
+    "facultyCBSid": "69",
+    "facultyCBScode": "CAPS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Varun Kumar Sir",
+    "email": "varun.kumar@testbook.com",
+    "facultyLMSid": "5f9d65d2e0f605e0d9adc930",
+    "facultyCBSid": "70",
+    "facultyCBScode": "VK",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Akshay Pandey",
+    "email": "akshay.pandey@testbook.com",
+    "facultyLMSid": "5ead70c5f60d5d77912db4e2",
+    "facultyCBSid": "72",
+    "facultyCBScode": "CAP",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Maneesh Patel",
+    "email": "maneesh.patel@testbook.com",
+    "facultyLMSid": "5f89638e5b8f75838e473265",
+    "facultyCBSid": "73",
+    "facultyCBScode": "CMP",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vishambhar Sharma",
+    "email": "vishambhar.sharma@testbook.com",
+    "facultyLMSid": "5f903b1eb8f19f95f0722381",
+    "facultyCBSid": "74",
+    "facultyCBScode": "VVS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vivek Kumar Garg",
+    "email": "vivek.garg@testbook.com",
+    "facultyLMSid": "5f9902424ac70e07d6e893d8",
+    "facultyCBSid": "75",
+    "facultyCBScode": "CVG",
+    "status": "Active"
+  },
+  {
+    "facultyName": "DK Gupta",
+    "email": "dkgupta@testbook.com",
+    "facultyLMSid": "5d7f8e09fdb8bb0c8e8d1adf",
+    "facultyCBSid": "76",
+    "facultyCBScode": "DKG",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Atul Varshney Sir",
+    "email": "atul.varshney@testbook.com",
+    "facultyLMSid": "5f9d057092462955460a0dae",
+    "facultyCBSid": "77",
+    "facultyCBScode": "AV",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mohit Shukla",
+    "email": "mohit.shukla@testbook.com",
+    "facultyLMSid": "5fad36766780b888147679e7",
+    "facultyCBSid": "78",
+    "facultyCBScode": "MSh",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ajay Verma",
+    "email": "ajay.verma@testbook.com",
+    "facultyLMSid": "5fb398a8e3b705a5075c7b95",
+    "facultyCBSid": "79",
+    "facultyCBScode": "AjV",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Amar Singh",
+    "email": "amar.singh@testbook.com",
+    "facultyLMSid": "5fb75d6d277bb517f1b6a3a5",
+    "facultyCBSid": "81",
+    "facultyCBScode": "AKS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Verender Ahlawat",
+    "email": "verender.ahlawat@testbook.com",
+    "facultyLMSid": "5fb3773c81dff45a1c5f463d",
+    "facultyCBSid": "82",
+    "facultyCBScode": "VA",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Amar Yadav",
+    "email": "amar.yadav@testbook.com",
+    "facultyLMSid": "5fb3999fe3b705a5075c8b22",
+    "facultyCBSid": "83",
+    "facultyCBScode": "AY",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sumit Tatte",
+    "email": "sumit.tatte@testbook.com",
+    "facultyLMSid": "5fbe50372e588661814dc202",
+    "facultyCBSid": "84",
+    "facultyCBScode": "ST",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dr. Preeti Raut",
+    "email": "preeti.raut@testbook.com",
+    "facultyLMSid": "5fbe26692e588661814ab93e",
+    "facultyCBSid": "85",
+    "facultyCBScode": "PR",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Jainul Abdeen",
+    "email": "jainul.abdeen@testbook.com",
+    "facultyLMSid": "5f97bf9c17faa311fdbef644",
+    "facultyCBSid": "86",
+    "facultyCBScode": "JA",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rishabh Shukla",
+    "email": "rishabh.shukla@testbook.com",
+    "facultyLMSid": "5fc21e2e72f3441d6aec6d7e",
+    "facultyCBSid": "87",
+    "facultyCBScode": "RS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Gaurav Gupta EC",
+    "email": "gaurav.gupta@testbook.com",
+    "facultyLMSid": "5fabbad737e610f2d3376ea4",
+    "facultyCBSid": "88",
+    "facultyCBScode": "GGu",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rajneesh Soni",
+    "email": "rajneesh.soni@testbook.com",
+    "facultyLMSid": "5fc890133a87f4f94372f405",
+    "facultyCBSid": "89",
+    "facultyCBScode": "RSo",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Siddharth Surana Sir",
+    "email": "siddharth.surana@testbook.com",
+    "facultyLMSid": "5fcdaac752392d2942ee33d3",
+    "facultyCBSid": "90",
+    "facultyCBScode": "SSu",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shiv Kumar Tivari",
+    "email": "shiv.kumar.tivari@testbook.com",
+    "facultyLMSid": "5fc47e4c9a70a6e8d83d8166",
+    "facultyCBSid": "91",
+    "facultyCBScode": "SKT",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nitin Mishra",
+    "email": "nitin.mishra@testbook.com",
+    "facultyLMSid": "5b3dee161ea6950c24f29dfa",
+    "facultyCBSid": "92",
+    "facultyCBScode": "NM",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Heena Khan",
+    "email": "heena.khan@testbook.com",
+    "facultyLMSid": "5fc88efa2cbb9ce9e26fa178",
+    "facultyCBSid": "93",
+    "facultyCBScode": "HK",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Irphan Ali",
+    "email": "irphan.ali@testbook.com",
+    "facultyLMSid": "5fe0c1e507223dcf28282805",
+    "facultyCBSid": "94",
+    "facultyCBScode": "IA",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vibhor Jain",
+    "email": "vibhor.jain@testbook.com",
+    "facultyLMSid": "5fda166da3d00463c9193eba",
+    "facultyCBSid": "95",
+    "facultyCBScode": "VJ",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shubham Singh",
+    "email": "shubham.singh@testbook.com",
+    "facultyLMSid": "5f130d05d661540d0ac62928",
+    "facultyCBSid": "96",
+    "facultyCBScode": "SHSu",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Prasanna Palsodakar",
+    "email": "prasanna.palsodakar@testbook.com",
+    "facultyLMSid": "5fc47dc09a70a6e8d83d799c",
+    "facultyCBSid": "97",
+    "facultyCBScode": "PPK",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rohit Kumar",
+    "email": "rohit.kumar@testbook.com",
+    "facultyLMSid": "5fd872be03cf957f402b4a03",
+    "facultyCBSid": "98",
+    "facultyCBScode": "RK",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Basudeb Dash",
+    "email": "basudeb.dash@testbook.com",
+    "facultyLMSid": "5feb547be07704a1e75dcc11",
+    "facultyCBSid": "99",
+    "facultyCBScode": "BD",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Devesh Kumar shahi",
+    "email": "devesh.shahi@testbook.com",
+    "facultyLMSid": "5fe4a07c6fb71c27da8cb719",
+    "facultyCBSid": "100",
+    "facultyCBScode": "CDKS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shashank Gupta",
+    "email": "shashank.gupta@testbook.com",
+    "facultyLMSid": "5feafe53a2f69ff309acf643",
+    "facultyCBSid": "101",
+    "facultyCBScode": "SG",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Temesh Gaikwad",
+    "email": "temesh.gaikwad@testbook.com",
+    "facultyLMSid": "5f8568cacb055e6294de11d3",
+    "facultyCBSid": "102",
+    "facultyCBScode": "T",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Jatin Madan",
+    "email": "jatin.madan@testbook.com",
+    "facultyLMSid": "5ff28f1af4d06bfdb274f84c",
+    "facultyCBSid": "103",
+    "facultyCBScode": "JM",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Parag Ramteke",
+    "email": "parag.ramteke@testbook.com",
+    "facultyLMSid": "5d4808b0fdb8bb4da7a3d20c",
+    "facultyCBSid": "104",
+    "facultyCBScode": "P",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sunil Kumar Goswami",
+    "email": "sunil.goswami@testbook.com",
+    "facultyLMSid": "6030b005c9ee6645ee6c4a73",
+    "facultyCBSid": "109",
+    "facultyCBScode": "SKG",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Satish Kumar Pandey",
+    "email": "satish.pandey@testbook.com",
+    "facultyLMSid": "5df78179f60d5d055b9dfa2a",
+    "facultyCBSid": "110",
+    "facultyCBScode": "SPJ",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sumit Dayaram More",
+    "email": "sumit.more@testbook.com",
+    "facultyLMSid": "5ffd7d55cd2593042a2a01c1",
+    "facultyCBSid": "113",
+    "facultyCBScode": "SM",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sharma Anshul",
+    "email": "sharma.anshul@testbook.com",
+    "facultyLMSid": "5f4369328960a135448089b9",
+    "facultyCBSid": "114",
+    "facultyCBScode": "CSA",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ruchin Tejawat",
+    "email": "ruchin.tejawat@testbook.com",
+    "facultyLMSid": "60027992637270a27e72cb98",
+    "facultyCBSid": "115",
+    "facultyCBScode": "RuTe",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Prashant Eknath Bhule",
+    "email": "prashant.bhule@testbook.com",
+    "facultyLMSid": "5fdc7577e05d27da0479ab9d",
+    "facultyCBSid": "116",
+    "facultyCBScode": "PB",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Aarzoo Kakkar",
+    "email": "aarzoo.kakkar@testbook.com",
+    "facultyLMSid": "5fe96650e6cec6501839837e",
+    "facultyCBSid": "117",
+    "facultyCBScode": "AK",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sandeep Kumar Shukla",
+    "email": "sandeep.shukla@testbook.com",
+    "facultyLMSid": "5fdb0aeb700e8d42cd0d7855",
+    "facultyCBSid": "118",
+    "facultyCBScode": "SSh",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Aviral Vishwakarma Sir",
+    "email": "aviral.vishwakarma@testbook.com",
+    "facultyLMSid": "6007d25774543e264665c1c0",
+    "facultyCBSid": "119",
+    "facultyCBScode": "AvV",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anuj Sengar",
+    "email": "anuj.sengar@testbook.com",
+    "facultyLMSid": "5ff2b73c9d6fbfc7fe245f92",
+    "facultyCBSid": "120",
+    "facultyCBScode": "ASg",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Abhas Saini",
+    "email": "abhas.saini@testbook.com",
+    "facultyLMSid": "6007d00769521256593e6d05",
+    "facultyCBSid": "121",
+    "facultyCBScode": "AbSa",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anshul Jindal",
+    "email": "anshul.jindal@testbook.com",
+    "facultyLMSid": "600aa7a8a76c87519dfbf4d2",
+    "facultyCBSid": "122",
+    "facultyCBScode": "AJ",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ratnesh Shukla",
+    "email": "ratnesh.shukla@testbook.com",
+    "facultyLMSid": "5ffd95fa47139e1e81936930",
+    "facultyCBSid": "123",
+    "facultyCBScode": "RaSh",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shubham Agarwal",
+    "email": "shubham.agarwal@testbook.com",
+    "facultyLMSid": "5ffd954b96506118de3fe162",
+    "facultyCBSid": "124",
+    "facultyCBScode": "ShAg",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Abhishek Sachan",
+    "email": "abhishek.sachan@testbook.com",
+    "facultyLMSid": "6010fdf400df7edebdc0b2a0",
+    "facultyCBSid": "125",
+    "facultyCBScode": "AbS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ranjeet Kumar Singh",
+    "email": "ranjeet.kumar.singh@testbook.com",
+    "facultyLMSid": "60139d2be691cfc7f9aa511a",
+    "facultyCBSid": "126",
+    "facultyCBScode": "RKS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shailendra Kantak",
+    "email": "shailendra.kantak@testbook.com",
+    "facultyLMSid": "6012846a849f5e961a69fe90",
+    "facultyCBSid": "127",
+    "facultyCBScode": "ShK",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ram Kumar Mentor",
+    "email": "ram.kumar@testbook.com",
+    "facultyLMSid": "65d89a5e0275911044588909",
+    "facultyCBSid": "128",
+    "facultyCBScode": "RKu",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rakesh Khare",
+    "email": "rakesh.khare@testbook.com",
+    "facultyLMSid": "6017eb43aa070cf731fa9508",
+    "facultyCBSid": "129",
+    "facultyCBScode": "RaKh",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sanat Datt Bhardwaj",
+    "email": "sanat.bhardwaj@testbook.com",
+    "facultyLMSid": "6002fc14efeafa97262aead5",
+    "facultyCBSid": "130",
+    "facultyCBScode": "SB",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vaka Raghav Reddy",
+    "email": "vaka.reddy@testbook.com",
+    "facultyLMSid": "601a8ee0a548967103252977",
+    "facultyCBSid": "131",
+    "facultyCBScode": "VR",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kandregula Prasanth Kumar",
+    "email": "kandregula.kumar@testbook.com",
+    "facultyLMSid": "601b81cc97c998ceec0cb807",
+    "facultyCBSid": "132",
+    "facultyCBScode": "KK",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vaibhav Patil",
+    "email": "vaibhav.patil@testbook.com",
+    "facultyLMSid": "5fabbb8be2f35b7cd243aa33",
+    "facultyCBSid": "133",
+    "facultyCBScode": "vaibhav.patil",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Prince Luthra",
+    "email": "prince.luthra@testbook.com",
+    "facultyLMSid": "6010f7fb75c48466fcb51d33",
+    "facultyCBSid": "134",
+    "facultyCBScode": "PL",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Uppalapati Venkata Tilak",
+    "email": "uppalapati.tilak@testbook.com",
+    "facultyLMSid": "601a48afa1a58ed67fe67581",
+    "facultyCBSid": "135",
+    "facultyCBScode": "UpT",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Gaurav Kumar.",
+    "email": "gaurav.kumar.faculty@testbook.com",
+    "facultyLMSid": "601b84d7b039c61b7c2b2f16",
+    "facultyCBSid": "136",
+    "facultyCBScode": "GKF",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Salil Bajpai",
+    "email": "salil.bajpai@testbook.com",
+    "facultyLMSid": "60223296e747627f849313b6",
+    "facultyCBSid": "137",
+    "facultyCBScode": "SBp",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Apoorv Khare",
+    "email": "apoorv.khare@testbook.com",
+    "facultyLMSid": "5fdae30eca900b6848a3db1a",
+    "facultyCBSid": "144",
+    "facultyCBScode": "apoorv.khare",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mirza Zuber Rehaman",
+    "email": "mirza.rehaman@testbook.com",
+    "facultyLMSid": "6010fcb473a5b0f48b41e9d5",
+    "facultyCBSid": "145",
+    "facultyCBScode": "MR",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Saba Praveen",
+    "email": "saba.parveen@testbook.com",
+    "facultyLMSid": "6010f5e8941669e1cdb2ee4f",
+    "facultyCBSid": "146",
+    "facultyCBScode": "SP",
+    "status": "Active"
+  },
+  {
+    "facultyName": "D Raja Narasaiya",
+    "email": "d.raja.narasaiya@testbook.com",
+    "facultyLMSid": "60225afa157fa3a8b08efec8",
+    "facultyCBSid": "147",
+    "facultyCBScode": "d.raja.narasaiya",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Hemendar Kumar Goswami",
+    "email": "hemendar.kumar.goswami@testbook.com",
+    "facultyLMSid": "6013a80482352d7c890371ae",
+    "facultyCBSid": "149",
+    "facultyCBScode": "HKG",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Deepmani Bhardwaj",
+    "email": "deepmani.bhardwaj@testbook.com",
+    "facultyLMSid": "603e2c169c5a03bf23d6ee9d",
+    "facultyCBSid": "150",
+    "facultyCBScode": "DB",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pankaj Mishra",
+    "email": "pankaj.mishra@testbook.com",
+    "facultyLMSid": "6030b16f48f889a2566ec1c0",
+    "facultyCBSid": "151",
+    "facultyCBScode": "PaMa",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Saurabh Dey",
+    "email": "saurabh.dey@testbook.com",
+    "facultyLMSid": "60366020d57501651ca2ec26",
+    "facultyCBSid": "152",
+    "facultyCBScode": "SaD",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vivek Singh (not)",
+    "email": "vivek.singh@testbook.com",
+    "facultyLMSid": "5d53ff92fdb8bb5e5e5791ae",
+    "facultyCBSid": "153",
+    "facultyCBScode": "ViS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Juhi Gyanchandani",
+    "email": "juhi.gyanchandani@testbook.com",
+    "facultyLMSid": "603df8b3285b6f1681e35364",
+    "facultyCBSid": "154",
+    "facultyCBScode": "JG",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mohit Kasanya Sir",
+    "email": "mohit.kasanya@testbook.com",
+    "facultyLMSid": "603df922f348869364f35a74",
+    "facultyCBSid": "155",
+    "facultyCBScode": "MK",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anadi Kumar Gautam",
+    "email": "anadi.gautam@testbook.com",
+    "facultyLMSid": "603df765b1bbbad812d727df",
+    "facultyCBSid": "156",
+    "facultyCBScode": "AG",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Aayush Arora",
+    "email": "aayush.arora@testbook.com",
+    "facultyLMSid": "60eebc515d9993ff33a87a7b",
+    "facultyCBSid": "157",
+    "facultyCBScode": "AyA",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Om Dutt Sharma",
+    "email": "omdutt.sharma@testbook.com",
+    "facultyLMSid": "60409ea56c8f66f0077e9e5f",
+    "facultyCBSid": "158",
+    "facultyCBScode": "OS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vishal Kumar_Deleted",
+    "email": "vishal.kumar@testbook.com",
+    "facultyLMSid": "603515ebbd3ea4e0d06c2909",
+    "facultyCBSid": "159",
+    "facultyCBScode": "VKu",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Akash Verma",
+    "email": "akash.verma@testbook.com",
+    "facultyLMSid": "60486b55d965589335a7b572",
+    "facultyCBSid": "161",
+    "facultyCBScode": "AkV",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Santosh Kumar",
+    "email": "santosh.kumar.faculty@testbook.com",
+    "facultyLMSid": "60486c69c6d389008fb4387c",
+    "facultyCBSid": "162",
+    "facultyCBScode": "SKF",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shefali Singla Ma'am",
+    "email": "shefali.singla@testbook.com",
+    "facultyLMSid": "6035ebed4a1f1c164d2e52bc",
+    "facultyCBSid": "163",
+    "facultyCBScode": "ShS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Deepak Kumar Mishra",
+    "email": "deepak.kumar.mishra@testbook.com",
+    "facultyLMSid": "60499d2fc1b1cf0d79dbef94",
+    "facultyCBSid": "164",
+    "facultyCBScode": "DKM",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mahendra Singh Shekhawat",
+    "email": "mahendra.shekhawat@testbook.com",
+    "facultyLMSid": "60499c40c1b1cf0d79dbe4de",
+    "facultyCBSid": "165",
+    "facultyCBScode": "mahendra.shekhawat",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Harshit Sharma",
+    "email": "harshit.sharma@testbook.com",
+    "facultyLMSid": "604affbed3f966717ad39f72",
+    "facultyCBSid": "167",
+    "facultyCBScode": "HS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Peeyush Kumar Singh",
+    "email": "peeyush.kumar.singh@testbook.com",
+    "facultyLMSid": "60499cba5212f3671e34cc71",
+    "facultyCBSid": "168",
+    "facultyCBScode": "PKS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shahbaz Haider",
+    "email": "shahbaz.haider@testbook.com",
+    "facultyLMSid": "60599bba315176fcfc6d13d8",
+    "facultyCBSid": "169",
+    "facultyCBScode": "SH",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nitin Kumar Tyagi",
+    "email": "nitin.kumar.tyagi@testbook.com",
+    "facultyLMSid": "605c7d6135638bc3b7feb242",
+    "facultyCBSid": "170",
+    "facultyCBScode": "NkT",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vijay Dhamu",
+    "email": "vijay.dhamu@testbook.com",
+    "facultyLMSid": "605c7cd4fa1ef0a8736032ca",
+    "facultyCBSid": "171",
+    "facultyCBScode": "VD",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anshul Shivhare",
+    "email": "anshul.shivhare@testbook.com",
+    "facultyLMSid": "5f57895680aa1cb1c75bd9af",
+    "facultyCBSid": "172",
+    "facultyCBScode": "anshul.shivhare",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Soumyajit Sen",
+    "email": "soumyajit.sen@testbook.com",
+    "facultyLMSid": "6023b57516a05f68d07cc60c",
+    "facultyCBSid": "173",
+    "facultyCBScode": "SoSe",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shubham Sharma",
+    "email": "shubham.sharma@testbook.com",
+    "facultyLMSid": "6064268806e5981dc5bb06ab",
+    "facultyCBSid": "174",
+    "facultyCBScode": "ShSh",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Meenu Gupta",
+    "email": "meenu.gupta@testbook.com",
+    "facultyLMSid": "60754de43805d685cbca3033",
+    "facultyCBSid": "175",
+    "facultyCBScode": "MeG",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rajat Shekhar",
+    "email": "rajat.shekhar@testbook.com",
+    "facultyLMSid": "606d8f1a86965161139d2340",
+    "facultyCBSid": "176",
+    "facultyCBScode": "RSh",
+    "status": "Active"
+  },
+  {
+    "facultyName": "TM Prateek",
+    "email": "tm.prateek@testbook.com",
+    "facultyLMSid": "60685d8d63e5e4b7d6e02fde",
+    "facultyCBSid": "178",
+    "facultyCBScode": "TMP",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ashish Kushwah",
+    "email": "ashish.kushwah@testbook.com",
+    "facultyLMSid": "606c500828fc1b013844bbb1",
+    "facultyCBSid": "179",
+    "facultyCBScode": "AsK",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Bhaskar Pratap Mishra",
+    "email": "bhaskar.pratap.mishra@testbook.com",
+    "facultyLMSid": "606c4e6bfc15d26894907138",
+    "facultyCBSid": "180",
+    "facultyCBScode": "bhaskar.pratap.mishra",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nilesh Tomar",
+    "email": "nilesh.tomar@testbook.com",
+    "facultyLMSid": "606c409986bd29f47b0ab345",
+    "facultyCBSid": "181",
+    "facultyCBScode": "NT",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dr Akshaya Ranade",
+    "email": "akshaya.ranade@testbook.com",
+    "facultyLMSid": "606ef6f3c6ec1648922e1b80",
+    "facultyCBSid": "182",
+    "facultyCBScode": "AkR",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shanti Bhai Patel",
+    "email": "shanti.patel@testbook.com",
+    "facultyLMSid": "60337b8fba3fd9e1a3b13722",
+    "facultyCBSid": "183",
+    "facultyCBScode": "ShP",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sushruta Chaudhuri",
+    "email": "sushruta.chaudhuri@testbook.com",
+    "facultyLMSid": "606c4eedb51abaeff72f40c0",
+    "facultyCBSid": "184",
+    "facultyCBScode": "SC",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Lokesh Sharma",
+    "email": "lokesh.sharma@testbook.com",
+    "facultyLMSid": "607fddca69657e15ec0c73c0",
+    "facultyCBSid": "185",
+    "facultyCBScode": "LS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Amir Khan Saifi",
+    "email": "amir.saifi@testbook.com",
+    "facultyLMSid": "607fde4ac07667f718ee461d",
+    "facultyCBSid": "186",
+    "facultyCBScode": "AmS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Gopika Khurana Ma'am",
+    "email": "gopika.khurana@testbook.com",
+    "facultyLMSid": "6083e732aa61802f269ed504",
+    "facultyCBSid": "187",
+    "facultyCBScode": "GKh",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Bhavya Kher",
+    "email": "bhavya.kher@testbook.com",
+    "facultyLMSid": "6083e87daa61802f269ee273",
+    "facultyCBSid": "188",
+    "facultyCBScode": "BK",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sarthak Arora",
+    "email": "sartha.arora@testbook.com",
+    "facultyLMSid": "6088f16eecb194105bd53fe8",
+    "facultyCBSid": "189",
+    "facultyCBScode": "SaA",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Puneet Bhatia",
+    "email": "puneet.bhatia@testbook.com",
+    "facultyLMSid": "608fbb823d9e5246060822e3",
+    "facultyCBSid": "191",
+    "facultyCBScode": "puneet.bhatia",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ashish Sharma..",
+    "email": "ashish.sharma@testbook.com",
+    "facultyLMSid": "608fee021f4305d5d76dff91",
+    "facultyCBSid": "192",
+    "facultyCBScode": "ASh",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ajay Mishra",
+    "email": "ajay.mishra@testbook.com",
+    "facultyLMSid": "608fb3cc68f9bb96294e801c",
+    "facultyCBSid": "193",
+    "facultyCBScode": "AjM",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Arvind Kumar Pandey",
+    "email": "arvind.kumar.pandey@testbook.com",
+    "facultyLMSid": "608fb40d909b8986e7291df3",
+    "facultyCBSid": "194",
+    "facultyCBScode": "AKP",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rahul Maheshwari",
+    "email": "rahul.maheshwari@testbook.com",
+    "facultyLMSid": "609fc25c8b8689e0bc8dcbda",
+    "facultyCBSid": "196",
+    "facultyCBScode": "RM",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pranshu",
+    "email": "pranshu.verma@testbook.com",
+    "facultyLMSid": "5f5dc33f15d32afbc9d2e86a",
+    "facultyCBSid": "197",
+    "facultyCBScode": "PVT",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Basant kumar Tripathi",
+    "email": "basant.kumar.tripathi@testbook.com",
+    "facultyLMSid": "60a524af02804c8210880e1c",
+    "facultyCBSid": "198",
+    "facultyCBScode": "BKT",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Praveen Dhewa",
+    "email": "praveen.dhewa@testbook.com",
+    "facultyLMSid": "60ab3141c15a77941179ca33",
+    "facultyCBSid": "199",
+    "facultyCBScode": "PD",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ananya Singh Ma'am",
+    "email": "ananya.singh@testbook.com",
+    "facultyLMSid": "60b0fc7f75f0b1eb5ab3a565",
+    "facultyCBSid": "200",
+    "facultyCBScode": "AnS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Abhishek Mishra_not",
+    "email": "abhishek.mishra.freelance@testbook.com",
+    "facultyLMSid": "60b60a81183b1ab9f077e4ec",
+    "facultyCBSid": "201",
+    "facultyCBScode": "AMF",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ashish Rana",
+    "email": "ashish.rana@testbook.com",
+    "facultyLMSid": "60b2548f514bd86a44974a2e",
+    "facultyCBSid": "202",
+    "facultyCBScode": "AsRa",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mithilesh Kumar",
+    "email": "mithilesh.kumar@testbook.com",
+    "facultyLMSid": "60c990d9cfe499e7d1c3a9d8",
+    "facultyCBSid": "204",
+    "facultyCBScode": "mithilesh.kumar",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dr Sanjan kumar",
+    "email": "dr.sanjan.kumar@testbook.com",
+    "facultyLMSid": "60cda4f612d45c49cdb82a75",
+    "facultyCBSid": "205",
+    "facultyCBScode": "DSK",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ashwani Singh Rajput",
+    "email": "ashwani.singh.rajput@testbook.com",
+    "facultyLMSid": "60cda52e12d45c49cdb832a0",
+    "facultyCBSid": "206",
+    "facultyCBScode": "ASR",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rahul Kumar Singh",
+    "email": "rahul.kumar.singh@testbook.com",
+    "facultyLMSid": "60d09b6d52d823f7271e00f7",
+    "facultyCBSid": "207",
+    "facultyCBScode": "RKuS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Raunak Purohit",
+    "email": "ws.cube.tech@testbook.com",
+    "facultyLMSid": "60d5c891c7be2c50a4239bea",
+    "facultyCBSid": "208",
+    "facultyCBScode": "WSCT",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Bhagirath Giri",
+    "email": "bhagirath.giri@testbook.com",
+    "facultyLMSid": "60f3adba8f63a6a8747a077c",
+    "facultyCBSid": "209",
+    "facultyCBScode": "BG",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sameer Inpure",
+    "email": "sameer.inpure@testbook.com",
+    "facultyLMSid": "61139ba38b0f2c7300aaa2f1",
+    "facultyCBSid": "210",
+    "facultyCBScode": "SI",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Manisha Narang",
+    "email": "manisha.narang@testbook.com",
+    "facultyLMSid": "6127663ca892ae502912f95f",
+    "facultyCBSid": "211",
+    "facultyCBScode": "MN",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kushal Bharti",
+    "email": "kushal.bharti@testbook.com",
+    "facultyLMSid": "61431a934b7612bed8b3ede6",
+    "facultyCBSid": "212",
+    "facultyCBScode": "KB",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pradeep Kumar Rai",
+    "email": "pradeep.rai@testbook.com",
+    "facultyLMSid": "6141c7de49c8c3ef110aedd9",
+    "facultyCBSid": "213",
+    "facultyCBScode": "PrR",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vatsal Bhalodi",
+    "email": "vatsal.bhalodi@testbook.com",
+    "facultyLMSid": "5d1a1d14fdb8bb6c1b7d7be9",
+    "facultyCBSid": "215",
+    "facultyCBScode": "VB",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Riya Verma_TTP",
+    "email": "riya.verma@testbook.com",
+    "facultyLMSid": "5fe31d558b4e34bcae355512",
+    "facultyCBSid": "216",
+    "facultyCBScode": "RV",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nitish Chona",
+    "email": "nitish.chona@testbook.com",
+    "facultyLMSid": "5fe31d5f8b4e34bcae355540",
+    "facultyCBSid": "217",
+    "facultyCBScode": "NCh",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Samarth Sharma",
+    "email": "samarth.sharma@testbook.com",
+    "facultyLMSid": "5f2d1b7ceaff7c0d0b214d6d",
+    "facultyCBSid": "218",
+    "facultyCBScode": "SaS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Narender Choudhary",
+    "email": "narender.choudhary@testbook.com",
+    "facultyLMSid": "5f19ec09aedf100d16b71162",
+    "facultyCBSid": "221",
+    "facultyCBScode": "NC",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ashutosh Gupta (not)",
+    "email": "ashutosh.gupta@testbook.com",
+    "facultyLMSid": "612e23f6398d9b0d284ff0f6",
+    "facultyCBSid": "223",
+    "facultyCBScode": "AsGup",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Deepak Singh (not)",
+    "email": "deepak.singh@testbook.com",
+    "facultyLMSid": "5f76005ae622d645b9b58fca",
+    "facultyCBSid": "224",
+    "facultyCBScode": "DeSi",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rushikesh Pandit",
+    "email": "rushikesh.pandit@testbook.com",
+    "facultyLMSid": "61b36a10b3bb727c0def0c9b",
+    "facultyCBSid": "227",
+    "facultyCBScode": "RuSP",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ajeet Royd",
+    "email": "ajeet.royd@testbook.com",
+    "facultyLMSid": "619e180483cf4ef0fc1c66d0",
+    "facultyCBSid": "228",
+    "facultyCBScode": "AjRd",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ankur Malik",
+    "email": "ankur.malik@testbook.com",
+    "facultyLMSid": "61b302343768dfa9e0c91ce5",
+    "facultyCBSid": "229",
+    "facultyCBScode": "AkMk",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nitin Amlani",
+    "email": "nitin.amlani@testbook.com",
+    "facultyLMSid": "61b875d8a279d72517d028fe",
+    "facultyCBSid": "230",
+    "facultyCBScode": "NiLa",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Deepak Singh",
+    "email": "deepak.singh.faculty@testbook.com",
+    "facultyLMSid": "61b89f59c6ec4dc4dcccadf8",
+    "facultyCBSid": "231",
+    "facultyCBScode": "DkSF",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sandeep Kanade",
+    "email": "sandeep.kanade@testbook.com",
+    "facultyLMSid": "61bb12de8bad1e685f06de02",
+    "facultyCBSid": "232",
+    "facultyCBScode": "SaKa",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Umashankar Tripathi Sir",
+    "email": "umashankar.tripathi.faculty@testbook.com",
+    "facultyLMSid": "5fa646b65d9ccd64f56efd28",
+    "facultyCBSid": "233",
+    "facultyCBScode": "UmTF",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Neeraj Pareek",
+    "email": "neeraj.pareek.faculty@testbook.com",
+    "facultyLMSid": "61bd7d60690f9762ee7cbf6a",
+    "facultyCBSid": "234",
+    "facultyCBScode": "NePa",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Gaurav Maurya Sir",
+    "email": "gaurav.maurya@testbook.com",
+    "facultyLMSid": "5dee1d7af60d5d3bce0361c4",
+    "facultyCBSid": "235",
+    "facultyCBScode": "GaMa",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Neha Sharma",
+    "email": "neha.sharma@testbook.com",
+    "facultyLMSid": "5f19ecd8cc02260d0e4dbe10",
+    "facultyCBSid": "236",
+    "facultyCBScode": "NaSa",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Huzefa Lohawala",
+    "email": "huzefa.lohawala@testbook.com",
+    "facultyLMSid": "619f4fe305ba5a64a0bbb48a",
+    "facultyCBSid": "237",
+    "facultyCBScode": "HuLo",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Divya Thakur",
+    "email": "divya.thakur.faculty@testbook.com",
+    "facultyLMSid": "61dff31bb016562ae14fedd6",
+    "facultyCBSid": "238",
+    "facultyCBScode": "DaKu",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Amit Pratap Sir (APS Sir)",
+    "email": "amit.singh.faculty@testbook.com",
+    "facultyLMSid": "61efe5668494db74e489cc28",
+    "facultyCBSid": "241",
+    "facultyCBScode": "AmSh",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Yash Sharma",
+    "email": "yash.sharma@testbook.com",
+    "facultyLMSid": "61f2be400c0d31f6f6eb4e6a",
+    "facultyCBSid": "242",
+    "facultyCBScode": "YaSh",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Testbook Faculty 1.0",
+    "email": "temporarygatefaculty1@testbook.com",
+    "facultyLMSid": "61fbeff79813553eba3e1227",
+    "facultyCBSid": "245",
+    "facultyCBScode": "TempGate1",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Testbook Faculty 2.0",
+    "email": "temporarygatefaculty2@testbook.com",
+    "facultyLMSid": "61fcc49b325d6acb05b40bdc",
+    "facultyCBSid": "246",
+    "facultyCBScode": "TempGate2",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rakesh Khare",
+    "email": "rakesh.khare.faculty@testbook.com",
+    "facultyLMSid": "620a2b21d28a8d89f3676526",
+    "facultyCBSid": "247",
+    "facultyCBScode": "RaKa",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Yogesh Sharma_deleted",
+    "email": "yogesh.sharma.faculty@testbook.com",
+    "facultyLMSid": "6209f43d529cbef8f856cd12",
+    "facultyCBSid": "249",
+    "facultyCBScode": "YgSh",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vaibhav Shrivastava Sir",
+    "email": "vaibhav.shrivastava.faculty@testbook.com",
+    "facultyLMSid": "620b5cd9a3ac37860789fe8f",
+    "facultyCBSid": "250",
+    "facultyCBScode": "VaShi",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nitesh Gupta",
+    "email": "nitesh.gupta.faculty@testbook.com",
+    "facultyLMSid": "6217960703005dded9618403",
+    "facultyCBSid": "252",
+    "facultyCBScode": "NiTa",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Saurabh Sanjay Kango",
+    "email": "saurabh.kango.faculty@testbook.com",
+    "facultyLMSid": "6226f018d1086c3cf90e6bf9",
+    "facultyCBSid": "253",
+    "facultyCBScode": "SuKa",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Utkarsh Tiwary.",
+    "email": "utkarsh.tiwary.faculty@testbook.com",
+    "facultyLMSid": "622b2aa5122a2103527ab2d7",
+    "facultyCBSid": "254",
+    "facultyCBScode": "UtRy",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Deepak Kerkar",
+    "email": "deepak.kerkar@testbook.com",
+    "facultyLMSid": "6220ad9217c274d420e1e5c5",
+    "facultyCBSid": "255",
+    "facultyCBScode": "DeKe",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Yogesh Singh",
+    "email": "yogesh.singh@testbook.com",
+    "facultyLMSid": "6242d3d6d6bb3a70dbd0b39e",
+    "facultyCBSid": "256",
+    "facultyCBScode": "YoSi",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Jitendra Kumar",
+    "email": "jitendra.kumar.faculty@testbook.com",
+    "facultyLMSid": "624ab18f6cd9c584f1551324",
+    "facultyCBSid": "257",
+    "facultyCBScode": "JiTu",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pavan Kharate",
+    "email": "pavan.kharate.faculty@testbook.com",
+    "facultyLMSid": "624ab14f44f4af3953da11d5",
+    "facultyCBSid": "258",
+    "facultyCBScode": "PaKa",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ehtisham Siddiqui",
+    "email": "ehtisham.siddiqui.faculty@testbook.com",
+    "facultyLMSid": "624aaebfe385c6029e8c3000",
+    "facultyCBSid": "259",
+    "facultyCBScode": "EtuSi",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Naman Jain",
+    "email": "naman.jain.faculty@testbook.com",
+    "facultyLMSid": "624ab06973f906a83dec0e6f",
+    "facultyCBSid": "261",
+    "facultyCBScode": "NaJa",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rahul Swaroop",
+    "email": "rahul.swaroop.faculty@testbook.com",
+    "facultyLMSid": "624ff14cecfa271c24eb56d1",
+    "facultyCBSid": "262",
+    "facultyCBScode": "RaSa",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sonpriya Meena",
+    "email": "sonpriya.meena@testbook.com",
+    "facultyLMSid": "624415697bdddff918aa241a",
+    "facultyCBSid": "263",
+    "facultyCBScode": "SoNu",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rahul Sharma",
+    "email": "rahul.sharma.faculty@testbook.com",
+    "facultyLMSid": "624ff1a8e663695880030659",
+    "facultyCBSid": "264",
+    "facultyCBScode": "RSha",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sunil Bishnoi Sir",
+    "email": "sunil.bishnoi.faculty@testbook.com",
+    "facultyLMSid": "625ec0a71a33612ae9aa8eb8",
+    "facultyCBSid": "265",
+    "facultyCBScode": "SuBo",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sushant Pandey",
+    "email": "sushant.pandey.faculty@testbook.com",
+    "facultyLMSid": "62614ba490261d201e00ae59",
+    "facultyCBSid": "266",
+    "facultyCBScode": "SuSh",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Himanshu Saxena",
+    "email": "himanshu.saxena.faculty@testbook.com",
+    "facultyLMSid": "625ebeaaa8cbd66c4744395e",
+    "facultyCBSid": "267",
+    "facultyCBScode": "HeXa",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Tejas Kulshreshtha",
+    "email": "tejas.kulshreshtha.faculty@testbook.com",
+    "facultyLMSid": "62614b5af4fba6a530d0186c",
+    "facultyCBSid": "268",
+    "facultyCBScode": "TeJu",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Madhura Chaudhuri",
+    "email": "madhura.chaudhuri.faculty@testbook.com",
+    "facultyLMSid": "627212612b973ce9b9b5608b",
+    "facultyCBSid": "272",
+    "facultyCBScode": "MaCu",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Prashant Dey",
+    "email": "prashant.dey.faculty@testbook.com",
+    "facultyLMSid": "627214f2785be6b7dfeaecc2",
+    "facultyCBSid": "273",
+    "facultyCBScode": "PaDe",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Supriya Seetharam",
+    "email": "supriya.seetharam.faculty@testbook.com",
+    "facultyLMSid": "627b4e5e198c1ee0cc117fde",
+    "facultyCBSid": "274",
+    "facultyCBScode": "SuSe",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shantanu Rai",
+    "email": "shantanu.rai.faculty@testbook.com",
+    "facultyLMSid": "60bb45061a0a7c69dd37b7b8",
+    "facultyCBSid": "275",
+    "facultyCBScode": "ShRa",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ishani Maheshwari",
+    "email": "ishani.maheshwari.faculty@testbook.com",
+    "facultyLMSid": "627b4f4d03510c1b8d6c1289",
+    "facultyCBSid": "276",
+    "facultyCBScode": "IsHa",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anirudh Aggarwal",
+    "email": "anirudh.aggarwal.faculty@testbook.com",
+    "facultyLMSid": "6272155c08d353048dc43399",
+    "facultyCBSid": "277",
+    "facultyCBScode": "AnNi",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Divya Bharathi Bhandari",
+    "email": "divya.bharathi@testbook.com",
+    "facultyLMSid": "628b3f6488009928d852b1d6",
+    "facultyCBSid": "279",
+    "facultyCBScode": "DiYa",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Subrat Swain",
+    "email": "subrat.swain.faculty@testbook.com",
+    "facultyLMSid": "627b4ed55998e79ec8b1b591",
+    "facultyCBSid": "281",
+    "facultyCBScode": "SuS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Akshay Barakoti",
+    "email": "akshay.barakoti.faculty@testbook.com",
+    "facultyLMSid": "629893678388db5aa3f4ee2b",
+    "facultyCBSid": "282",
+    "facultyCBScode": "AkBr",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rhea Punjabi",
+    "email": "rhea.punjabi.faculty@testbook.com",
+    "facultyLMSid": "62989321e31d851588a789fb",
+    "facultyCBSid": "283",
+    "facultyCBScode": "RpJa",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rajesh Suthar",
+    "email": "rajesh.suthar.faculty@testbook.com",
+    "facultyLMSid": "62ba8e2a151b5196b5f4ed88",
+    "facultyCBSid": "285",
+    "facultyCBScode": "RaSu",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Altamash Aslam",
+    "email": "altamash.aslam.faculty@testbook.com",
+    "facultyLMSid": "62a9ab499e820e9935fa26ee",
+    "facultyCBSid": "286",
+    "facultyCBScode": "AaSa",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vinay Chavhan",
+    "email": "vinay.chavhan@testbook.com",
+    "facultyLMSid": "6204bfb8ae00c4c74eebd606",
+    "facultyCBSid": "287",
+    "facultyCBScode": "vinay.chavhan",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Radhika Gupta",
+    "email": "radhika.gupta.faculty@testbook.com",
+    "facultyLMSid": "62c443d93d1f547ec1fd3700",
+    "facultyCBSid": "288",
+    "facultyCBScode": "radhika.gupta.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Priyanka Singh Ma'am",
+    "email": "priyanka.singh.faculty@testbook.com",
+    "facultyLMSid": "62baff286720d52f749ba301",
+    "facultyCBSid": "289",
+    "facultyCBScode": "priyanka.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dr. Kumar Punit Goel",
+    "email": "punit.goel.faculty@testbook.com",
+    "facultyLMSid": "62d15356dcefd95254915c60",
+    "facultyCBSid": "290",
+    "facultyCBScode": "punit.goel.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Monika Kushwaha Ma'am",
+    "email": "monika.kushwaha.faculty@testbook.com",
+    "facultyLMSid": "62d18d66a69d170b537d0ae6",
+    "facultyCBSid": "293",
+    "facultyCBScode": "monika.kushwaha.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dr. Shallu Saini",
+    "email": "shallu.saini.faculty@testbook.com",
+    "facultyLMSid": "62bafed743b3ccd59cf36cc4",
+    "facultyCBSid": "294",
+    "facultyCBScode": "shallu.saini.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Aakash Kadam",
+    "email": "aakash.kadam@testbook.com",
+    "facultyLMSid": "62dae49b03df5d595ad0778e",
+    "facultyCBSid": "295",
+    "facultyCBScode": "aakash.kadam",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Himanshu Kaushik",
+    "email": "himanshu.kaushik.faculty@testbook.com",
+    "facultyLMSid": "62e274eec394925a7e0d16bd",
+    "facultyCBSid": "298",
+    "facultyCBScode": "himanshu.kaushik.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Yogesh Kumar Gupta",
+    "email": "yogesh.gupta.faculty@testbook.com",
+    "facultyLMSid": "62e14447349c4dc017b947cc",
+    "facultyCBSid": "300",
+    "facultyCBScode": "yogesh.gupta.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rahul Mishra Sir",
+    "email": "rahul.mishra.faculty@testbook.com",
+    "facultyLMSid": "62e7d388b4f8918b38ea099e",
+    "facultyCBSid": "301",
+    "facultyCBScode": "rahul.mishra.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vivek Kumar Singh",
+    "email": "vivek.singh.faculty@testbook.com",
+    "facultyLMSid": "62e143f7349c4dc017b940c5",
+    "facultyCBSid": "303",
+    "facultyCBScode": "vivek.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vijay Patidar",
+    "email": "vijay.patidar.faculty@testbook.com",
+    "facultyLMSid": "62ebdc01ffcbf26d9d06d925",
+    "facultyCBSid": "304",
+    "facultyCBScode": "vijay.patidar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Lavish Tiwari",
+    "email": "lavish.tiwari.faculty@testbook.com",
+    "facultyLMSid": "62d786a0101f563f58c897c9",
+    "facultyCBSid": "305",
+    "facultyCBScode": "lavish.tiwari.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Gaurav Garg",
+    "email": "gaurav.garg.faculty@testbook.com",
+    "facultyLMSid": "62fdeb576033975804cf70e9",
+    "facultyCBSid": "306",
+    "facultyCBScode": "gaurav.garg.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dhwani Shah",
+    "email": "dhwani.shah.faculty@testbook.com",
+    "facultyLMSid": "62fdeba42ce2c09dc21be487",
+    "facultyCBSid": "307",
+    "facultyCBScode": "dhwani.shah.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rutvik Acharya",
+    "email": "rutvik.acharya.faculty@testbook.com",
+    "facultyLMSid": "63032f4426d8b0d9daaa98d6",
+    "facultyCBSid": "310",
+    "facultyCBScode": "rutvik.acharya.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anjali Pratap",
+    "email": "anjali.pratap.faculty@testbook.com",
+    "facultyLMSid": "6303606b41b558fcbfd55aab",
+    "facultyCBSid": "311",
+    "facultyCBScode": "anjali.pratap.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Divya Tripathi",
+    "email": "divya.tripathi.faculty@testbook.com",
+    "facultyLMSid": "62f0e3097f750eba6fea4339",
+    "facultyCBSid": "312",
+    "facultyCBScode": "divya.tripathi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Himanshu Singh",
+    "email": "himanshu.singh.faculty@testbook.com",
+    "facultyLMSid": "63032ee18642a18c135619d0",
+    "facultyCBSid": "313",
+    "facultyCBScode": "himanshu.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kinjal Choudhary",
+    "email": "kinjal.choudhary.faculty@testbook.com",
+    "facultyLMSid": "6315bf967b4593404d07aeea",
+    "facultyCBSid": "315",
+    "facultyCBScode": "kinjal.choudhary.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Jyotsana Tiwari",
+    "email": "jyotsana.tiwari.faculty@testbook.com",
+    "facultyLMSid": "63109cf753433756a0631979",
+    "facultyCBSid": "316",
+    "facultyCBScode": "jyotsana.tiwari.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Amit Mishra",
+    "email": "amit.mishra.faculty@testbook.com",
+    "facultyLMSid": "63109d63bd19208a060add3e",
+    "facultyCBSid": "317",
+    "facultyCBScode": "amit.mishra.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Toufik Sutar",
+    "email": "toufik.sutar@testbook.com",
+    "facultyLMSid": "632886c18326a9fbf6ab12b4",
+    "facultyCBSid": "319",
+    "facultyCBScode": "toufik.sutar",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shazia Haider",
+    "email": "shazia.haider.faculty@testbook.com",
+    "facultyLMSid": "632aba080c9801bab679d958",
+    "facultyCBSid": "320",
+    "facultyCBScode": "shazia.haider.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pankaj Pandey",
+    "email": "pankaj.pandey.faculty@testbook.com",
+    "facultyLMSid": "6331a72868d3936f71d9040d",
+    "facultyCBSid": "321",
+    "facultyCBScode": "pankaj.pandey.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Aquib Ajani",
+    "email": "aquib.ajani.faculty@testbook.com",
+    "facultyLMSid": "6336e9415f81d43f2dd28bd3",
+    "facultyCBSid": "322",
+    "facultyCBScode": "aquib.ajani.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Saurav Sharma",
+    "email": "saurav.sharma.faculty@testbook.com",
+    "facultyLMSid": "63403c8876e5f539e5b4b0aa",
+    "facultyCBSid": "324",
+    "facultyCBScode": "saurav.sharma.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ajay Chhapola",
+    "email": "ajay.chhapola@testbook.com",
+    "facultyLMSid": "62b19763372d5b9b5de8f9c1",
+    "facultyCBSid": "325",
+    "facultyCBScode": "ajay.chhapola",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ashutosh Verma",
+    "email": "ashutosh.verma@testbook.com",
+    "facultyLMSid": "596de069b5e4ec08d89a32cc",
+    "facultyCBSid": "326",
+    "facultyCBScode": "ashutosh.verma",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ashish Raj",
+    "email": "ashish.raj@testbook.com",
+    "facultyLMSid": "615c2cc7bbd20dfa161e4645",
+    "facultyCBSid": "327",
+    "facultyCBScode": "ashish.raj",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anurag Parashar",
+    "email": "anurag.parashar@testbook.com",
+    "facultyLMSid": "631c53e4d3aaeab439d77281",
+    "facultyCBSid": "328",
+    "facultyCBScode": "anurag.parashar",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Akash Jain",
+    "email": "akash.jain.faculty@testbook.com",
+    "facultyLMSid": "634a6fc2a88c2f6e2d20a164",
+    "facultyCBSid": "329",
+    "facultyCBScode": "akash.jain.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Lokesh Bhardwaj",
+    "email": "lokesh.kumar@testbook.com",
+    "facultyLMSid": "6347cae19117aec4fb9155cd",
+    "facultyCBSid": "331",
+    "facultyCBScode": "lokesh.kumar",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Neha Prasad",
+    "email": "neha.prasad.faculty@testbook.com",
+    "facultyLMSid": "634fb48e8437ca791f303820",
+    "facultyCBSid": "332",
+    "facultyCBScode": "neha.prasad.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pranjal Nadhani",
+    "email": "pranjal.nadhani.faculty@testbook.com",
+    "facultyLMSid": "634fb54d869e33f6cfffe922",
+    "facultyCBSid": "333",
+    "facultyCBScode": "pranjal.nadhani.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Altamash Sid",
+    "email": "altamash.sid.faculty@testbook.com",
+    "facultyLMSid": "636d0df23cb87fd8b9e10216",
+    "facultyCBSid": "334",
+    "facultyCBScode": "altamash.sid.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Deepak Chauhan Sir",
+    "email": "deepak.chauhan.faculty@testbook.com",
+    "facultyLMSid": "635f846a83f45653fbccc3a8",
+    "facultyCBSid": "335",
+    "facultyCBScode": "deepak.chauhan.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Alok Pathak",
+    "email": "alok.pathak.faculty@testbook.com",
+    "facultyLMSid": "635f7fa6d6901ab3264aee86",
+    "facultyCBSid": "336",
+    "facultyCBScode": "alok.pathak.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Adarsh Kumar",
+    "email": "adarsh.kumar.faculty@testbook.com",
+    "facultyLMSid": "63623d6ae7eb1b0245198ebc",
+    "facultyCBSid": "337",
+    "facultyCBScode": "adarsh.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sanjay Sati",
+    "email": "sanjay.sati@testbook.com",
+    "facultyLMSid": "636223b159756ada2f27b8af",
+    "facultyCBSid": "338",
+    "facultyCBScode": "sanjay.sati",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Amit Pandey",
+    "email": "amit.pandey.faculty@testbook.com",
+    "facultyLMSid": "6369fe4d75587469163bb8ec",
+    "facultyCBSid": "339",
+    "facultyCBScode": "amit.pandey.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ajay Singh Kharb",
+    "email": "ajay.kharb@testbook.com",
+    "facultyLMSid": "63622233dd49d664abb3b7e7",
+    "facultyCBSid": "340",
+    "facultyCBScode": "ajay.kharb",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ashish Sharma",
+    "email": "ashish.sharma.faculty@testbook.com",
+    "facultyLMSid": "6368f441eb0359fa419ff99a",
+    "facultyCBSid": "341",
+    "facultyCBScode": "ashish.sharma.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Himanshu Gupta",
+    "email": "himanshu.gupta.faculty@testbook.com",
+    "facultyLMSid": "635f85534f97b3f6b793bad7",
+    "facultyCBSid": "342",
+    "facultyCBScode": "himanshu.gupta.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Digvijay Chauhan",
+    "email": "digvijay.chauhan.faculty@testbook.com",
+    "facultyLMSid": "6364f3efea7cd7f71fc11f57",
+    "facultyCBSid": "343",
+    "facultyCBScode": "digvijay.chauhan.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vivek kumar",
+    "email": "vivek.kumar.faculty@testbook.com",
+    "facultyLMSid": "636d0cc3c2392e0a9d8e0abe",
+    "facultyCBSid": "344",
+    "facultyCBScode": "vivek.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mohini Singh",
+    "email": "mohini.singh.faculty@testbook.com",
+    "facultyLMSid": "6368e6542045f41a1b29e8d4",
+    "facultyCBSid": "345",
+    "facultyCBScode": "mohini.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rohan Sharma",
+    "email": "rohan.sharma.faculty@testbook.com",
+    "facultyLMSid": "63777bab4a9d8dbcc3f684ea",
+    "facultyCBSid": "348",
+    "facultyCBScode": "rohan.sharma.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Harender Singh",
+    "email": "harender.singh.faculty@testbook.com",
+    "facultyLMSid": "6371fccc779dfe62d0eb594d",
+    "facultyCBSid": "350",
+    "facultyCBScode": "harender.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sreekanth M.E",
+    "email": "sreekanth.faculty@testbook.com",
+    "facultyLMSid": "638611a8e268a76289fd9362",
+    "facultyCBSid": "352",
+    "facultyCBScode": "sreekanth.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Chetan Singh Sir",
+    "email": "chetan.singh@testbook.com",
+    "facultyLMSid": "6388589a531ae000253d613d",
+    "facultyCBSid": "353",
+    "facultyCBScode": "chetan.singh",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pradyumn Tripathi Sir",
+    "email": "pradyumn.tripathi@testbook.com",
+    "facultyLMSid": "638db74bfb34f19018c5fbde",
+    "facultyCBSid": "354",
+    "facultyCBScode": "pradyumn.tripathi",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Heena Dawar Ma'am",
+    "email": "heena.dawar@testbook.com",
+    "facultyLMSid": "638db65b52e542fbe57244e5",
+    "facultyCBSid": "355",
+    "facultyCBScode": "heena.dawar",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Puneet Chaturvedi",
+    "email": "puneet.chaturvedi.faculty@testbook.com",
+    "facultyLMSid": "638f4079aa613d223c39b952",
+    "facultyCBSid": "356",
+    "facultyCBScode": "puneet.chaturvedi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Aniket Jadhav",
+    "email": "aniket.jadhav@testbook.com",
+    "facultyLMSid": "638dd5dd9a94032c30ef77e4",
+    "facultyCBSid": "357",
+    "facultyCBScode": "aniket.jadhav",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Divyani Mishra",
+    "email": "divyani.mishra@testbook.com",
+    "facultyLMSid": "638db818b07c434b185c68bd",
+    "facultyCBSid": "358",
+    "facultyCBScode": "divyani.mishra",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shalini Mishra",
+    "email": "shalini.mishra@testbook.com",
+    "facultyLMSid": "6390242f8808c57809c52f3e",
+    "facultyCBSid": "359",
+    "facultyCBScode": "shalini.mishra",
+    "status": "Active"
+  },
+  {
+    "facultyName": "I N Yadav",
+    "email": "in.yadav.faculty@testbook.com",
+    "facultyLMSid": "639176c40b77213dcedb3688",
+    "facultyCBSid": "360",
+    "facultyCBScode": "in.yadav.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ritesh Khirad Sir",
+    "email": "ritesh.khirad@testbook.com",
+    "facultyLMSid": "638dd53312100a9fe8c31d46",
+    "facultyCBSid": "361",
+    "facultyCBScode": "ritesh.khirad",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Lokesh Jain",
+    "email": "lokesh.jain.faculty@testbook.com",
+    "facultyLMSid": "6393141c60ff6d3fd6c7e0ad",
+    "facultyCBSid": "362",
+    "facultyCBScode": "lokesh.jain.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Baubi Kumar",
+    "email": "baubi.kumar.faculty@testbook.com",
+    "facultyLMSid": "63984b0e1d7220829b20a755",
+    "facultyCBSid": "363",
+    "facultyCBScode": "baubi.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nitin Agarwal",
+    "email": "nitin.agarwal.faculty@testbook.com",
+    "facultyLMSid": "639829736c31ca10a7b69999",
+    "facultyCBSid": "364",
+    "facultyCBScode": "nitin.agarwal.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Hitendra Dixit",
+    "email": "hitendra.dixit.faculty@testbook.com",
+    "facultyLMSid": "639828f91d7220829b1dd2e3",
+    "facultyCBSid": "365",
+    "facultyCBScode": "hitendra.dixit.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kratika Chowdhary",
+    "email": "kratika.chowdhary.faculty@testbook.com",
+    "facultyLMSid": "6396ddf1ef256cbc99da3ae9",
+    "facultyCBSid": "366",
+    "facultyCBScode": "kratika.chowdhary.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anjali Sheel",
+    "email": "anjali.sheel.faculty@testbook.com",
+    "facultyLMSid": "639b0225750990f513fad54e",
+    "facultyCBSid": "367",
+    "facultyCBScode": "anjali.sheel.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pawan Kumar",
+    "email": "pawan.kumar.faculty@testbook.com",
+    "facultyLMSid": "63a0340d2aeafc03635c4183",
+    "facultyCBSid": "369",
+    "facultyCBScode": "pawan.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rohit Khera",
+    "email": "rohit.khera.faculty@testbook.com",
+    "facultyLMSid": "63a56b08827c534ebae5b4a9",
+    "facultyCBSid": "370",
+    "facultyCBScode": "rohit.khera.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Brajendra Singh",
+    "email": "brajendra.singh.faculty@testbook.com",
+    "facultyLMSid": "63a56c1fd609fe7d7e9bb78c",
+    "facultyCBSid": "371",
+    "facultyCBScode": "brajendra.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vaibhav Raut Sir",
+    "email": "vaibhav.raut@testbook.com",
+    "facultyLMSid": "63a2e2abb0bac52a222997e3",
+    "facultyCBSid": "372",
+    "facultyCBScode": "vaibhav.raut",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vasudev Dwivedi",
+    "email": "vasudev.dwivedi.faculty@testbook.com",
+    "facultyLMSid": "63a94bc890a184639d0ad75a",
+    "facultyCBSid": "373",
+    "facultyCBScode": "vasudev.dwivedi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vaibhav Mishra",
+    "email": "vaibhav.mishra.faculty@testbook.com",
+    "facultyLMSid": "63a949f99c0b33a55bdd83f8",
+    "facultyCBSid": "374",
+    "facultyCBScode": "vaibhav.mishra.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Naveen pankaj",
+    "email": "naveen.pankaj.faculty@testbook.com",
+    "facultyLMSid": "63a17c0def28a1cb1802701e",
+    "facultyCBSid": "375",
+    "facultyCBScode": "naveen.pankaj.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sumit Shukla",
+    "email": "sumit.shukla.faculty@testbook.com",
+    "facultyLMSid": "63a949897e5db0ef616e7a16",
+    "facultyCBSid": "376",
+    "facultyCBScode": "sumit.shukla.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Uzair Khan Sir",
+    "email": "uzair.khan.faculty@testbook.com",
+    "facultyLMSid": "63a94b8e489ba792efd21b00",
+    "facultyCBSid": "377",
+    "facultyCBScode": "uzair.khan.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Raj Rana Sir",
+    "email": "raj.rana.faculty@testbook.com",
+    "facultyLMSid": "63b29800ca6f173e41eece5e",
+    "facultyCBSid": "378",
+    "facultyCBScode": "raj.rana.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shashi Sawan",
+    "email": "shashi.kumar@testbook.com",
+    "facultyLMSid": "63720d609c621ae520a0ab56",
+    "facultyCBSid": "379",
+    "facultyCBScode": "shashi.kumar",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Raghvendra Singh",
+    "email": "raghvendra.singh.faculty@testbook.com",
+    "facultyLMSid": "63b3dd797a180580fd734096",
+    "facultyCBSid": "380",
+    "facultyCBScode": "raghvendra.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Prince Kumar",
+    "email": "prince.kumar.faculty@testbook.com",
+    "facultyLMSid": "63b952c49b0a04ae51b5321a",
+    "facultyCBSid": "381",
+    "facultyCBScode": "prince.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nisreen Karmalawala",
+    "email": "nisreen.karmalawala.faculty@testbook.com",
+    "facultyLMSid": "63c00f38f0419cc9530957fc",
+    "facultyCBSid": "382",
+    "facultyCBScode": "nisreen.karmalawala.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ruchi Sarna",
+    "email": "ruchi.sarna.faculty@testbook.com",
+    "facultyLMSid": "63c1456ed07c52c7987c8f8b",
+    "facultyCBSid": "383",
+    "facultyCBScode": "ruchi.sarna.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rohit Jain",
+    "email": "rohit.jain.faculty@testbook.com",
+    "facultyLMSid": "63c51f04cd8d9040b39805b6",
+    "facultyCBSid": "384",
+    "facultyCBScode": "rohit.jain.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Priti Hooda Ma'am",
+    "email": "priti.hooda@testbook.com",
+    "facultyLMSid": "63c5459259ad25ee8c52c00a",
+    "facultyCBSid": "385",
+    "facultyCBScode": "priti.hooda",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Tulika Rai",
+    "email": "tulika.rai@testbook.com",
+    "facultyLMSid": "63c5469b4e23449cc8f68016",
+    "facultyCBSid": "386",
+    "facultyCBScode": "tulika.rai",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Lekha Janardhan",
+    "email": "lekha.janardhan.faculty@testbook.com",
+    "facultyLMSid": "63ba7621b4e4ad2b1668ab36",
+    "facultyCBSid": "387",
+    "facultyCBScode": "lekha.janardhan.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dr. Lalit Pal",
+    "email": "lalit.pal@testbook.com",
+    "facultyLMSid": "63cfe22f0adfcb789b8803e8",
+    "facultyCBSid": "388",
+    "facultyCBScode": "lalit.pal",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Soumya Patil",
+    "email": "soumya.patil.faculty@testbook.com",
+    "facultyLMSid": "63d3a9c7c61404d5c0ad6aa0",
+    "facultyCBSid": "389",
+    "facultyCBScode": "soumya.patil.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Saurabh Gupta",
+    "email": "saurabh.gupta.faculty@testbook.com",
+    "facultyLMSid": "63d3aa89cb413cec0073fa78",
+    "facultyCBSid": "390",
+    "facultyCBScode": "saurabh.gupta.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rishabh Garg, Google",
+    "email": "rishabh.garg.faculty@testbook.com",
+    "facultyLMSid": "63d3aa469d7c31d58e603fa1",
+    "facultyCBSid": "392",
+    "facultyCBScode": "rishabh.garg.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Richa Arora Ma'am",
+    "email": "richa.arora.faculty@testbook.com",
+    "facultyLMSid": "63d141bc58f1e21eafd5ef1f",
+    "facultyCBSid": "393",
+    "facultyCBScode": "richa.arora.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sonam Soni",
+    "email": "sonam.soni.faculty@testbook.com",
+    "facultyLMSid": "63d77a86de3fd9a46e78d51f",
+    "facultyCBSid": "394",
+    "facultyCBScode": "sonam.soni.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Utkarsh Tiwary",
+    "email": "utkarsh.tiwary.skillfaculty@testbook.com",
+    "facultyLMSid": "63db5726fef98a9ef268c0d4",
+    "facultyCBSid": "395",
+    "facultyCBScode": "utkarsh.tiwary.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kaushal Sarswat Sir",
+    "email": "kaushal.sarswat@testbook.com",
+    "facultyLMSid": "63da799d9d4f868865e2e7d9",
+    "facultyCBSid": "396",
+    "facultyCBScode": "kaushal.sarswat",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dolly Kalra",
+    "email": "dolly.kalra.faculty@testbook.com",
+    "facultyLMSid": "63e0c0a3d2fa3185a60e0c8a",
+    "facultyCBSid": "397",
+    "facultyCBScode": "dolly.kalra.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Niti Jangale Ma'am",
+    "email": "niti.jangale.faculty@testbook.com",
+    "facultyLMSid": "63e62503e681c4b61ae1ee53",
+    "facultyCBSid": "398",
+    "facultyCBScode": "niti.jangale.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mahmood Ahmad",
+    "email": "mahmood.ahmad@testbook.com",
+    "facultyLMSid": "62f0e2b30e0f255e70e04aa5",
+    "facultyCBSid": "399",
+    "facultyCBScode": "mahmood.ahmad",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Jyoti Jha",
+    "email": "jyoti.jha.faculty@testbook.com",
+    "facultyLMSid": "63f4f10d7786436cedc52eb9",
+    "facultyCBSid": "400",
+    "facultyCBScode": "jyoti.jha.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dr. Ashish Kumar Gupta",
+    "email": "ashish.gupta.faculty@testbook.com",
+    "facultyLMSid": "63fc4fa3ca53c35f074c53ba",
+    "facultyCBSid": "401",
+    "facultyCBScode": "ashish.gupta.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Amit Maurya",
+    "email": "amit.maurya.faculty@testbook.com",
+    "facultyLMSid": "63ff1a58f32b2868bd9cf90e",
+    "facultyCBSid": "402",
+    "facultyCBScode": "amit.maurya.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Apoorv Mittal",
+    "email": "apoorv.mittal.faculty@testbook.com",
+    "facultyLMSid": "63ff1bc08326fe477471381d",
+    "facultyCBSid": "403",
+    "facultyCBScode": "apoorv.mittal.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dr. Deepshikha Goswami",
+    "email": "deepshikha.goswami@testbook.com",
+    "facultyLMSid": "6405d5013b7d6a844e9d429b",
+    "facultyCBSid": "404",
+    "facultyCBScode": "deepshikha.goswami",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ankit Goel",
+    "email": "ankit.goel.faculty@testbook.com",
+    "facultyLMSid": "6405d29965e4938c9e529439",
+    "facultyCBSid": "405",
+    "facultyCBScode": "ankit.goel.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mayank Sahu",
+    "email": "mayank.sahu.faculty@testbook.com",
+    "facultyLMSid": "640869c77050c5e9de1a6fd0",
+    "facultyCBSid": "406",
+    "facultyCBScode": "mayank.sahu.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Garima Gautam Ma'am",
+    "email": "garima.gautam.faculty@testbook.com",
+    "facultyLMSid": "640ed18a1de6e53d3ade44e3",
+    "facultyCBSid": "407",
+    "facultyCBScode": "garima.gautam.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pratik Pandey",
+    "email": "pratik.pandey.faculty@testbook.com",
+    "facultyLMSid": "64102fdc7e2513ab45232cf5",
+    "facultyCBSid": "408",
+    "facultyCBScode": "pratik.pandey.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Chirantan Lonkar",
+    "email": "chirantan.lonkar.faculty@testbook.com",
+    "facultyLMSid": "64102f4e738fb1c9402a8ec1",
+    "facultyCBSid": "409",
+    "facultyCBScode": "chirantan.lonkar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Megha Jain",
+    "email": "megha.jain.faculty@testbook.com",
+    "facultyLMSid": "64102fa11f107079eaa99f05",
+    "facultyCBSid": "410",
+    "facultyCBScode": "megha.jain.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sweta Singh",
+    "email": "sweta.singh.faculty@testbook.com",
+    "facultyLMSid": "6410268d046412b8edc3a639",
+    "facultyCBSid": "411",
+    "facultyCBScode": "sweta.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Akash Randev",
+    "email": "akash.randev.faculty@testbook.com",
+    "facultyLMSid": "6410260d695a563760e25231",
+    "facultyCBSid": "412",
+    "facultyCBScode": "akash.randev.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "K Navin Iyer",
+    "email": "navin.iyer.faculty@testbook.com",
+    "facultyLMSid": "6410278298509dc797c37c3f",
+    "facultyCBSid": "413",
+    "facultyCBScode": "navin.iyer.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sharad Mudgal",
+    "email": "sharad.mudgal.faculty@testbook.com",
+    "facultyLMSid": "641025797e2513ab4521ed43",
+    "facultyCBSid": "414",
+    "facultyCBScode": "sharad.mudgal.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Deepak Sirohiwal",
+    "email": "deepak.sirohiwal@testbook.com",
+    "facultyLMSid": "6405deaa4878a3279e6480e6",
+    "facultyCBSid": "416",
+    "facultyCBScode": "deepak.sirohiwal",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Jaideep Kashyap",
+    "email": "jaideep.kashyap.faculty@testbook.com",
+    "facultyLMSid": "641028367e2513ab45223c56",
+    "facultyCBSid": "417",
+    "facultyCBScode": "jaideep.kashyap.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Prince Kumar",
+    "email": "prince.skillfaculty@testbook.com",
+    "facultyLMSid": "641030205bba4263cd737b9a",
+    "facultyCBSid": "418",
+    "facultyCBScode": "prince.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vijay Vikram Sir",
+    "email": "vijay.vikram.faculty@testbook.com",
+    "facultyLMSid": "64218008f47e735cf8717318",
+    "facultyCBSid": "419",
+    "facultyCBScode": "vijay.vikram.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rani Jain",
+    "email": "rani.jain.faculty@testbook.com",
+    "facultyLMSid": "64217fa39e8d1f60e6d500be",
+    "facultyCBSid": "420",
+    "facultyCBScode": "rani.jain.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mahesh Bhambere",
+    "email": "mahesh.bhambere@testbook.com",
+    "facultyLMSid": "62f8ceb67a9074136780e09b",
+    "facultyCBSid": "421",
+    "facultyCBScode": "mahesh.bhambere",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sandeep Sharma",
+    "email": "sandeep.sharma.rjfaculty@testbook.com",
+    "facultyLMSid": "6427ee317b8a30aa7e10904e",
+    "facultyCBSid": "423",
+    "facultyCBScode": "sandeep.sharma.rjfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Koshlendra Sharma",
+    "email": "koshlendra.sharma.rjfaculty@testbook.com",
+    "facultyLMSid": "6427ee8e7b8a30aa7e109ef6",
+    "facultyCBSid": "424",
+    "facultyCBScode": "koshlendra.sharma.rjfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Jagdeep Singh",
+    "email": "jagdeep.singh.rjfaculty@testbook.com",
+    "facultyLMSid": "6427ef7b0e46b1c8fde54964",
+    "facultyCBSid": "425",
+    "facultyCBScode": "jagdeep.singh.rjfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rameshwar Singh",
+    "email": "rameshwar.singh.rjfaculty@testbook.com",
+    "facultyLMSid": "6427f0bd992e5274aa077dbc",
+    "facultyCBSid": "426",
+    "facultyCBScode": "rameshwar.singh.rjfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sita Chaudhary",
+    "email": "sita.chaudhary.rjfaculty@testbook.com",
+    "facultyLMSid": "6427f1627b8a30aa7e1105ed",
+    "facultyCBSid": "427",
+    "facultyCBScode": "sita.chaudhary.rjfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Supriya Gaur",
+    "email": "supriya.gaur.rjfaculty@testbook.com",
+    "facultyLMSid": "6427f78c0f1542448b352022",
+    "facultyCBSid": "428",
+    "facultyCBScode": "supriya.gaur.rjfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sudeep Srivastava",
+    "email": "sudeep.srivastava.rjfaculty@testbook.com",
+    "facultyLMSid": "6427f1ec1355aa9d60a38edb",
+    "facultyCBSid": "429",
+    "facultyCBScode": "sudeep.srivastava.rjfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ankit Shukla",
+    "email": "ankit.shukla.rjfaculty@testbook.com",
+    "facultyLMSid": "6427f23a37184cb63f9ca192",
+    "facultyCBSid": "430",
+    "facultyCBScode": "ankit.shukla.rjfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Tarun Kumar",
+    "email": "tarun.kumar.rjfaculty@testbook.com",
+    "facultyLMSid": "6427f28b992e5274aa07b479",
+    "facultyCBSid": "431",
+    "facultyCBScode": "tarun.kumar.rjfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mr. S. S. Rajawat",
+    "email": "s.rajawat.rjfaculty@testbook.com",
+    "facultyLMSid": "6427f2dd992e5274aa07be24",
+    "facultyCBSid": "432",
+    "facultyCBScode": "s.rajawat.rjfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Bhagwan Sahai",
+    "email": "bhagwan.sahai.rjfaculty@testbook.com",
+    "facultyLMSid": "6427f4267b8a30aa7e115f09",
+    "facultyCBSid": "433",
+    "facultyCBScode": "bhagwan.sahai.rjfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vivek Chaudhary",
+    "email": "vivek.chaudhary.rjfaculty@testbook.com",
+    "facultyLMSid": "6427f8b9a9846f66b58331c8",
+    "facultyCBSid": "434",
+    "facultyCBScode": "vivek.chaudhary.rjfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Jitendra Sharma",
+    "email": "jitendra.sharma.rjfaculty@testbook.com",
+    "facultyLMSid": "6427f90385715647ac6e71cb",
+    "facultyCBSid": "435",
+    "facultyCBScode": "jitendra.sharma.rjfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Brijendra Chaudhary",
+    "email": "brijendra.chaudhary.rjfaculty@testbook.com",
+    "facultyLMSid": "6427f9521355aa9d60a48a6b",
+    "facultyCBSid": "436",
+    "facultyCBScode": "brijendra.chaudhary.rjfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ravindra Shekhawat",
+    "email": "ravindra.shekhawat.rjfaculty@testbook.com",
+    "facultyLMSid": "6427fa010f1542448b358243",
+    "facultyCBSid": "437",
+    "facultyCBScode": "ravindra.shekhawat.rjfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Puneet Chaudhary",
+    "email": "puneet.kumar@testbook.com",
+    "facultyLMSid": "643671522ceeb46469b5d135",
+    "facultyCBSid": "438",
+    "facultyCBScode": "puneet.kumar",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anukriti Chauhan",
+    "email": "anukriti.chauhan.rjfaculty@testbook.com",
+    "facultyLMSid": "6438f3e8a289d252f4067947",
+    "facultyCBSid": "439",
+    "facultyCBScode": "anukriti.chauhan.rjfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Deependra Singh",
+    "email": "deependra.singh.faculty@testbook.com",
+    "facultyLMSid": "643cfadb88241e7ba1819562",
+    "facultyCBSid": "440",
+    "facultyCBScode": "deependra.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anand Singh",
+    "email": "anand.singh.rjfaculty@testbook.com",
+    "facultyLMSid": "643d64ca4b4d60f24aa93ef2",
+    "facultyCBSid": "441",
+    "facultyCBScode": "anand.singh.rjfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Uday Pratap Sir",
+    "email": "uday.singh.faculty@testbook.com",
+    "facultyLMSid": "644a3762bd6fffdc70c93eb7",
+    "facultyCBSid": "442",
+    "facultyCBScode": "uday.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Prernna Kaushik",
+    "email": "prernna.kaushik.faculty@testbook.com",
+    "facultyLMSid": "644bd1399299b9e92fbd8ec3",
+    "facultyCBSid": "443",
+    "facultyCBScode": "prernna.kaushik.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anupam Srivastava",
+    "email": "anupam.srivastava.skillfaculty@testbook.com",
+    "facultyLMSid": "645f53213860166d436df856",
+    "facultyCBSid": "444",
+    "facultyCBScode": "anupam.srivastava.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ravi Kapoor Sir",
+    "email": "ravikapoor.supermentor@testbook.com",
+    "facultyLMSid": "645e224f078f8508f10f123b",
+    "facultyCBSid": "445",
+    "facultyCBScode": "ravikapoor.supermentor",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Chandan Kumar",
+    "email": "chandan.kumar.skillfaculty@testbook.com",
+    "facultyLMSid": "646358f54364d82f333cf187",
+    "facultyCBSid": "446",
+    "facultyCBScode": "chandan.kumar.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kapil Bhardwaj",
+    "email": "kapil.kumar@testbook.com",
+    "facultyLMSid": "646370f5d3c68c5343f0f759",
+    "facultyCBSid": "447",
+    "facultyCBScode": "kapil.kumar",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vaibhav Nagar",
+    "email": "vaibhav.nagar.skillfaculty@testbook.com",
+    "facultyLMSid": "646359bc7228faad7b77ed52",
+    "facultyCBSid": "448",
+    "facultyCBScode": "vaibhav.nagar.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rajnish Sharma",
+    "email": "rajnish.sharma@testbook.com",
+    "facultyLMSid": "646b0af4426dfc758f6921c4",
+    "facultyCBSid": "449",
+    "facultyCBScode": "rajnish.sharma",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ankush Bansal",
+    "email": "ankush.bansal.skillfaculty@testbook.com",
+    "facultyLMSid": "647479683c963d2df7d28760",
+    "facultyCBSid": "450",
+    "facultyCBScode": "ankush.bansal.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kawaljot Baweja",
+    "email": "kawaljot.baweja.faculty@testbook.com",
+    "facultyLMSid": "64748ffcc78bf818478c5724",
+    "facultyCBSid": "451",
+    "facultyCBScode": "kawaljot.baweja.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nanki Baweja",
+    "email": "nanki.baweja.faculty@testbook.com",
+    "facultyLMSid": "64783a275f0cf2b04d4fabb9",
+    "facultyCBSid": "452",
+    "facultyCBScode": "nanki.baweja.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Murtuza Dahodwala",
+    "email": "murtuza.dahodwala.skillfaculty@testbook.com",
+    "facultyLMSid": "64841a31e3188383a52b31dd",
+    "facultyCBSid": "453",
+    "facultyCBScode": "murtuza.dahodwala.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Simran Nagra",
+    "email": "simran.nagra.faculty@testbook.com",
+    "facultyLMSid": "6487fdd6d912f3df3cffbea4",
+    "facultyCBSid": "454",
+    "facultyCBScode": "simran.nagra.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ankit Sharma",
+    "email": "ankit.sharma@testbook.com",
+    "facultyLMSid": "6489c7a81317fb0181b2f758",
+    "facultyCBSid": "455",
+    "facultyCBScode": "ankit.sharma",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Akshay Kumar",
+    "email": "akshay.kumar.faculty@testbook.com",
+    "facultyLMSid": "648b204593bdc65909edaa7d",
+    "facultyCBSid": "456",
+    "facultyCBScode": "akshay.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Akram Ali",
+    "email": "akram.ali.skillfaculty@testbook.com",
+    "facultyLMSid": "647f41f4fdadf02b6f80f613",
+    "facultyCBSid": "457",
+    "facultyCBScode": "akram.ali.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anshul Saini",
+    "email": "anshul.saini.faculty@testbook.com",
+    "facultyLMSid": "62b400dcda6508c0c6b6e086",
+    "facultyCBSid": "458",
+    "facultyCBScode": "anshul.saini.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Tauheed Nadeem",
+    "email": "tauheed.nadeem.faculty@testbook.com",
+    "facultyLMSid": "648993266747b0af286b8be7",
+    "facultyCBSid": "459",
+    "facultyCBScode": "tauheed.nadeem.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anurag Parashar",
+    "email": "anurag.parashar.skillfreelance@testbook.com",
+    "facultyLMSid": "649ec8e2f556e9405bc66909",
+    "facultyCBSid": "460",
+    "facultyCBScode": "anurag.parashar.skillfreelance",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dr. Meenu Dabas",
+    "email": "meenu.faculty@testbook.com",
+    "facultyLMSid": "64a2b5c58f7f03022cfe52c5",
+    "facultyCBSid": "461",
+    "facultyCBScode": "meenu.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Saurabh Gaikwad",
+    "email": "saurabh.gaikwad@testbook.com",
+    "facultyLMSid": "62c6ce041194668d58c9550a",
+    "facultyCBSid": "462",
+    "facultyCBScode": "saurabh.gaikwad",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sanchit Goel",
+    "email": "sanchit.goel@testbook.com",
+    "facultyLMSid": "6023c312e022c6df54df4468",
+    "facultyCBSid": "463",
+    "facultyCBScode": "sanc",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vishal Kumar",
+    "email": "vishal.kumar.faculty@testbook.com",
+    "facultyLMSid": "61bd7c76adb2aa9d2131d38c",
+    "facultyCBSid": "464",
+    "facultyCBScode": "VIS",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Amandeep Sir",
+    "email": "amandeep.sharma.faculty@testbook.com",
+    "facultyLMSid": "64a697ec4c6231c72d3c40ef",
+    "facultyCBSid": "466",
+    "facultyCBScode": "amandeep.sharma.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Manoj Sonker Sir",
+    "email": "manoj.sonker.faculty@testbook.com",
+    "facultyLMSid": "649c0b4df3a0c3326bb9941e",
+    "facultyCBSid": "467",
+    "facultyCBScode": "manoj.sonker.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Renu",
+    "email": "renu.kumar.faculty@testbook.com",
+    "facultyLMSid": "64ad0bba64a9d4f0348fa6fb",
+    "facultyCBSid": "468",
+    "facultyCBScode": "renu.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Muskan Handa",
+    "email": "muskan.handa.skillfaculty@testbook.com",
+    "facultyLMSid": "64ad023dbd417508ac0bb93e",
+    "facultyCBSid": "469",
+    "facultyCBScode": "muskan.handa.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Megna Roy",
+    "email": "megna.roy.skillfaculty@testbook.com",
+    "facultyLMSid": "64ad02f076f4b30c27bfde49",
+    "facultyCBSid": "470",
+    "facultyCBScode": "megna.roy.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Snehil Tripathi Sir",
+    "email": "snehil.tripathi.faculty@testbook.com",
+    "facultyLMSid": "64ae4196358d04994da04a84",
+    "facultyCBSid": "471",
+    "facultyCBScode": "snehil.tripathi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Khushboo Gupta",
+    "email": "khushboo.gupta.skillfaculty@testbook.com",
+    "facultyLMSid": "64ad03f95a7bdb2ea8bb202b",
+    "facultyCBSid": "472",
+    "facultyCBScode": "khushboo.gupta.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Tanisha Madewala",
+    "email": "tanisha.medewala.skillfaculty@testbook.com",
+    "facultyLMSid": "64ad039c40aca0e7c317ec64",
+    "facultyCBSid": "473",
+    "facultyCBScode": "tanisha.medewala.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Swati Bhat",
+    "email": "swati.bhat.faculty@testbook.com",
+    "facultyLMSid": "64b519ebad4c0363d0b6117d",
+    "facultyCBSid": "474",
+    "facultyCBScode": "swati.bhat.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Bhavya Goradia",
+    "email": "bhavya.goradia.skillfaculty@testbook.com",
+    "facultyLMSid": "64ad034e757dc9436b7b8d79",
+    "facultyCBSid": "475",
+    "facultyCBScode": "bhavya.goradia.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shrishti Omar",
+    "email": "shrishti.omar.skillfaculty@testbook.com",
+    "facultyLMSid": "64ba678a474fab19f23c8aeb",
+    "facultyCBSid": "476",
+    "facultyCBScode": "shrishti.omar.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Gladden Rumao",
+    "email": "gladden.rumao.skillfaculty@testbook.com",
+    "facultyLMSid": "64b932043ecbd6fc9acb3a97",
+    "facultyCBSid": "477",
+    "facultyCBScode": "gladden.rumao.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shubham Agarwal",
+    "email": "shubham.agarwal.faculty@testbook.com",
+    "facultyLMSid": "64bfaab17fecff4ffb3e85cf",
+    "facultyCBSid": "478",
+    "facultyCBScode": "shubham.agarwal.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Uprant Panchal",
+    "email": "uprant.panchal.faculty@testbook.com",
+    "facultyLMSid": "64c1219519f1bc748688aff5",
+    "facultyCBSid": "479",
+    "facultyCBScode": "uprant.panchal.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anirban Paul",
+    "email": "anirban.paul.skillfaculty@testbook.com",
+    "facultyLMSid": "64c253f89dd40ed5c0ee166b",
+    "facultyCBSid": "480",
+    "facultyCBScode": "anirban.paul.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Gaurav Rawat",
+    "email": "gaurav.rawat.skillfaculty@testbook.com",
+    "facultyLMSid": "64c2538bcf26eb246e4478d7",
+    "facultyCBSid": "481",
+    "facultyCBScode": "gaurav.rawat.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Abid Khan Sir",
+    "email": "abid.khan.faculty@testbook.com",
+    "facultyLMSid": "64c7af6c7ca04ba0e0677bdb",
+    "facultyCBSid": "482",
+    "facultyCBScode": "abid.khan.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vidhu Vireshwar Sharma",
+    "email": "vidhu.sharma.faculty@testbook.com",
+    "facultyLMSid": "64c78586d0d2b9a789676289",
+    "facultyCBSid": "483",
+    "facultyCBScode": "vidhu.sharma.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Komal Kondikire",
+    "email": "komal.kondikire.faculty@testbook.com",
+    "facultyLMSid": "64c7afb3e7932da73e7d5a4c",
+    "facultyCBSid": "484",
+    "facultyCBScode": "komal.kondikire.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kajal Randive",
+    "email": "kajal.randive.faculty@testbook.com",
+    "facultyLMSid": "64c7af8db36621d40569de78",
+    "facultyCBSid": "485",
+    "facultyCBScode": "kajal.randive.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ekta Negi",
+    "email": "ekta.negi.skillfaculty@testbook.com",
+    "facultyLMSid": "64c2541ffb973551af5fe7f8",
+    "facultyCBSid": "486",
+    "facultyCBScode": "ekta.negi.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dayanand Hale",
+    "email": "dayanand.hale.faculty@testbook.com",
+    "facultyLMSid": "64c7afd524030804fc78cbbf",
+    "facultyCBSid": "487",
+    "facultyCBScode": "dayanand.hale.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Gurunandan Kumar",
+    "email": "gurunandan.faculty@testbook.com",
+    "facultyLMSid": "64d24d727c9348563eb0ed85",
+    "facultyCBSid": "488",
+    "facultyCBScode": "gurunandan.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Prashant Kumar (Faculty)",
+    "email": "prashant.kumar.faculty@testbook.com",
+    "facultyLMSid": "64d3937f0a6985368957bfea",
+    "facultyCBSid": "489",
+    "facultyCBScode": "prashant.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Harshita Khurana Ma'am",
+    "email": "harshita.khurana.faculty@testbook.com",
+    "facultyLMSid": "64d3b600badd5d9ca3007507",
+    "facultyCBSid": "490",
+    "facultyCBScode": "harshita.khurana.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Amitesh Pandey",
+    "email": "amitesh.pandey.faculty@testbook.com",
+    "facultyLMSid": "64d35f0dddd68d4ef070ef62",
+    "facultyCBSid": "491",
+    "facultyCBScode": "amitesh.pandey.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mahesh Patil",
+    "email": "mahesh.patil.faculty@testbook.com",
+    "facultyLMSid": "64d9f230ab67693e457428af",
+    "facultyCBSid": "492",
+    "facultyCBScode": "mahesh.patil.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Hissan Danish",
+    "email": "hissan.danish.skillfaculty@testbook.com",
+    "facultyLMSid": "64ddfed5ad7bcff92aea028b",
+    "facultyCBSid": "493",
+    "facultyCBScode": "hissan.danish.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ridam Garg",
+    "email": "ridam.garg.freelance@testbook.com",
+    "facultyLMSid": "64df4b51efdbc3bf89b17b8e",
+    "facultyCBSid": "494",
+    "facultyCBScode": "ridam.garg.freelance",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Uttam Grade",
+    "email": "uttam.grade.skillfaculty@testbook.com",
+    "facultyLMSid": "64ddf2ba3d696d0e2faef247",
+    "facultyCBSid": "495",
+    "facultyCBScode": "uttam.grade.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Samraat Pattanayak",
+    "email": "samraat.skillfaculty@testbook.com",
+    "facultyLMSid": "64ddf92493444403b957b8e1",
+    "facultyCBSid": "496",
+    "facultyCBScode": "samraat.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Atish Babanrao Gajbhiye",
+    "email": "atish.gajbhiye.faculty@testbook.com",
+    "facultyLMSid": "64df4686fbfb5554455b4996",
+    "facultyCBSid": "497",
+    "facultyCBScode": "atish.gajbhiye.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ashish Ogley Sir",
+    "email": "ashish.ogley.faculty@testbook.com",
+    "facultyLMSid": "64f1e02ca83a0cb209c9c742",
+    "facultyCBSid": "498",
+    "facultyCBScode": "ashish.ogley.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ashwani Tyagi Sir",
+    "email": "ashwani.tyagi.faculty@testbook.com",
+    "facultyLMSid": "64f30bdc293bd20500fdffca",
+    "facultyCBSid": "499",
+    "facultyCBScode": "ashwani.tyagi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Priya Tiwari Ma'am",
+    "email": "priya.tiwari.faculty@testbook.com",
+    "facultyLMSid": "64f6d6b46abab39f05c5af30",
+    "facultyCBSid": "500",
+    "facultyCBScode": "priya.tiwari.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Abhinav Singh",
+    "email": "abhinav.singh.faculty@testbook.com",
+    "facultyLMSid": "64f9703b18b5034f8c686b80",
+    "facultyCBSid": "501",
+    "facultyCBScode": "abhinav.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vivek Sharma Sir",
+    "email": "vivek.sharma.faculty@testbook.com",
+    "facultyLMSid": "64fab40a268a5259c4640711",
+    "facultyCBSid": "502",
+    "facultyCBScode": "vivek.sharma.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anupam Bhardwaj",
+    "email": "anupam.faculty@testbook.com",
+    "facultyLMSid": "64fafc41b6430cec8ddd3d83",
+    "facultyCBSid": "503",
+    "facultyCBScode": "anupam.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shubham Tiwari Sir",
+    "email": "shubham.tiwari.faculty@testbook.com",
+    "facultyLMSid": "64fc43a060cb274e92364821",
+    "facultyCBSid": "504",
+    "facultyCBScode": "shubham.tiwari.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dibyendu Kundu Sir",
+    "email": "dibyendu.kundu.faculty@testbook.com",
+    "facultyLMSid": "64ff3dcba66eb6846c3fcd78",
+    "facultyCBSid": "505",
+    "facultyCBScode": "dibyendu.kundu.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shubham Ghosh Sir",
+    "email": "shubham.ghosh.faculty@testbook.com",
+    "facultyLMSid": "64ff3b556b4473ce19ee7a1d",
+    "facultyCBSid": "506",
+    "facultyCBScode": "shubham.ghosh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Manjistha Sarkar",
+    "email": "manjistha.sarkar.faculty@testbook.com",
+    "facultyLMSid": "64ff3ffcf406dcbd70e66b61",
+    "facultyCBSid": "507",
+    "facultyCBScode": "manjistha.sarkar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Saikat Basak Sir",
+    "email": "saikat.basak.faculty@testbook.com",
+    "facultyLMSid": "64ff352524da7c93cfe96ca1",
+    "facultyCBSid": "508",
+    "facultyCBScode": "saikat.basak.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Madhurima Goswami",
+    "email": "madhurima.goswami.faculty@testbook.com",
+    "facultyLMSid": "64ff36edd360d811b4e82708",
+    "facultyCBSid": "509",
+    "facultyCBScode": "madhurima.goswami.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Saransh Saini",
+    "email": "saransh.saini@testbook.com",
+    "facultyLMSid": "63f6072f8ba069e41e77333a",
+    "facultyCBSid": "510",
+    "facultyCBScode": "saransh.saini",
+    "status": "Active"
+  },
+  {
+    "facultyName": "vishnu gupta",
+    "email": "vishnu@testbook.com",
+    "facultyLMSid": "57a1e3c39389866df6c80fd1",
+    "facultyCBSid": "511",
+    "facultyCBScode": "vishnu",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Udit Kumar Kushwaha",
+    "email": "udit.kushwaha.faculty@testbook.com",
+    "facultyLMSid": "650d8a6551d9e23b5ef030e6",
+    "facultyCBSid": "512",
+    "facultyCBScode": "udit.kushwaha.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vivek Ranjan Singh",
+    "email": "vivek.ranjan.faculty@testbook.com",
+    "facultyLMSid": "65155313e63872d9efc5be33",
+    "facultyCBSid": "513",
+    "facultyCBScode": "vivek.ranjan.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sachin Bhure",
+    "email": "sachin.bhure.faculty@testbook.com",
+    "facultyLMSid": "6520f6d2e489a40f719213b0",
+    "facultyCBSid": "514",
+    "facultyCBScode": "sachin.bhure.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Harshad Mane Sir",
+    "email": "harshad.mane.faculty@testbook.com",
+    "facultyLMSid": "6520f699b6ca222dfa4af315",
+    "facultyCBSid": "515",
+    "facultyCBScode": "harshad.mane.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Saheli Ghosh Ma'am",
+    "email": "saheli.ghosh.faculty@testbook.com",
+    "facultyLMSid": "652650ea2978803200d9a026",
+    "facultyCBSid": "516",
+    "facultyCBScode": "saheli.ghosh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dr. Kavita Nunia",
+    "email": "kavita.faculty@testbook.com",
+    "facultyLMSid": "6526509808193f2f615fa533",
+    "facultyCBSid": "517",
+    "facultyCBScode": "kavita.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Prahlad Ram Sharan",
+    "email": "prahlad.sharan.faculty@testbook.com",
+    "facultyLMSid": "652650c3c7bbc9d6948e6b57",
+    "facultyCBSid": "518",
+    "facultyCBScode": "prahlad.sharan.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Goutam Ghosal Sir",
+    "email": "goutam.ghosal.faculty@testbook.com",
+    "facultyLMSid": "65265064c67f05a3703b285e",
+    "facultyCBSid": "519",
+    "facultyCBScode": "goutam.ghosal.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Monali Kungani",
+    "email": "monali.kungani.faculty@testbook.com",
+    "facultyLMSid": "65264fef2d721e927f2a158a",
+    "facultyCBSid": "520",
+    "facultyCBScode": "monali.kungani.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sourav Paul",
+    "email": "sourav.paul.faculty@testbook.com",
+    "facultyLMSid": "65264faeb0209b23efa7c934",
+    "facultyCBSid": "521",
+    "facultyCBScode": "sourav.paul.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Arfaz Shaikh",
+    "email": "arfaj.shaikh.faculty@testbook.com",
+    "facultyLMSid": "65264f8353fb1cf697d886c9",
+    "facultyCBSid": "522",
+    "facultyCBScode": "arfaj.shaikh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rashika Gupta",
+    "email": "rashika.gupta.faculty@testbook.com",
+    "facultyLMSid": "65278734577db5ad89b37a11",
+    "facultyCBSid": "523",
+    "facultyCBScode": "rashika.gupta.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ambuj Shukla",
+    "email": "ambuj.shukla.faculty@testbook.com",
+    "facultyLMSid": "652baeeecdc2b7cf045f625a",
+    "facultyCBSid": "524",
+    "facultyCBScode": "ambuj.shukla.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Raghav Gupta",
+    "email": "raghav.gupta.faculty@testbook.com",
+    "facultyLMSid": "652baec6ff35124f98c17b5b",
+    "facultyCBSid": "525",
+    "facultyCBScode": "raghav.gupta.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ankit Sachan",
+    "email": "ankit.sachan.faculty@testbook.com",
+    "facultyLMSid": "652baf16a467ccb5062c4887",
+    "facultyCBSid": "526",
+    "facultyCBScode": "ankit.sachan.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Durgesh Mishra",
+    "email": "durgesh.mishra.faculty@testbook.com",
+    "facultyLMSid": "652baf43ff35124f98c19142",
+    "facultyCBSid": "527",
+    "facultyCBScode": "durgesh.mishra.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sudhanshu Patel",
+    "email": "sudhanshu.patel.faculty@testbook.com",
+    "facultyLMSid": "652baf6ecdc2b7cf045f74a8",
+    "facultyCBSid": "528",
+    "facultyCBScode": "sudhanshu.patel.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rahul Shukla",
+    "email": "rahul.shukla.faculty@testbook.com",
+    "facultyLMSid": "652baf978cc2ed95a33831c4",
+    "facultyCBSid": "529",
+    "facultyCBScode": "rahul.shukla.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dhruv Jain",
+    "email": "dhruv.jain@testbook.com",
+    "facultyLMSid": "65368819228f9c919a718168",
+    "facultyCBSid": "530",
+    "facultyCBScode": "dhruv.jain",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rahul Mishra Mentor",
+    "email": "rahul.mishra@testbook.com",
+    "facultyLMSid": "65367d24a66543adbf121c34",
+    "facultyCBSid": "531",
+    "facultyCBScode": "rahul.mishra",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ashni Kankate",
+    "email": "ashni.kankate@testbook.com",
+    "facultyLMSid": "65367cc432cad5217f46c8f6",
+    "facultyCBSid": "532",
+    "facultyCBScode": "ashni.kankate",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Princi Gupta",
+    "email": "princi.gupta@testbook.com",
+    "facultyLMSid": "65367bb4a66543adbf11fd01",
+    "facultyCBSid": "533",
+    "facultyCBScode": "princi.gupta",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vasundhara",
+    "email": "vasundhara.chaudhry@testbook.com",
+    "facultyLMSid": "65367be6a66543adbf120154",
+    "facultyCBSid": "534",
+    "facultyCBScode": "vasundhara.chaudhry",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Jasleen Kaur",
+    "email": "jasleen.kaur@testbook.com",
+    "facultyLMSid": "65367b7da66543adbf11f7a4",
+    "facultyCBSid": "535",
+    "facultyCBScode": "jasleen.kaur",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sreelakshmi K v",
+    "email": "sreelakshmi.valiyaveedu@testbook.com",
+    "facultyLMSid": "65367c3532cad5217f46b5fd",
+    "facultyCBSid": "536",
+    "facultyCBScode": "sreelakshmi.valiyaveedu",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Namrata",
+    "email": "namrata.rajput@testbook.com",
+    "facultyLMSid": "65367d53d6bf84c1e3611ad5",
+    "facultyCBSid": "537",
+    "facultyCBScode": "namrata.rajput",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ritika",
+    "email": "ritika.faculty@testbook.com",
+    "facultyLMSid": "6538f10c99e85eaf8c6e41f1",
+    "facultyCBSid": "538",
+    "facultyCBScode": "ritika.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sonu Kumar",
+    "email": "sonu.kumar.faculty@testbook.com",
+    "facultyLMSid": "6539fb750a534ae48e6252ed",
+    "facultyCBSid": "539",
+    "facultyCBScode": "sonu.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Deepak Sharma Faculty",
+    "email": "deepak.sharma.faculty@testbook.com",
+    "facultyLMSid": "6539fbe632ccab8a6f9d7476",
+    "facultyCBSid": "540",
+    "facultyCBScode": "deepak.sharma.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vishal Singh",
+    "email": "vishal.singh.faculty@testbook.com",
+    "facultyLMSid": "6539fba58d0da1451fc1ae42",
+    "facultyCBSid": "541",
+    "facultyCBScode": "vishal.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Binod Kumar Sir",
+    "email": "binod.kumar.faculty@testbook.com",
+    "facultyLMSid": "6539fb44bbddb369897d7b5e",
+    "facultyCBSid": "542",
+    "facultyCBScode": "binod.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Udit Bhatia",
+    "email": "udit.bhatia.skillfaculty@testbook.com",
+    "facultyLMSid": "6540c24aad7d9c6b313fae9a",
+    "facultyCBSid": "543",
+    "facultyCBScode": "udit.bhatia.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Namu Malik",
+    "email": "namu.malik.faculty@testbook.com",
+    "facultyLMSid": "6541119d5b6a0525b4f5d09f",
+    "facultyCBSid": "544",
+    "facultyCBScode": "namu.malik.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pavan Deshpande Sir",
+    "email": "pavan.deshpande.faculty@testbook.com",
+    "facultyLMSid": "654640a61768094478d45d67",
+    "facultyCBSid": "545",
+    "facultyCBScode": "pavan.deshpande.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Raja Raman",
+    "email": "raja.raman.faculty@testbook.com",
+    "facultyLMSid": "653a0eb79acbfcf3f6408016",
+    "facultyCBSid": "546",
+    "facultyCBScode": "raja.raman.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Gourav Kumar Singh",
+    "email": "gourav.kumar.singh@testbook.com",
+    "facultyLMSid": "61dbe6b5233f03f470da8217",
+    "facultyCBSid": "547",
+    "facultyCBScode": "gourav.kumar.singh",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Manoj Kumar Gautam",
+    "email": "manoj.gautam.faculty@testbook.com",
+    "facultyLMSid": "654e0af685d500212c944f8e",
+    "facultyCBSid": "548",
+    "facultyCBScode": "manoj.gautam.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Neerja Raheja",
+    "email": "neerja.raheja.faculty@testbook.com",
+    "facultyLMSid": "654cdb511c644883cc52e64e",
+    "facultyCBSid": "549",
+    "facultyCBScode": "neerja.raheja.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Chetan Giri",
+    "email": "chetan.giri@testbook.com",
+    "facultyLMSid": "675ad27ec9741d501f344a8f",
+    "facultyCBSid": "550",
+    "facultyCBScode": "chetan.giri",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Indranil Mukherjee",
+    "email": "indranil.mukherjee.skillfaculty@testbook.com",
+    "facultyLMSid": "6553823feebe02a6f2d19c43",
+    "facultyCBSid": "551",
+    "facultyCBScode": "indranil.mukherjee.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shubham Upadhyay",
+    "email": "shubham.upadhyay.faculty@testbook.com",
+    "facultyLMSid": "655206b41f9a207b93041cd7",
+    "facultyCBSid": "552",
+    "facultyCBScode": "shubham.upadhyay.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anoop Upadhyay",
+    "email": "anoop.upadhyay@testbook.com",
+    "facultyLMSid": "654e404e05ec47d56ac20c13",
+    "facultyCBSid": "553",
+    "facultyCBScode": "anoop.upadhyay",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Somnath Kaushik",
+    "email": "somnath.kaushik.faculty@testbook.com",
+    "facultyLMSid": "654bafd6acfe80f438ef584c",
+    "facultyCBSid": "554",
+    "facultyCBScode": "somnath.kaushik.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sh. Amit Kumar Sir (Pro Bono Guest Lecturer)",
+    "email": "amit.singh.mentor@testbook.com",
+    "facultyLMSid": "6558784c7c13b495fcfc8d20",
+    "facultyCBSid": "555",
+    "facultyCBScode": "amit.singh.mentor",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Akhil Kumar Gupta",
+    "email": "akhil.gupta@testbook.com",
+    "facultyLMSid": "62bac1f16a89da472fe218e7",
+    "facultyCBSid": "556",
+    "facultyCBScode": "akhil.gupta",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vinay Awasthi Sir",
+    "email": "vinay.awasthi.faculty@testbook.com",
+    "facultyLMSid": "655b5ed4343c8d6d5f21e657",
+    "facultyCBSid": "557",
+    "facultyCBScode": "vinay.awasthi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Protyush Gain Sir",
+    "email": "protyush.gain.faculty@testbook.com",
+    "facultyLMSid": "655b5efdea45f86032e20ad0",
+    "facultyCBSid": "558",
+    "facultyCBScode": "protyush.gain.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Abhinay Sharma",
+    "email": "abhinay.sharma.faculty@testbook.com",
+    "facultyLMSid": "655b5f21ea75b72a5add95c4",
+    "facultyCBSid": "559",
+    "facultyCBScode": "abhinay.sharma.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Myadam Vamshi Krishna",
+    "email": "myadam.krishna@testbook.com",
+    "facultyLMSid": "65684adca2e6dc558d40dff9",
+    "facultyCBSid": "560",
+    "facultyCBScode": "myadam.krishna",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Saransh Gupta",
+    "email": "saransh.gupta.faculty@testbook.com",
+    "facultyLMSid": "655df2e7ecd56493f56a4d71",
+    "facultyCBSid": "561",
+    "facultyCBScode": "saransh.gupta.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Avinash Navlani",
+    "email": "avinash.navlani.skillfaculty@testbook.com",
+    "facultyLMSid": "6569c8f05bbf4e85de69ff81",
+    "facultyCBSid": "562",
+    "facultyCBScode": "avinash.navlani.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Emani Venkatesh Sir",
+    "email": "emani.venkatesh.faculty@testbook.com",
+    "facultyLMSid": "655da20858a11f21fcb9fd3f",
+    "facultyCBSid": "563",
+    "facultyCBScode": "emani.venkatesh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Aanchal Kapoor",
+    "email": "aanchal.kapoor.skillfaculty@testbook.com",
+    "facultyLMSid": "6569c9278e1963e1359d5769",
+    "facultyCBSid": "564",
+    "facultyCBScode": "aanchal.kapoor.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Jitendra Kumar Sir",
+    "email": "jitendra.k.faculty@testbook.com",
+    "facultyLMSid": "656ee6a2bdedda15979734a9",
+    "facultyCBSid": "565",
+    "facultyCBScode": "jitendra.k.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pradeep Chaudhary",
+    "email": "pradeep.chaudhary.faculty@testbook.com",
+    "facultyLMSid": "655dacce80c1dc161b659c92",
+    "facultyCBSid": "566",
+    "facultyCBScode": "pradeep.chaudhary.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Geetika Singla",
+    "email": "geetika.singla.skillfreelance@testbook.com",
+    "facultyLMSid": "6583fbf073a373dfa4afdb18",
+    "facultyCBSid": "567",
+    "facultyCBScode": "geetika.singla.skillfreelance",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vijay Yadav",
+    "email": "vijay@testbook.com",
+    "facultyLMSid": "658bdd011c96fdb1b29b7180",
+    "facultyCBSid": "568",
+    "facultyCBScode": "vijay",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Radhika Gandhi",
+    "email": "radhika.gandhi.faculty@testbook.com",
+    "facultyLMSid": "658bfa480eb313fea04cfce7",
+    "facultyCBSid": "570",
+    "facultyCBScode": "radhika.gandhi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sushil Jadon",
+    "email": "sushil.jadon.faculty@testbook.com",
+    "facultyLMSid": "65941c43becd8e6c76857a01",
+    "facultyCBSid": "571",
+    "facultyCBScode": "sushil.jadon.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shaik Arafath Sir",
+    "email": "shaik.arafath.faculty@testbook.com",
+    "facultyLMSid": "65941c044d493455a6dad38f",
+    "facultyCBSid": "572",
+    "facultyCBScode": "shaik.arafath.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kiran Anishetty Sir",
+    "email": "kiran.anishetty.faculty@testbook.com",
+    "facultyLMSid": "659bfd2484282a38eb65cb1b",
+    "facultyCBSid": "573",
+    "facultyCBScode": "kiran.anishetty.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Karan Arora Sir",
+    "email": "karan.arora.faculty@testbook.com",
+    "facultyLMSid": "659f8dfd8b19838c51cd399e",
+    "facultyCBSid": "574",
+    "facultyCBScode": "karan.arora.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Lalit Kumar Sir",
+    "email": "lalit.kumar.faculty@testbook.com",
+    "facultyLMSid": "65a4ef2a5054d7b06c10bb89",
+    "facultyCBSid": "575",
+    "facultyCBScode": "lalit.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sameer Khan",
+    "email": "sameer.khan.skillfaculty@testbook.com",
+    "facultyLMSid": "65a674e1a176008f31a1169d",
+    "facultyCBSid": "576",
+    "facultyCBScode": "sameer.khan.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kapil Kalkekar",
+    "email": "kapil.kalkekar.faculty@testbook.com",
+    "facultyLMSid": "65a791ddd527fa2775a1da39",
+    "facultyCBSid": "577",
+    "facultyCBScode": "kapil.kalkekar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Capt. Sanjay Gahlot Sir",
+    "email": "sanjay.gahlot.faculty@testbook.com",
+    "facultyLMSid": "65a79271b4594edb8cc2a4a2",
+    "facultyCBSid": "578",
+    "facultyCBScode": "sanjay.gahlot.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nilesh Rathod",
+    "email": "nilesh.rathod.faculty@testbook.com",
+    "facultyLMSid": "65a791bc2031f8acdad8ce84",
+    "facultyCBSid": "579",
+    "facultyCBScode": "nilesh.rathod.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Devashish Pandey Sir",
+    "email": "devashish.pandey.faculty@testbook.com",
+    "facultyLMSid": "65a4f5939f0ee516bcefa731",
+    "facultyCBSid": "580",
+    "facultyCBScode": "devashish.pandey.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sudhir Bodkhe",
+    "email": "sudhir.bodkhe.faculty@testbook.com",
+    "facultyLMSid": "65ae2e30e236bfda927e01a6",
+    "facultyCBSid": "581",
+    "facultyCBScode": "sudhir.bodkhe.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Makarand Ambatkar",
+    "email": "makarand.ambatkar.faculty@testbook.com",
+    "facultyLMSid": "65afc38bfc072d6a296c5c2a",
+    "facultyCBSid": "582",
+    "facultyCBScode": "makarand.ambatkar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dr. Irphan Ali",
+    "email": "irphan.ali.faculty@testbook.com",
+    "facultyLMSid": "65c22b5ffa8aeb9e035ebeca",
+    "facultyCBSid": "583",
+    "facultyCBScode": "irphan.ali.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Konica",
+    "email": "konica.faculty@testbook.com",
+    "facultyLMSid": "65cb3da2520629b019cab042",
+    "facultyCBSid": "584",
+    "facultyCBScode": "konica.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Yogender",
+    "email": "yogender.faculty@testbook.com",
+    "facultyLMSid": "65c4705389f9893f37e9c18e",
+    "facultyCBSid": "585",
+    "facultyCBScode": "yogender.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Samadhan Mahajan",
+    "email": "samadhan.faculty@testbook.com",
+    "facultyLMSid": "65cde25c4ce28473d616c0b1",
+    "facultyCBSid": "586",
+    "facultyCBScode": "samadhan.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Saurav Saha",
+    "email": "saurav.saha.skillfaculty@testbook.com",
+    "facultyLMSid": "65d4b8edcc98515ddd7a06b9",
+    "facultyCBSid": "587",
+    "facultyCBScode": "saurav.saha.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Prachi Chaudhary Ma'am",
+    "email": "prachi.choudhary.faculty@testbook.com",
+    "facultyLMSid": "6371f3fc7ecdf5d9ff2776f6",
+    "facultyCBSid": "588",
+    "facultyCBScode": "prachi.choudhary.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Bhoj Kumar",
+    "email": "bhoj.kumar.faculty@testbook.com",
+    "facultyLMSid": "65e05f62b4296369862b5ad1",
+    "facultyCBSid": "589",
+    "facultyCBScode": "bhoj.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Abhishek Mishra",
+    "email": "abhishek.mishra.faculty@testbook.com",
+    "facultyLMSid": "65e1bbfa75174fb8246d0539",
+    "facultyCBSid": "590",
+    "facultyCBScode": "abhishek.mishra.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sushant Trivedi",
+    "email": "sushant.trivedi.faculty@testbook.com",
+    "facultyLMSid": "65e1bc224ea889f5dd4becb5",
+    "facultyCBSid": "591",
+    "facultyCBScode": "sushant.trivedi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Bhabani Shankar Sahu",
+    "email": "bhabani.sahu.faculty@testbook.com",
+    "facultyLMSid": "65e9d3a81b9b02d52e4652a1",
+    "facultyCBSid": "592",
+    "facultyCBScode": "bhabani.sahu.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sujit Barik",
+    "email": "sujit.barik.faculty@testbook.com",
+    "facultyLMSid": "65e9d2c2e3f683af82281dea",
+    "facultyCBSid": "593",
+    "facultyCBScode": "sujit.barik.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kanhu Barik Sir",
+    "email": "kanhu.barik.faculty@testbook.com",
+    "facultyLMSid": "65e9d303360035a968a7f2a7",
+    "facultyCBSid": "594",
+    "facultyCBScode": "kanhu.barik.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Smit Shah",
+    "email": "smit.shah.skillfaculty@testbook.com",
+    "facultyLMSid": "65b77effc81746520b56947f",
+    "facultyCBSid": "595",
+    "facultyCBScode": "smit.shah.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pratikshya Pratisruti",
+    "email": "pratikshya.pratisruti.faculty@testbook.com",
+    "facultyLMSid": "65e9d372acb0bd94df6494c0",
+    "facultyCBSid": "596",
+    "facultyCBScode": "pratikshya.pratisruti.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vishal Kediya",
+    "email": "vishal.kediya.skillfaculty@testbook.com",
+    "facultyLMSid": "660e64b488341e0c9e700933",
+    "facultyCBSid": "597",
+    "facultyCBScode": "vishal.kediya.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Gaurav Bhadouria Sir",
+    "email": "gaurav.bhadouria.faculty@testbook.com",
+    "facultyLMSid": "660e77ffcd657872e0a7b8d5",
+    "facultyCBSid": "598",
+    "facultyCBScode": "gaurav.bhadouria.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Aaqib Javaid",
+    "email": "aaqib.javaid.skillfaculty@testbook.com",
+    "facultyLMSid": "660e64e4732d09b401fb0092",
+    "facultyCBSid": "599",
+    "facultyCBScode": "aaqib.javaid.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dhanunjaya Reddy Sir",
+    "email": "dhanunjay.faculty@testbook.com",
+    "facultyLMSid": "661920c96bdaf46234ab281d",
+    "facultyCBSid": "600",
+    "facultyCBScode": "dhanunjay.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dr. Pushpak Pandav Sir",
+    "email": "pushpak.pandav.faculty@testbook.com",
+    "facultyLMSid": "661f8f9dadc749e809ce4d1d",
+    "facultyCBSid": "601",
+    "facultyCBScode": "pushpak.pandav.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Syed Abbas",
+    "email": "syed.abbas.faculty@testbook.com",
+    "facultyLMSid": "662935762997e1a97c939006",
+    "facultyCBSid": "602",
+    "facultyCBScode": "syed.abbas.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Aditi Rohilla Ma'am",
+    "email": "aditi.rohilla.faculty@testbook.com",
+    "facultyLMSid": "662c9574d4651e004b7375c2",
+    "facultyCBSid": "603",
+    "facultyCBScode": "aditi.rohilla.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rajat",
+    "email": "rajat.faculty@testbook.com",
+    "facultyLMSid": "6639cc6da90d1d4a67c97ade",
+    "facultyCBSid": "604",
+    "facultyCBScode": "rajat.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "VK Singh",
+    "email": "vishnu.kumar.faculty@testbook.com",
+    "facultyLMSid": "6639cc8eca52e21b2921ba6a",
+    "facultyCBSid": "605",
+    "facultyCBScode": "vishnu.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Prasoon Dubey",
+    "email": "prasoon.dubey.faculty@testbook.com",
+    "facultyLMSid": "66449dd80f393c835354c876",
+    "facultyCBSid": "606",
+    "facultyCBScode": "prasoon.dubey.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Raina Sarraff",
+    "email": "raina.sarraff.faculty@testbook.com",
+    "facultyLMSid": "66449e0dd09e15f3c3624d60",
+    "facultyCBSid": "607",
+    "facultyCBScode": "raina.sarraff.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ashutosh Singh",
+    "email": "ashutosh.singh.faculty@testbook.com",
+    "facultyLMSid": "6644d44c3c24a1a02d7677ba",
+    "facultyCBSid": "608",
+    "facultyCBScode": "ashutosh.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Monika Chaturvedi Ma'am",
+    "email": "monika.chaturvedi.faculty@testbook.com",
+    "facultyLMSid": "664b1274586c174d4f70fcdd",
+    "facultyCBSid": "609",
+    "facultyCBScode": "monika.chaturvedi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sachin Kumar",
+    "email": "sachin.kumar.faculty@testbook.com",
+    "facultyLMSid": "664eef0703410473218d0db8",
+    "facultyCBSid": "610",
+    "facultyCBScode": "sachin.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shantanu Sharma",
+    "email": "shantanu.sharma.skillfaculty@testbook.com",
+    "facultyLMSid": "664c657df241c49369b85281",
+    "facultyCBSid": "611",
+    "facultyCBScode": "shantanu.sharma.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sukhpreet Monga",
+    "email": "sukhpreet.monga.faculty@plutuseducation.com",
+    "facultyLMSid": "6654419b6af8fd9c01ff8be9",
+    "facultyCBSid": "612",
+    "facultyCBScode": "sukhpreet.monga.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shachi Gupta Ma'am",
+    "email": "shachi.gupta.faculty@testbook.com",
+    "facultyLMSid": "665d76beaf254118b4eb92c3",
+    "facultyCBSid": "613",
+    "facultyCBScode": "shachi.gupta.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rajat Jain",
+    "email": "rajat.jain.skillfaculty@testbook.com",
+    "facultyLMSid": "66618945f290b7955933f621",
+    "facultyCBSid": "614",
+    "facultyCBScode": "rajat.jain.skillfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shakti Nath Sir",
+    "email": "shakti.nath.faculty@testbook.com",
+    "facultyLMSid": "6669920b195d9a1ce6c52840",
+    "facultyCBSid": "615",
+    "facultyCBScode": "shakti.nath.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sanjeeb debta",
+    "email": "sanjeeb.debta.faculty@testbook.com",
+    "facultyLMSid": "6669930dc79c877797ca74a0",
+    "facultyCBSid": "616",
+    "facultyCBScode": "sanjeeb.debta.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Subhasis Sarangi Sir",
+    "email": "subhasis.sarangi.faculty@testbook.com",
+    "facultyLMSid": "666992333c3d9dca5a9cfd63",
+    "facultyCBSid": "617",
+    "facultyCBScode": "subhasis.sarangi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Abinash Pradhan",
+    "email": "abinash.pradhan.faculty@testbook.com",
+    "facultyLMSid": "666992ef3f6fe71bcc12016e",
+    "facultyCBSid": "618",
+    "facultyCBScode": "abinash.pradhan.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Soumya Ranjan Jena",
+    "email": "soumya.jena.faculty@testbook.com",
+    "facultyLMSid": "666992525b58c979430b44bd",
+    "facultyCBSid": "619",
+    "facultyCBScode": "soumya.jena.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mrutyunjaya Behera",
+    "email": "mrutyunjaya.faculty@testbook.com",
+    "facultyLMSid": "6669927b3f6fe71bcc11f3cd",
+    "facultyCBSid": "620",
+    "facultyCBScode": "mrutyunjaya.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Saiprajna Nayak Ma'am",
+    "email": "sai.nayak.faculty@testbook.com",
+    "facultyLMSid": "666992cef3b742bb9d708522",
+    "facultyCBSid": "621",
+    "facultyCBScode": "sai.nayak.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ankur Sil Sarma",
+    "email": "ankur.sarma.faculty@testbook.com",
+    "facultyLMSid": "6672ee5bd05eb50372ad5867",
+    "facultyCBSid": "622",
+    "facultyCBScode": "ankur.sarma.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vikas Jangid",
+    "email": "vikas.jangid.faculty@testbook.com",
+    "facultyLMSid": "6673eb186cf44e399e9b714c",
+    "facultyCBSid": "623",
+    "facultyCBScode": "vikas.jangid.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pavan Kempwade Sir",
+    "email": "pavan.kempwade.faculty@testbook.com",
+    "facultyLMSid": "6671689368d464a0d206c0e1",
+    "facultyCBSid": "624",
+    "facultyCBScode": "pavan.kempwade.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ayesha Khan",
+    "email": "ayesha.faculty@testbook.com",
+    "facultyLMSid": "6679639e4ebf8b3be92a4f54",
+    "facultyCBSid": "625",
+    "facultyCBScode": "ayesha.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Prakash Singh Sir",
+    "email": "prakash.singh.faculty@testbook.com",
+    "facultyLMSid": "66825ae12435f04737256189",
+    "facultyCBSid": "626",
+    "facultyCBScode": "prakash.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shubham Basavani Bhosale",
+    "email": "shubham.b.bhosale@testbook.com",
+    "facultyLMSid": "64ed90f5a2875af9b3907497",
+    "facultyCBSid": "627",
+    "facultyCBScode": "shubham.b.bhosale",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Aniket Tantipal Waghmare",
+    "email": "aniket.waghmare@testbook.com",
+    "facultyLMSid": "6369f756246b4774d98cc5ab",
+    "facultyCBSid": "628",
+    "facultyCBScode": "aniket.waghmare",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ishita Karmakar",
+    "email": "ishita.karmakar@testbook.com",
+    "facultyLMSid": "65c4828b9855e594f6f11d36",
+    "facultyCBSid": "629",
+    "facultyCBScode": "ishita.karmakar",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Deepak Sharma",
+    "email": "deepak.sharma@testbook.com",
+    "facultyLMSid": "646b61fa7c241828957c69f1",
+    "facultyCBSid": "630",
+    "facultyCBScode": "deepak.sharma",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Surya Prakash Singh",
+    "email": "suryaprakash.singh@testbook.com",
+    "facultyLMSid": "65140a51669e500012fd0ec8",
+    "facultyCBSid": "631",
+    "facultyCBScode": "suryaprakash.singh",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Yuvraj Kori",
+    "email": "yuvraj.kori@testbook.com",
+    "facultyLMSid": "63354d606d6ddd6c6d5cab84",
+    "facultyCBSid": "632",
+    "facultyCBScode": "yuvraj.kori",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Arun Kushwah",
+    "email": "arun.kushwah@testbook.com",
+    "facultyLMSid": "5fe31d678b4e34bcae355566",
+    "facultyCBSid": "633",
+    "facultyCBScode": "arun.kushwah",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Himanshu Chauhan",
+    "email": "himanshu.chauhan@testbook.com",
+    "facultyLMSid": "6228af94792924b0e69e3e5c",
+    "facultyCBSid": "634",
+    "facultyCBScode": "himanshu.chauhan",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pinki Dalui",
+    "email": "pinki.dalui@testbook.com",
+    "facultyLMSid": "62baa12b151b5196b5f79a31",
+    "facultyCBSid": "635",
+    "facultyCBScode": "pinki.dalui",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mahesh Singh Sir",
+    "email": "mahesh.singh.faculty@testbook.com",
+    "facultyLMSid": "6683e4993da93f7fe14a8904",
+    "facultyCBSid": "636",
+    "facultyCBScode": "mahesh.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Arnab Dutta",
+    "email": "arnab.dutta@testbook.com",
+    "facultyLMSid": "62ab1112979436665022244d",
+    "facultyCBSid": "637",
+    "facultyCBScode": "arnab.dutta",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Chandan Singh Sir",
+    "email": "chandan.singh.faculty@testbook.com",
+    "facultyLMSid": "668548870384a603011ff611",
+    "facultyCBSid": "638",
+    "facultyCBScode": "chandan.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anubhav Mishra Sir",
+    "email": "annubhav.mishra.faculty@testbook.com",
+    "facultyLMSid": "6687d37c68c04b9a79ef8a88",
+    "facultyCBSid": "639",
+    "facultyCBScode": "annubhav.mishra.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pravin Kumar Rai",
+    "email": "pravin.rai@testbook.com",
+    "facultyLMSid": "639701130a6002f24fa6e875",
+    "facultyCBSid": "640",
+    "facultyCBScode": "pravin.rai",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kumar Rohit",
+    "email": "kumar.rohit@testbook.com",
+    "facultyLMSid": "5fe31d578b4e34bcae35551a",
+    "facultyCBSid": "641",
+    "facultyCBScode": "kumar.rohit",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pushkar Shrikrishna Joshi",
+    "email": "pushkar.joshi@testbook.com",
+    "facultyLMSid": "65c47fff9855e594f6f0885c",
+    "facultyCBSid": "642",
+    "facultyCBScode": "pushkar.joshi",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dr. Sayli Rai Mentor",
+    "email": "sayli.rai@testbook.com",
+    "facultyLMSid": "65d716dbdad6d37c20c7a60c",
+    "facultyCBSid": "643",
+    "facultyCBScode": "sayli.rai",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Khemraj Sir",
+    "email": "khemraj.chamorshikar.faculty@testbook.com",
+    "facultyLMSid": "66979326fec016008549930f",
+    "facultyCBSid": "644",
+    "facultyCBScode": "khemraj.chamorshikar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Chandan Kumar Singh",
+    "email": "chandan.singh@testbook.com",
+    "facultyLMSid": "65813d635cfe6d273c59397d",
+    "facultyCBSid": "645",
+    "facultyCBScode": "chandan.singh",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ankur Sir",
+    "email": "ankur.aggarwal.faculty@testbook.com",
+    "facultyLMSid": "66ac929513c651efe39f274e",
+    "facultyCBSid": "646",
+    "facultyCBScode": "ankur.aggarwal.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Parneet Kaur Ma'am",
+    "email": "parneet.faculty@testbook.com",
+    "facultyLMSid": "66b09c3436bed6ada62791d3",
+    "facultyCBSid": "647",
+    "facultyCBScode": "parneet.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Deepak Kumar Dakua",
+    "email": "deepak.dakua.faculty@testbook.com",
+    "facultyLMSid": "66c4427de63c046bfb785519",
+    "facultyCBSid": "648",
+    "facultyCBScode": "deepak.dakua.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Amita Ma'am",
+    "email": "amita.faculty@testbook.com",
+    "facultyLMSid": "66c4ad1a0b7a62fc0744dc9b",
+    "facultyCBSid": "649",
+    "facultyCBScode": "amita.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Satyarth Prakash Dwivedi Sir",
+    "email": "satyarth.faculty@plutuseducation.com",
+    "facultyLMSid": "667030cb72cb50a8f7b67034",
+    "facultyCBSid": "650",
+    "facultyCBScode": "satyarth.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Madhav Arora Sir",
+    "email": "madhav.faculty@testbook.com",
+    "facultyLMSid": "66c5d0866ed55f91912d36c1",
+    "facultyCBSid": "651",
+    "facultyCBScode": "madhav.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mrinalini Ma'am",
+    "email": "mrinalini.faculty@testbook.com",
+    "facultyLMSid": "66cf03a6a1d196e7f9bf819f",
+    "facultyCBSid": "652",
+    "facultyCBScode": "mrinalini.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Satyamedh",
+    "email": "satyamedh@plutuseducation.com",
+    "facultyLMSid": "66d1f637a6574e1331b3081d",
+    "facultyCBSid": "653",
+    "facultyCBScode": "satyamedh",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Subhasmita Nayak Ma'am",
+    "email": "subhasmita.nayak.faculty@testbook.com",
+    "facultyLMSid": "66d84549b6ff648ec8f51d1b",
+    "facultyCBSid": "654",
+    "facultyCBScode": "subhasmita.nayak.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Aradhana Sahu",
+    "email": "aradhana.sahu.faculty@testbook.com",
+    "facultyLMSid": "66d844f6bba91326ba6b48fb",
+    "facultyCBSid": "655",
+    "facultyCBScode": "aradhana.sahu.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rakhal Samal Sir",
+    "email": "rakhal.samal.faculty@testbook.com",
+    "facultyLMSid": "66d8457d60d4f2b32c0e3f02",
+    "facultyCBSid": "656",
+    "facultyCBScode": "rakhal.samal.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pabitra Majhi Sir",
+    "email": "pabitra.majhi.faculty@testbook.com",
+    "facultyLMSid": "66d8459ea86e015c76de606a",
+    "facultyCBSid": "657",
+    "facultyCBScode": "pabitra.majhi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pratika Jain",
+    "email": "pratika.jain@testbook.com",
+    "facultyLMSid": "6256d5309656541f3ddb90b7",
+    "facultyCBSid": "658",
+    "facultyCBScode": "pratika.jain",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Poonam Pawar",
+    "email": "poonam.pawar.faculty@testbook.com",
+    "facultyLMSid": "66d7035d05dbb5e36c071999",
+    "facultyCBSid": "659",
+    "facultyCBScode": "poonam.pawar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ritika Tomar Ma'am",
+    "email": "ritika.tomar.faculty@testbook.com",
+    "facultyLMSid": "64b625c406485a91cdd46ec8",
+    "facultyCBSid": "660",
+    "facultyCBScode": "ritika.tomar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Akash Arun Patil",
+    "email": "akash.arun.patil@testbook.com",
+    "facultyLMSid": "64f6d148f5824d2a863dff1e",
+    "facultyCBSid": "661",
+    "facultyCBScode": "akash.arun.patil",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kauvya R",
+    "email": "kauvya.r.faculty@plutuseducation.com",
+    "facultyLMSid": "66fe48e6a83dc8324a20db6e",
+    "facultyCBSid": "662",
+    "facultyCBScode": "kauvya.r.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nikhil Parihar Sir",
+    "email": "nikhil.parihar.faculty@testbook.com",
+    "facultyLMSid": "66ffd2d6b7767d5158063a02",
+    "facultyCBSid": "663",
+    "facultyCBScode": "nikhil.parihar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vivek Kumar Sir",
+    "email": "vivek.k.faculty@testbook.com",
+    "facultyLMSid": "670cd14c669fa5f33c31449f",
+    "facultyCBSid": "664",
+    "facultyCBScode": "vivek.k.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Khushboo Chaturvedi",
+    "email": "khushboo.chaturvedi.faculty@testbook.com",
+    "facultyLMSid": "670e3879d0471397fdb3da98",
+    "facultyCBSid": "665",
+    "facultyCBScode": "khushboo.chaturvedi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nikit Dani",
+    "email": "nikit.dani.faculty@plutuseducation.com",
+    "facultyLMSid": "670f98f4a221b61c111f4303",
+    "facultyCBSid": "666",
+    "facultyCBScode": "nikit.dani.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Khushboo Dialani",
+    "email": "khushboo.dialani@plutuseducation.com",
+    "facultyLMSid": "671635e9bed06a3cf3b5238d",
+    "facultyCBSid": "667",
+    "facultyCBScode": "khushboo.dialani",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nisha Jangra Ma'am",
+    "email": "nisha.jangra.faculty@testbook.com",
+    "facultyLMSid": "67177c4f4365f6be26e7a1b6",
+    "facultyCBSid": "668",
+    "facultyCBScode": "nisha.jangra.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pradip Singh Sir",
+    "email": "pradip.singh.faculty@testbook.com",
+    "facultyLMSid": "6718ebba73e15a95755f322e",
+    "facultyCBSid": "669",
+    "facultyCBScode": "pradip.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rohit Kumar Sir",
+    "email": "rohit.kumar.faculty@testbook.com",
+    "facultyLMSid": "672b492405a3ebde97f7b176",
+    "facultyCBSid": "670",
+    "facultyCBScode": "rohit.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nishi Dhariwal",
+    "email": "nishi.dhariwal@testbook.com",
+    "facultyLMSid": "64f58fcd94091887a162461b",
+    "facultyCBSid": "672",
+    "facultyCBScode": "nishi.dhariwal",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ashish Kumar Sir",
+    "email": "ashish.kumar.faculty@testbook.com",
+    "facultyLMSid": "673ee74d375a7b54a3c6bcb3",
+    "facultyCBSid": "673",
+    "facultyCBScode": "ashish.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ritu Dudhoria",
+    "email": "ritu.kothari.faculty@testbook.com",
+    "facultyLMSid": "6748464c9c7c8343e1ccf763",
+    "facultyCBSid": "675",
+    "facultyCBScode": "ritu.kothari.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sanjeet Teotia",
+    "email": "sanjeet.teotia.faculty@testbook.com",
+    "facultyLMSid": "67470299208cfd579ae861a4",
+    "facultyCBSid": "676",
+    "facultyCBScode": "sanjeet.teotia.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ronald Roshan Sir",
+    "email": "ronald.roshan.faculty@testbook.com",
+    "facultyLMSid": "67497dff2607cf1143601e4f",
+    "facultyCBSid": "677",
+    "facultyCBScode": "ronald.roshan.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Abhinav Rajput Sir",
+    "email": "abhinav.kumar.faculty@testbook.com",
+    "facultyLMSid": "674ac4f58b64def1d556956a",
+    "facultyCBSid": "678",
+    "facultyCBScode": "abhinav.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kamaldeep Singh Sir",
+    "email": "kamaldeep.singh.faculty@testbook.com",
+    "facultyLMSid": "674d891f30e0bae4caa53a5f",
+    "facultyCBSid": "679",
+    "facultyCBScode": "kamaldeep.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sonu Chowdhary",
+    "email": "sonu.chowdhary.faculty@testbook.com",
+    "facultyLMSid": "674daa16624f7e7866fcb20d",
+    "facultyCBSid": "680",
+    "facultyCBScode": "sonu.chowdhary.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Gunjan Singh",
+    "email": "gunjan.singh.faculty@testbook.com",
+    "facultyLMSid": "67502a8f43775fb094a4cc1d",
+    "facultyCBSid": "681",
+    "facultyCBScode": "gunjan.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Bhanu Poudel",
+    "email": "bhanu.poudel.faculty@testbook.com",
+    "facultyLMSid": "67569d196d4a7a21ac70cc0d",
+    "facultyCBSid": "682",
+    "facultyCBScode": "bhanu.poudel.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Riya Rathore Ma'am",
+    "email": "riya.rathore.faculty@testbook.com",
+    "facultyLMSid": "6756df0b631a7d1dd1475fe0",
+    "facultyCBSid": "683",
+    "facultyCBScode": "riya.rathore.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Surendra Solanki Sir",
+    "email": "surendra.solanki.faculty@testbook.com",
+    "facultyLMSid": "6756df38c06333dea2380086",
+    "facultyCBSid": "684",
+    "facultyCBScode": "surendra.solanki.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Chinmay Shah Sir",
+    "email": "chinmay.shah.faculty@plutuseducation.com",
+    "facultyLMSid": "67583e4d6907cc16a16a5a04",
+    "facultyCBSid": "685",
+    "facultyCBScode": "chinmay.shah.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kiran Malik Ma'am",
+    "email": "kiran.faculty@testbook.com",
+    "facultyLMSid": "675933099faae85f2ec48ce0",
+    "facultyCBSid": "686",
+    "facultyCBScode": "kiran.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vasu Katara Sir",
+    "email": "vasu.katara.faculty@testbook.com",
+    "facultyLMSid": "67569e24adb044e0249d4790",
+    "facultyCBSid": "687",
+    "facultyCBScode": "vasu.katara.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shuaib Ahemed",
+    "email": "shuaib.ahemed.faculty@testbook.com",
+    "facultyLMSid": "675c2744b3c5631b820cfbd1",
+    "facultyCBSid": "688",
+    "facultyCBScode": "shuaib.ahemed.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Deepak Himanshu Sir",
+    "email": "deepak.himanshu.faculty@testbook.com",
+    "facultyLMSid": "675ffe00a8ce0e64952b88cc",
+    "facultyCBSid": "689",
+    "facultyCBScode": "deepak.himanshu.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shrey Rathi",
+    "email": "shrey.rathi@testbook.com",
+    "facultyLMSid": "65018630c4e10d7608454e7e",
+    "facultyCBSid": "690",
+    "facultyCBScode": "shrey.rathi",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Prakash Prajapati Sir",
+    "email": "prakash.prajapati.faculty@testbook.com",
+    "facultyLMSid": "675ffe71d56f56b65829648c",
+    "facultyCBSid": "691",
+    "facultyCBScode": "prakash.prajapati.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Amit Surana",
+    "email": "amit.surana.faculty@testbook.com",
+    "facultyLMSid": "67602237467f053891a6e5ab",
+    "facultyCBSid": "692",
+    "facultyCBScode": "amit.surana.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rashmita Pravin Shetty",
+    "email": "rashmita.shetty@testbook.com",
+    "facultyLMSid": "65291ea93764b9c1d5ea1c0d",
+    "facultyCBSid": "693",
+    "facultyCBScode": "rashmita.shetty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Niharika Behera Ma'am",
+    "email": "niharika.behera.faculty@testbook.com",
+    "facultyLMSid": "676438c431ddded8fe1ee96d",
+    "facultyCBSid": "694",
+    "facultyCBScode": "niharika.behera.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Manish Mishra Sir",
+    "email": "manish.mishra.faculty@testbook.com",
+    "facultyLMSid": "67690e96b06e35c683f5fc51",
+    "facultyCBSid": "695",
+    "facultyCBScode": "manish.mishra.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rajashree",
+    "email": "rajashree.supermentor@testbook.com",
+    "facultyLMSid": "6769408cc8328a2a4ad702f5",
+    "facultyCBSid": "696",
+    "facultyCBScode": "rajashree.supermentor",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anand Singh Sir",
+    "email": "anand.singh.faculty@testbook.com",
+    "facultyLMSid": "676a6cd3952e38bfe5b17213",
+    "facultyCBSid": "697",
+    "facultyCBScode": "anand.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Lalit Kumar",
+    "email": "lalit.superfaculty@testbook.com",
+    "facultyLMSid": "676d3ea7bd63d005a6400530",
+    "facultyCBSid": "698",
+    "facultyCBScode": "lalit.superfaculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Justice Virendra Kumar Maheshwari",
+    "email": "vkmaheshwari.supermentor@testbook.com",
+    "facultyLMSid": "677248f2c4f0553850dc561d",
+    "facultyCBSid": "699",
+    "facultyCBScode": "vkmaheshwari.supermentor",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rohan Tyagi Sir",
+    "email": "rohan.tyagi.faculty@testbook.com",
+    "facultyLMSid": "6756f6f016a9c740a8237cc3",
+    "facultyCBSid": "700",
+    "facultyCBScode": "rohan.tyagi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rahul Kumar Gautam",
+    "email": "rahul.gautam.faculty@plutuseducation.com",
+    "facultyLMSid": "677cf884addd428abcd45840",
+    "facultyCBSid": "701",
+    "facultyCBScode": "rahul.gautam.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rajesh SR",
+    "email": "rajesh.faculty@testbook.com",
+    "facultyLMSid": "6784d89469ff9c115c60d365",
+    "facultyCBSid": "702",
+    "facultyCBScode": "rajesh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Imdias Khan",
+    "email": "imdias.khan.faculty@testbook.com",
+    "facultyLMSid": "6784d873dfe22918ee59e478",
+    "facultyCBSid": "703",
+    "facultyCBScode": "imdias.khan.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shafi Ismail",
+    "email": "shafi.faculty@testbook.com",
+    "facultyLMSid": "6784d83978229884c9d8f7bc",
+    "facultyCBSid": "704",
+    "facultyCBScode": "shafi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rishabh Raj",
+    "email": "rishabh.raj@testbook.com",
+    "facultyLMSid": "69c11e8802ec8a705e9d4cdc",
+    "facultyCBSid": "705",
+    "facultyCBScode": "rishabh.raj",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ashna Shaji",
+    "email": "ashna.shaji.faculty@testbook.com",
+    "facultyLMSid": "6784d856b09ebbbb16cd4595",
+    "facultyCBSid": "706",
+    "facultyCBScode": "ashna.shaji.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Noufal V V",
+    "email": "noufal.faculty@testbook.com",
+    "facultyLMSid": "6784d8cea7f6e8d6ac1cc35e",
+    "facultyCBSid": "707",
+    "facultyCBScode": "noufal.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nisha MC",
+    "email": "nisha.faculty@testbook.com",
+    "facultyLMSid": "6784d8afa0059470a8094467",
+    "facultyCBSid": "708",
+    "facultyCBScode": "nisha.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sharda Pratap Singh",
+    "email": "sharda.singh@testbook.com",
+    "facultyLMSid": "64d35b1bc8de70124f7c9d35",
+    "facultyCBSid": "709",
+    "facultyCBScode": "sharda.singh",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Khushi Gera",
+    "email": "khushi.gera.faculty@plutuseducation.com",
+    "facultyLMSid": "67973100da020643ebf0e633",
+    "facultyCBSid": "710",
+    "facultyCBScode": "khushi.gera.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shailendra Rajawat",
+    "email": "shailendra.rajawat@testbook.com",
+    "facultyLMSid": "5fe31d538b4e34bcae355508",
+    "facultyCBSid": "711",
+    "facultyCBScode": "shailendra.rajawat",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Yogendra Tiwari Sir",
+    "email": "yogendra.tiwari.faculty@testbook.com",
+    "facultyLMSid": "67a069186b001618ce3f94d5",
+    "facultyCBSid": "712",
+    "facultyCBScode": "yogendra.tiwari.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Satavisha Mazumder",
+    "email": "satavisha.faculty@testbook.com",
+    "facultyLMSid": "67a200e4db960c6fa548c767",
+    "facultyCBSid": "713",
+    "facultyCBScode": "satavisha.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Aashish Chandak Sir",
+    "email": "aashish.chandak.faculty@plutuseducation.com",
+    "facultyLMSid": "67a467306358c342e8e90ff0",
+    "facultyCBSid": "714",
+    "facultyCBScode": "aashish.chandak.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nelofar Karim Ma'am",
+    "email": "nelofar.karim.faculty@testbook.com",
+    "facultyLMSid": "67a9ff24cd952caf190e1b82",
+    "facultyCBSid": "715",
+    "facultyCBScode": "nelofar.karim.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Varun Awasthi Sir",
+    "email": "varun.awasthi.faculty@testbook.com",
+    "facultyLMSid": "67ab553a1b66ce91c3c7495d",
+    "facultyCBSid": "716",
+    "facultyCBScode": "varun.awasthi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Palash Dhar",
+    "email": "palash.dhar.faculty@testbook.com",
+    "facultyLMSid": "67b3233c2db0ef798621538b",
+    "facultyCBSid": "717",
+    "facultyCBScode": "palash.dhar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Karn Abhinav Shanu",
+    "email": "karn.shanu@testbook.com",
+    "facultyLMSid": "6737327973d4e1569a8c5169",
+    "facultyCBSid": "718",
+    "facultyCBScode": "karn.shanu",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Satyam Gupta",
+    "email": "satyam.gupta@testbook.com",
+    "facultyLMSid": "64ddfb5e9089245100c3a9e3",
+    "facultyCBSid": "719",
+    "facultyCBScode": "satyam.gupta",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ankit Rao Sir",
+    "email": "ankit.rao.faculty@testbook.com",
+    "facultyLMSid": "67bc3c065795a9fb21a191a9",
+    "facultyCBSid": "720",
+    "facultyCBScode": "ankit.rao.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Niti Mandal Ma'am",
+    "email": "niti.mandal.facutly@testbook.com",
+    "facultyLMSid": "67b3236bae9c26d328ddb027",
+    "facultyCBSid": "721",
+    "facultyCBScode": "niti.mandal.facutly",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Gaurav Pandey",
+    "email": "gaurav.pandey.faculty@testbook.com",
+    "facultyLMSid": "67bed42fdf7eda8301a6c942",
+    "facultyCBSid": "722",
+    "facultyCBScode": "gaurav.pandey.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Neeraj Sharma Sir",
+    "email": "neeraj.sharma.faculty@testbook.com",
+    "facultyLMSid": "67c53767cf51bd97d0fad720",
+    "facultyCBSid": "723",
+    "facultyCBScode": "neeraj.sharma.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mehul Rao",
+    "email": "mehul.rao.faculty@testbook.com",
+    "facultyLMSid": "67c4219230f5e28a943fd094",
+    "facultyCBSid": "724",
+    "facultyCBScode": "mehul.rao.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anupama Sabu",
+    "email": "anupama.sabu.faculty@testbook.com",
+    "facultyLMSid": "67c5377ffdf2464cb040d28b",
+    "facultyCBSid": "725",
+    "facultyCBScode": "anupama.sabu.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Satish Kumar V",
+    "email": "satish.kumar.faculty@testbook.com",
+    "facultyLMSid": "67c537c7991274507a132cd2",
+    "facultyCBSid": "726",
+    "facultyCBScode": "satish.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Yogita_del",
+    "email": "yogita.tyagi@testbook.com",
+    "facultyLMSid": "67cad952c226ccb29df4b164",
+    "facultyCBSid": "727",
+    "facultyCBScode": "yogita.tyagi",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Deeksha Choudhary",
+    "email": "deeksha.choudhary.faculty@testbook.com",
+    "facultyLMSid": "67d14d43f5078885019b60a1",
+    "facultyCBSid": "728",
+    "facultyCBScode": "deeksha.choudhary.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Suraj Nikam",
+    "email": "suraj.nikam.faculty@testbook.com",
+    "facultyLMSid": "67d7d0038178494776895bd9",
+    "facultyCBSid": "729",
+    "facultyCBScode": "suraj.nikam.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Devender Gangwar",
+    "email": "devender.faculty@testbook.com",
+    "facultyLMSid": "67eb9b60e0b0b8794737fb20",
+    "facultyCBSid": "730",
+    "facultyCBScode": "devender.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Satvik Khare Sir",
+    "email": "satvik.khare.faculty@testbook.com",
+    "facultyLMSid": "67eb9b36372a396e9ba7808f",
+    "facultyCBSid": "731",
+    "facultyCBScode": "satvik.khare.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sonal Aggarwal Ma'am",
+    "email": "sonal.aggarwal.faculty@testbook.com",
+    "facultyLMSid": "67eb9b7e4920d91b454bc314",
+    "facultyCBSid": "732",
+    "facultyCBScode": "sonal.aggarwal.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Jasbir Sir",
+    "email": "jasbir.faculty@testbook.com",
+    "facultyLMSid": "67eb9ba32ad8c8c411605ee0",
+    "facultyCBSid": "733",
+    "facultyCBScode": "jasbir.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vaishali Mann Ma'am",
+    "email": "vaishali.mann.faculty@testbook.com",
+    "facultyLMSid": "67ef788dfabfcc5d911c6eb1",
+    "facultyCBSid": "734",
+    "facultyCBScode": "vaishali.mann.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rashmi Sharma",
+    "email": "rashmi.sharma.faculty@testbook.com",
+    "facultyLMSid": "67f37b7eed8385b09f2cbd5f",
+    "facultyCBSid": "735",
+    "facultyCBScode": "rashmi.sharma.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Jagdish Padghane Sir",
+    "email": "jagdish.padghane@testbook.com",
+    "facultyLMSid": "663ca6f5fb095c1e337329ad",
+    "facultyCBSid": "736",
+    "facultyCBScode": "jagdish.padghane",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sujit Jena",
+    "email": "sujit.jena.faculty@testbook.com",
+    "facultyLMSid": "680f0f5792c4481b5d023cd5",
+    "facultyCBSid": "737",
+    "facultyCBScode": "sujit.jena.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nancy Bhatia Ma'am",
+    "email": "nancy.bhatia.faculty@testbook.com",
+    "facultyLMSid": "681eda599af29d39db074950",
+    "facultyCBSid": "738",
+    "facultyCBScode": "nancy.bhatia.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Divya Nair",
+    "email": "divya.nair@testbook.com",
+    "facultyLMSid": "62b2a4ae36dc8d25b3366b67",
+    "facultyCBSid": "739",
+    "facultyCBScode": "divya.nair",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Keshari Pathak Sir",
+    "email": "keshari.pathak.faculty@testbook.com",
+    "facultyLMSid": "6821b6f1bc0c980167121432",
+    "facultyCBSid": "740",
+    "facultyCBScode": "keshari.pathak.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shashank Agrawal Sir",
+    "email": "shashank.agrawal.faculty@testbook.com",
+    "facultyLMSid": "681eda7af18cc8cd0cadd972",
+    "facultyCBSid": "741",
+    "facultyCBScode": "shashank.agrawal.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Santosh Kumar Ray",
+    "email": "santosh.ray.faculty@testbook.com",
+    "facultyLMSid": "68187d504c418cee87b43c64",
+    "facultyCBSid": "742",
+    "facultyCBScode": "santosh.ray.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Raghuveer Parmar Sir",
+    "email": "raghuveer.parmar.faculty@testbook.com",
+    "facultyLMSid": "682aec7bd953d9f105eb57be",
+    "facultyCBSid": "743",
+    "facultyCBScode": "raghuveer.parmar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Arpit Sohgaura",
+    "email": "arpit.sohgaura.faculty@testbook.com",
+    "facultyLMSid": "682b18f9d6016f4029a7b872",
+    "facultyCBSid": "744",
+    "facultyCBScode": "arpit.sohgaura.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pawan Bharsakale Sir",
+    "email": "pawan.faculty@testbook.com",
+    "facultyLMSid": "682aecfc4c3da0f5c77b0cfd",
+    "facultyCBSid": "745",
+    "facultyCBScode": "pawan.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vinod Shinde",
+    "email": "vinod.shinde.faculty@testbook.com",
+    "facultyLMSid": "682aecc6eba01533f5e3ce6f",
+    "facultyCBSid": "746",
+    "facultyCBScode": "vinod.shinde.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kanak Som Ma'am",
+    "email": "kanak.som.faculty@testbook.com",
+    "facultyLMSid": "6834469ee53e4388f3158aa7",
+    "facultyCBSid": "747",
+    "facultyCBScode": "kanak.som.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Bushra Shazli",
+    "email": "bushra.shazli.faculty@testbook.com",
+    "facultyLMSid": "6841af749d628366890cd569",
+    "facultyCBSid": "748",
+    "facultyCBScode": "bushra.shazli.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shubham Kaurav Sir",
+    "email": "shubham.kaurav.faculty@testbook.com",
+    "facultyLMSid": "6841af411fa0812bf5878b6b",
+    "facultyCBSid": "749",
+    "facultyCBScode": "shubham.kaurav.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Umesh Rathod Sir",
+    "email": "umesh.rathod.faculty@testbook.com",
+    "facultyLMSid": "68494bc4466cd0910e8320cd",
+    "facultyCBSid": "750",
+    "facultyCBScode": "umesh.rathod.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shilpi Srivastava",
+    "email": "shilpi.srivastava.faculty@plutuseducation.com",
+    "facultyLMSid": "68480662c4eb2a3e3440ef4f",
+    "facultyCBSid": "751",
+    "facultyCBScode": "shilpi.srivastava.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shubham Shandilya Sir",
+    "email": "shubham.shandilya.faculty@plutuseducation.com",
+    "facultyLMSid": "6848064bb574dfe6a4d352ad",
+    "facultyCBSid": "752",
+    "facultyCBScode": "shubham.shandilya.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Arpit Kumar Sir",
+    "email": "arpit.kumar.faculty@testbook.com",
+    "facultyLMSid": "6841af5bbc5aa9914cfd5c06",
+    "facultyCBSid": "753",
+    "facultyCBScode": "arpit.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Niraj Satnalika",
+    "email": "niraj.satnalika.faculty@plutuseducation.com",
+    "facultyLMSid": "685148d9b9b15dbc92b82509",
+    "facultyCBSid": "754",
+    "facultyCBScode": "niraj.satnalika.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sushant Sharma",
+    "email": "sushant.sharma.faculty@plutuseducation.com",
+    "facultyLMSid": "6851496b97fa094f91d3c96c",
+    "facultyCBSid": "755",
+    "facultyCBScode": "sushant.sharma.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anshika Pandey Ma'am",
+    "email": "anshika.pandey.faculty@testbook.com",
+    "facultyLMSid": "68514ad9633c680cbf6cd8f0",
+    "facultyCBSid": "756",
+    "facultyCBScode": "anshika.pandey.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Aman Verma",
+    "email": "aman.verma.faculty@testbook.com",
+    "facultyLMSid": "685d20f54d150da0547e01ae",
+    "facultyCBSid": "757",
+    "facultyCBScode": "aman.verma.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nikhil Nath Sir",
+    "email": "nikhil.nath.faculty@plutuseducation.com",
+    "facultyLMSid": "685149e5e623fb32f18df0c9",
+    "facultyCBSid": "758",
+    "facultyCBScode": "nikhil.nath.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ajay Jain Sir",
+    "email": "ajay.jain.faculty@testbook.com",
+    "facultyLMSid": "6871153c9bf3aa6f36ff2530",
+    "facultyCBSid": "759",
+    "facultyCBScode": "ajay.jain.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Meet Sir",
+    "email": "munesh.kumar.faculty@testbook.com",
+    "facultyLMSid": "687115a908b7c5a063ec47ab",
+    "facultyCBSid": "760",
+    "facultyCBScode": "munesh.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ankush Gill Ma'am",
+    "email": "ankush.gill.faculty@testbook.com",
+    "facultyLMSid": "68711503805d2e984cfdd9fe",
+    "facultyCBSid": "761",
+    "facultyCBScode": "ankush.gill.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rohit Kumar Sir",
+    "email": "rohit.k.faculty@testbook.com",
+    "facultyLMSid": "6871157641014d16b9ba9d80",
+    "facultyCBSid": "762",
+    "facultyCBScode": "rohit.k.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mahander Sir",
+    "email": "mahander.kumar.faculty@testbook.com",
+    "facultyLMSid": "687115d941014d16b9baa0cf",
+    "facultyCBSid": "763",
+    "facultyCBScode": "mahander.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shubham Saluja Sir",
+    "email": "shubham.saluja.faculty@plutuseducation.com",
+    "facultyLMSid": "687a37e75d0cec85ed8ec175",
+    "facultyCBSid": "764",
+    "facultyCBScode": "shubham.saluja.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Veena Madipadaga Ma'am",
+    "email": "veena.madipadaga.faculty@testbook.com",
+    "facultyLMSid": "687e28a22480bc52a26aedbd",
+    "facultyCBSid": "765",
+    "facultyCBScode": "veena.madipadaga.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kanishka Singhal",
+    "email": "kanishka.singhal@plutuseducation.com",
+    "facultyLMSid": "6887377db24eafb1e9bad077",
+    "facultyCBSid": "766",
+    "facultyCBScode": "kanishka.singhal",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sneha",
+    "email": "sneha.faculty@testbook.com",
+    "facultyLMSid": "688c58f7c5df237ac96d8083",
+    "facultyCBSid": "767",
+    "facultyCBScode": "sneha.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kanishka Singhal",
+    "email": "kanishka.singhal.faculty@plutuseducation.com",
+    "facultyLMSid": "6894741ecf8e66cd65eba3c4",
+    "facultyCBSid": "768",
+    "facultyCBScode": "kanishka.singhal.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vivek Jaiswal",
+    "email": "vivek.jaiswal.faculty@plutuseducation.com",
+    "facultyLMSid": "68a6eb85631585e768b937da",
+    "facultyCBSid": "769",
+    "facultyCBScode": "vivek.jaiswal.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shubham Rout Sir",
+    "email": "shubham.rout.faculty@testbook.com",
+    "facultyLMSid": "687a36fb96da19c89273c06a",
+    "facultyCBSid": "770",
+    "facultyCBScode": "shubham.rout.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mahima Choudhury Ma'am",
+    "email": "mahima.choudhury.faculty@testbook.com",
+    "facultyLMSid": "68b023c78d6d77ccea13b073",
+    "facultyCBSid": "771",
+    "facultyCBScode": "mahima.choudhury.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Deeksha Agrawal",
+    "email": "deeksha.agrawal.faculty@plutuseducation.com",
+    "facultyLMSid": "68b6b4ebca86e566033dc257",
+    "facultyCBSid": "772",
+    "facultyCBScode": "deeksha.agrawal.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Suhaib P T",
+    "email": "suhaib.pt.faculty@plutuseducation.com",
+    "facultyLMSid": "68b023e942a9b76f69e2d1b4",
+    "facultyCBSid": "773",
+    "facultyCBScode": "suhaib.pt.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anuj Kumar",
+    "email": "anuj.kumar.mentor@testbook.com",
+    "facultyLMSid": "67a066b8c43e1ffe58b7edba",
+    "facultyCBSid": "774",
+    "facultyCBScode": "anuj.kumar.mentor",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vivek Verma",
+    "email": "vivek.verma@testbook.com",
+    "facultyLMSid": "6659a7f4f32208b4ffc9777e",
+    "facultyCBSid": "775",
+    "facultyCBScode": "vivek.verma",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rishabh Koomar",
+    "email": "rishabh.koomar@testbook.com",
+    "facultyLMSid": "66d6e758758ff4bc9fe87e87",
+    "facultyCBSid": "776",
+    "facultyCBScode": "rishabh.koomar",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kishore Gore Sir",
+    "email": "kishor.gore.faculty@testbook.com",
+    "facultyLMSid": "68c021835c9af4bd199d3c1f",
+    "facultyCBSid": "777",
+    "facultyCBScode": "kishor.gore.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sahil Madaan Sir",
+    "email": "sahil.madaan.faculty@testbook.com",
+    "facultyLMSid": "68c7efa396166ea1f8b9c3fe",
+    "facultyCBSid": "778",
+    "facultyCBScode": "sahil.madaan.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sarvagya Tripathi Sir",
+    "email": "sarvagya.tripathi.faculty@testbook.com",
+    "facultyLMSid": "68d65e44cb9f7b6c777a7569",
+    "facultyCBSid": "779",
+    "facultyCBScode": "sarvagya.tripathi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Aditya Atulkumar Vyas",
+    "email": "aditya.vyas.faculty@plutuseducation.com",
+    "facultyLMSid": "68da473a4b642adca8658059",
+    "facultyCBSid": "780",
+    "facultyCBScode": "aditya.vyas.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ananya Dixit Ma'am",
+    "email": "ananya.dixit.faculty@testbook.com",
+    "facultyLMSid": "68e3ab6ca84b8939902f65f4",
+    "facultyCBSid": "781",
+    "facultyCBScode": "ananya.dixit.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Yogita Tyagi Ma'am",
+    "email": "yogita.tyagi.faculty@testbook.com",
+    "facultyLMSid": "68ef73502e86a79f5022d19c",
+    "facultyCBSid": "782",
+    "facultyCBScode": "yogita.tyagi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Damini Patel Ma'am",
+    "email": "damini.patel.faculty@testbook.com",
+    "facultyLMSid": "69144d8d80256a7572eeec66",
+    "facultyCBSid": "783",
+    "facultyCBScode": "damini.patel.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Gaurav Kumar Sir",
+    "email": "gaurav.k.faculty@testbook.com",
+    "facultyLMSid": "6912fba47a3b8aa8df3d4434",
+    "facultyCBSid": "784",
+    "facultyCBScode": "gaurav.k.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Suyash Tripathi Sir",
+    "email": "suyash.tripathi.faculty@testbook.com",
+    "facultyLMSid": "691ad40e7fb94c3659587708",
+    "facultyCBSid": "785",
+    "facultyCBScode": "suyash.tripathi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Akshay Awasthi Sir",
+    "email": "akshay.awasthi.faculty@testbook.com",
+    "facultyLMSid": "69240fd9a502aebb19836765",
+    "facultyCBSid": "786",
+    "facultyCBScode": "akshay.awasthi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shanu Rawat Sir",
+    "email": "shanu.rawat.faculty@testbook.com",
+    "facultyLMSid": "692d3e115e9993ae9a9f8929",
+    "facultyCBSid": "787",
+    "facultyCBScode": "shanu.rawat.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Annappa Dhaygude Sir",
+    "email": "annappa.dhaygude.faculty@testbook.com",
+    "facultyLMSid": "69393ce6c9958f9a3bca8465",
+    "facultyCBSid": "788",
+    "facultyCBScode": "annappa.dhaygude.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ankush Abruke Sir",
+    "email": "ankush.abruke.faculty@testbook.com",
+    "facultyLMSid": "69393caa416b661f3fc2aea0",
+    "facultyCBSid": "789",
+    "facultyCBScode": "ankush.abruke.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Gayatri Mahajan Ma'am",
+    "email": "gayatri.mahajan.faculty@testbook.com",
+    "facultyLMSid": "693aa7be112ce468e76709de",
+    "facultyCBSid": "790",
+    "facultyCBScode": "gayatri.mahajan.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shahna Bee Ma'am",
+    "email": "shahna.bee.faculty@testbook.com",
+    "facultyLMSid": "693928831cf46a65452f3c32",
+    "facultyCBSid": "791",
+    "facultyCBScode": "shahna.bee.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ruchita Khairnar Ma'am",
+    "email": "ruchita.khairnar.faculty@testbook.com",
+    "facultyLMSid": "693ff7096ff510b8fdb5c007",
+    "facultyCBSid": "792",
+    "facultyCBScode": "ruchita.khairnar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Niharika Walia Ma'am",
+    "email": "niharika.walia.faculty@testbook.com",
+    "facultyLMSid": "694263292ee7525f639e7d04",
+    "facultyCBSid": "793",
+    "facultyCBScode": "niharika.walia.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dakshita Singh Ma'am",
+    "email": "dakshita.singh.faculty@testbook.com",
+    "facultyLMSid": "6941495e594bcd7dae52a6be",
+    "facultyCBSid": "794",
+    "facultyCBScode": "dakshita.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Amit Kumar Sir",
+    "email": "amit.kumar.faculty@testbook.com",
+    "facultyLMSid": "694149763ad9b9e12e2b1ee5",
+    "facultyCBSid": "795",
+    "facultyCBScode": "amit.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Abhinandan Jain Sir",
+    "email": "abhinandan.jain.faculty@testbook.com",
+    "facultyLMSid": "694a6be752f6dcca4f987575",
+    "facultyCBSid": "796",
+    "facultyCBScode": "abhinandan.jain.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vinay Tiwari Sir",
+    "email": "vinay.tiwari.faculty@testbook.com",
+    "facultyLMSid": "694139cf7af467a15e280b8a",
+    "facultyCBSid": "797",
+    "facultyCBScode": "vinay.tiwari.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ajit Dhanaji Yadav",
+    "email": "ajit.yadav@testbook.com",
+    "facultyLMSid": "694a9cefe654a06edff18041",
+    "facultyCBSid": "798",
+    "facultyCBScode": "ajit.yadav",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Deepak Choudhary Sir",
+    "email": "deepak.choudhary.faculty@testbook.com",
+    "facultyLMSid": "694e3469ed8a7ff83572314d",
+    "facultyCBSid": "799",
+    "facultyCBScode": "deepak.choudhary.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nishant Sir",
+    "email": "nishant.faculty@testbook.com",
+    "facultyLMSid": "694e74bfb482e7b5dee49267",
+    "facultyCBSid": "800",
+    "facultyCBScode": "nishant.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rajat Kumar Sir",
+    "email": "rajat.k.faculty@testbook.com",
+    "facultyLMSid": "6954fd7b78e963ca04b2327a",
+    "facultyCBSid": "801",
+    "facultyCBScode": "rajat.k.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Susmita Mohanty Ma'am",
+    "email": "susmita.mohanty.faculty@testbook.com",
+    "facultyLMSid": "694a6c0e5fa73b80cfbe5c57",
+    "facultyCBSid": "802",
+    "facultyCBScode": "susmita.mohanty.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Raja Pramil Sir",
+    "email": "raja.gachhayat.faculty@testbook.com",
+    "facultyLMSid": "694fb84d71d9b87e2a17d61b",
+    "facultyCBSid": "803",
+    "facultyCBScode": "raja.gachhayat.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Niharika Bhagtani Ma'am",
+    "email": "niharika.bhagtani.faculty@testbook.com",
+    "facultyLMSid": "695e2db925918ee6e3c1cf1f",
+    "facultyCBSid": "804",
+    "facultyCBScode": "niharika.bhagtani.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Gagandeep Sir",
+    "email": "gagandeep.singh.faculty@testbook.com",
+    "facultyLMSid": "695b8e98f071a176dfb223b0",
+    "facultyCBSid": "805",
+    "facultyCBScode": "gagandeep.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Nilesh Ulke Sir",
+    "email": "nilesh.ulke.faculty@testbook.com",
+    "facultyLMSid": "69660c7779f17dd22d07ffdf",
+    "facultyCBSid": "806",
+    "facultyCBScode": "nilesh.ulke.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Vitthal Deshmukh Sir",
+    "email": "vitthal.deshmukh.faculty@testbook.com",
+    "facultyLMSid": "69660cd01c0a7054f8102ade",
+    "facultyCBSid": "807",
+    "facultyCBScode": "vitthal.deshmukh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sandeep Singh Sir",
+    "email": "sandeep.singh.faculty@testbook.com",
+    "facultyLMSid": "69689841afa4f13ecb320b71",
+    "facultyCBSid": "808",
+    "facultyCBScode": "sandeep.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Manpreet Singh Sir",
+    "email": "manpreet.singh.faculty@plutuseducation.com",
+    "facultyLMSid": "696f7dced10c25b93a7511b1",
+    "facultyCBSid": "809",
+    "facultyCBScode": "manpreet.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sayantani Das Ma'am",
+    "email": "sayantani.das.faculty@testbook.com",
+    "facultyLMSid": "69707ba55391d96a37737a2f",
+    "facultyCBSid": "810",
+    "facultyCBScode": "sayantani.das.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rakesh Kumar Sir",
+    "email": "rakesh.kumar.faculty@testbook.com",
+    "facultyLMSid": "6978751b35d0a837fb146a2b",
+    "facultyCBSid": "811",
+    "facultyCBScode": "rakesh.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Chandra Prakash Sir",
+    "email": "chandra.prakash.faculty@testbook.com",
+    "facultyLMSid": "69807b8a45ca706831cb84bb",
+    "facultyCBSid": "812",
+    "facultyCBScode": "chandra.prakash.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Baishali Giri Ma'am",
+    "email": "baishali.giri.faculty@testbook.com",
+    "facultyLMSid": "698af64f73f9f7e4cc0f9d15",
+    "facultyCBSid": "813",
+    "facultyCBScode": "baishali.giri.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Amanjyot Kaur Ma'am",
+    "email": "amanjyot.kaur.faculty@testbook.com",
+    "facultyLMSid": "6992e98861f24c7e42d5263d",
+    "facultyCBSid": "814",
+    "facultyCBScode": "amanjyot.kaur.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Davinder Kaur Ma'am",
+    "email": "davinder.kaur.faculty@testbook.com",
+    "facultyLMSid": "699c296b70d66be3452cb259",
+    "facultyCBSid": "815",
+    "facultyCBScode": "davinder.kaur.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Varsha Malik Ma'am",
+    "email": "varsha.malik.faculty@testbook.com",
+    "facultyLMSid": "699c0187b0e12a003a00cbf0",
+    "facultyCBSid": "816",
+    "facultyCBScode": "varsha.malik.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shailendra Kumar Sir",
+    "email": "shailendra.kumar.faculty@testbook.com",
+    "facultyLMSid": "69ae7a3e80c7e218c722bf52",
+    "facultyCBSid": "817",
+    "facultyCBScode": "shailendra.kumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sushil Jena Sir",
+    "email": "sushil.jena.faculty@testbook.com",
+    "facultyLMSid": "69b119fb8115693c12c6c936",
+    "facultyCBSid": "818",
+    "facultyCBScode": "sushil.jena.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Saumya Pandey Ma'am",
+    "email": "saumya.mittal.faculty@testbook.com",
+    "facultyLMSid": "69ca2f1c25a0123590fe1539",
+    "facultyCBSid": "819",
+    "facultyCBScode": "saumya.mittal.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ramesh Chandra Sir",
+    "email": "ramesh.chandra.mentor@testbook.com",
+    "facultyLMSid": "69cbb2d56f4fe95fb76e8351",
+    "facultyCBSid": "820",
+    "facultyCBScode": "ramesh.chandra.mentor",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Puneet Chopra Sir",
+    "email": "puneet.chopra.faculty@testbook.com",
+    "facultyLMSid": "69de339ffbfbac6bc1afebaf",
+    "facultyCBSid": "822",
+    "facultyCBScode": "puneet.chopra.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shree Laddha Sir",
+    "email": "shree.laddha.faculty@testbook.com",
+    "facultyLMSid": "69ea161be4b5ab2644cca023",
+    "facultyCBSid": "823",
+    "facultyCBScode": "shree.laddha.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shyam Sunder",
+    "email": "shyam.sunder@testbook.com",
+    "facultyLMSid": "66d6e80cf81b349c4bfd034c",
+    "facultyCBSid": "824",
+    "facultyCBScode": "shyam.sunder",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dheeraj Patel",
+    "email": "dheeraj.patel@testbook.com",
+    "facultyLMSid": "6659a86b3f3c2f45e5af69e1",
+    "facultyCBSid": "825",
+    "facultyCBScode": "dheeraj.patel",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Rajan Mishra Sir",
+    "email": "rajan.mishra.faculty@testbook.com",
+    "facultyLMSid": "69f49363c53d5211fbe6a2fa",
+    "facultyCBSid": "826",
+    "facultyCBScode": "rajan.mishra.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Krati Singh Ma'am",
+    "email": "krati.singh.faculty@testbook.com",
+    "facultyLMSid": "69fc3d1c64090717a6e82c9c",
+    "facultyCBSid": "827",
+    "facultyCBScode": "krati.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Dhanavath Vijay Sir",
+    "email": "dhanavath.vijay.faculty@testbook.com",
+    "facultyLMSid": "69f8535c5910287cd4dc2e9e",
+    "facultyCBSid": "828",
+    "facultyCBScode": "dhanavath.vijay.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Khandyapu Pratap Sir",
+    "email": "khandyapu.pratap.faculty@testbook.com",
+    "facultyLMSid": "69f85433bbbae6a1809cd5e9",
+    "facultyCBSid": "829",
+    "facultyCBScode": "khandyapu.pratap.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Jeripothula Thirupathi Sir",
+    "email": "jeripothula.thirupathi.faculty@testbook.com",
+    "facultyLMSid": "69f8539eceed7301d79403ad",
+    "facultyCBSid": "830",
+    "facultyCBScode": "jeripothula.thirupathi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Manukondu Venkatesh Sir",
+    "email": "manukondu.venkatesh.faculty@testbook.com",
+    "facultyLMSid": "69f854e9d940414822fa5af0",
+    "facultyCBSid": "831",
+    "facultyCBScode": "manukondu.venkatesh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kiran Behara Sir",
+    "email": "kiran.behara.faculty@testbook.com",
+    "facultyLMSid": "69f854695910287cd4dc3f81",
+    "facultyCBSid": "832",
+    "facultyCBScode": "kiran.behara.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Anshuman Dash Sir",
+    "email": "anshuman.dash.faculty@testbook.com",
+    "facultyLMSid": "69feeb4e85c348285123717b",
+    "facultyCBSid": "833",
+    "facultyCBScode": "anshuman.dash.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Jaspreet Singh Sir",
+    "email": "jaspreet.singh.faculty@testbook.com",
+    "facultyLMSid": "6a017f765fc798c72ff10d6a",
+    "facultyCBSid": "834",
+    "facultyCBScode": "jaspreet.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Pranawa Nair Ma'am",
+    "email": "pranawa.nair.faculty@testbook.com",
+    "facultyLMSid": "6a017cbfd5c61ff02e86e0fb",
+    "facultyCBSid": "835",
+    "facultyCBScode": "pranawa.nair.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sudharsan V Sir",
+    "email": "sudharsan.v.faculty@testbook.com",
+    "facultyLMSid": "6a017f25003999695acb050c",
+    "facultyCBSid": "836",
+    "facultyCBScode": "sudharsan.v.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Kishore Mohankumar Sir",
+    "email": "kishore.mohankumar.faculty@testbook.com",
+    "facultyLMSid": "6a017d1b64db6437fc3e8cf3",
+    "facultyCBSid": "837",
+    "facultyCBScode": "kishore.mohankumar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sujeet Bajpai Sir",
+    "email": "sujeet.bajpai.faculty@testbook.com",
+    "facultyLMSid": "6a06fe309bb025dd1e9997f7",
+    "facultyCBSid": "838",
+    "facultyCBScode": "sujeet.bajpai.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Arun Prasath Sir",
+    "email": "arun.prasath.faculty@testbook.com",
+    "facultyLMSid": "6a0581bc35778908582c6b64",
+    "facultyCBSid": "839",
+    "facultyCBScode": "arun.prasath.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Abuj Akarur Vasudev Sir",
+    "email": "abuj.vasudev.faculty@testbook.com",
+    "facultyLMSid": "6a06fee55bd06cc606fe86ee",
+    "facultyCBSid": "840",
+    "facultyCBScode": "abuj.vasudev.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Ratan Punwatkar Sir",
+    "email": "ratan.punwatkar.faculty@testbook.com",
+    "facultyLMSid": "6a06fea3969798727f77ad41",
+    "facultyCBSid": "841",
+    "facultyCBScode": "ratan.punwatkar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Gajula Chakradhar Sir",
+    "email": "gajula.chakradhar.faculty@testbook.com",
+    "facultyLMSid": "69f853eb86fe792db22540b2",
+    "facultyCBSid": "842",
+    "facultyCBScode": "gajula.chakradhar.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Mantesh Patil Sir",
+    "email": "mantesh.patil.faculty@testbook.com",
+    "facultyLMSid": "6a06ff809bb025dd1e99b1a3",
+    "facultyCBSid": "843",
+    "facultyCBScode": "mantesh.patil.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Abhinav Negi Sir",
+    "email": "abhinav.negi.faculty@testbook.com",
+    "facultyLMSid": "6a17f49cacbb6adfe1afb00f",
+    "facultyCBSid": "844",
+    "facultyCBScode": "abhinav.negi.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Gurmeet Singh Sir",
+    "email": "gurmeet.singh.faculty@testbook.com",
+    "facultyLMSid": "6a17f9763191ea27563b85eb",
+    "facultyCBSid": "845",
+    "facultyCBScode": "gurmeet.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Krishnanand Sir",
+    "email": "krishnanand.faculty@testbook.com",
+    "facultyLMSid": "6a1d2a12c876e0919259227e",
+    "facultyCBSid": "846",
+    "facultyCBScode": "krishnanand.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Siddharth Bajpai Sir",
+    "email": "siddharth.bajpai.faculty@testbook.com",
+    "facultyLMSid": "6a1d2a5c563b598844f86f6c",
+    "facultyCBSid": "847",
+    "facultyCBScode": "siddharth.bajpai.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Manas Sir",
+    "email": "manas.faculty@testbook.com",
+    "facultyLMSid": "6a155300ba3848bbf67f3a99",
+    "facultyCBSid": "848",
+    "facultyCBScode": "manas.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Sandeep Sir",
+    "email": "sandeep.faculty@testbook.com",
+    "facultyLMSid": "6a15534c8756249e7b10e32a",
+    "facultyCBSid": "849",
+    "facultyCBScode": "sandeep.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Priyanshu Singh Sir",
+    "email": "priyanshu.singh.faculty@testbook.com",
+    "facultyLMSid": "6a216b046b2859cbd6f02c56",
+    "facultyCBSid": "850",
+    "facultyCBScode": "priyanshu.singh.faculty",
+    "status": "Active"
+  },
+  {
+    "facultyName": "Shubham Tijare Sir",
+    "email": "shubham.tijare.faculty@testbook.com",
+    "facultyLMSid": "6a06ff4525feb87eda8f1bc0",
+    "facultyCBSid": "851",
+    "facultyCBScode": "shubham.tijare.faculty",
+    "status": "Active"
+  }
+]
