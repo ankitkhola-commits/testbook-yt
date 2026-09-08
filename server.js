@@ -1605,7 +1605,7 @@ app.post("/api/youtube-ops/init-upload", async (req, res, next) => {
   }
 });
 
-app.put("/api/youtube-ops/upload-proxy", (req, res, next) => {
+app.all("/api/youtube-ops/upload-proxy", (req, res, next) => {
   try {
     const uploadUrl = req.query.uploadUrl;
     if (!uploadUrl) {
@@ -1615,27 +1615,52 @@ app.put("/api/youtube-ops/upload-proxy", (req, res, next) => {
     req.socket.setTimeout(0); // Allow long video upload streams without timing out
 
     const parsedUrl = new URL(uploadUrl);
+    const headers = {
+      "Content-Type": req.headers["content-type"] || "video/mp4",
+    };
+
+    if (req.headers["content-length"]) {
+      headers["Content-Length"] = req.headers["content-length"];
+    }
+    if (req.headers["content-range"]) {
+      headers["Content-Range"] = req.headers["content-range"];
+    }
+
     const options = {
       protocol: parsedUrl.protocol,
       hostname: parsedUrl.hostname,
       port: parsedUrl.port || (parsedUrl.protocol === "https:" ? 443 : 80),
       path: parsedUrl.pathname + parsedUrl.search,
-      method: "PUT",
-      headers: {
-        "Content-Type": req.headers["content-type"] || "video/mp4",
-        "Content-Length": req.headers["content-length"] || req.headers["x-upload-content-length"],
-      },
+      method: req.method || "PUT",
+      headers,
     };
 
     const proxyReq = https.request(options, (proxyRes) => {
-      res.status(proxyRes.statusCode);
+      const statusCode = proxyRes.statusCode;
+
+      // 308 Resume Incomplete: YouTube has successfully received this chunk
+      if (statusCode === 308) {
+        const rangeHeader = proxyRes.headers["range"] || "";
+        res.status(200).json({
+          incomplete: true,
+          status: 308,
+          range: rangeHeader,
+        });
+        proxyRes.resume();
+        return;
+      }
+
+      res.status(statusCode);
+      if (proxyRes.headers["content-type"]) {
+        res.setHeader("Content-Type", proxyRes.headers["content-type"]);
+      }
       proxyRes.pipe(res);
     });
 
     proxyReq.on("error", (err) => {
-      console.error("[Upload Proxy] Error streaming to YouTube:", err.message);
+      console.error("[Upload Proxy] Error streaming chunk to YouTube:", err.message);
       if (!res.headersSent) {
-        res.status(502).json({ error: "Failed to stream video to YouTube: " + err.message });
+        res.status(502).json({ error: "Failed to stream video chunk to YouTube: " + err.message });
       }
     });
 

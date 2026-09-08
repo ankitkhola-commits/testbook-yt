@@ -5622,6 +5622,7 @@ function initYouTubeOps() {
   function setEventSubmode(submode) {
     opsState.eventSubmode = submode;
     const isReuse = submode === "reuse";
+
     if (subtabNew) {
       subtabNew.classList.toggle("active", !isReuse);
       subtabNew.classList.remove("active-sub-tab");
@@ -7304,45 +7305,97 @@ async function handleExecuteUpload(isShorts) {
     const uploadUrl = initData.uploadUrl;
     progressStatus.textContent = `Uploading ${isShorts ? "Short" : "video"} to YouTube...`;
 
-    // 2. Upload file chunks through local upload proxy (prevents browser CORS blocks)
+    // 2. Upload file in chunks (2 MB each, multiple of 256 KB) to stay well below Vercel's 4.5 MB payload limit
+    const CHUNK_SIZE = 2 * 1024 * 1024; // 2,097,152 bytes = 8 * 256 KB
+    const totalSize = file.size;
+    let offset = 0;
+    let uploadedVideo = null;
     const targetUrl = `/api/youtube-ops/upload-proxy?uploadUrl=${encodeURIComponent(uploadUrl)}`;
-    const uploadedVideo = await new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("PUT", targetUrl, true);
-      xhr.setRequestHeader("Content-Type", file.type || "video/mp4");
 
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) {
-          const percent = Math.round((e.loaded / e.total) * 100);
-          progressBar.style.width = `${percent}%`;
-          progressPercent.textContent = `${percent}%`;
-          progressSubtext.textContent = `Uploaded ${formatBytes(e.loaded)} of ${formatBytes(e.total)}`;
-        }
-      };
+    while (offset < totalSize) {
+      const nextChunkEnd = Math.min(offset + CHUNK_SIZE, totalSize);
+      const chunk = file.slice(offset, nextChunkEnd);
+      const contentRange = `bytes ${offset}-${nextChunkEnd - 1}/${totalSize}`;
 
-      xhr.onload = () => {
-        if (xhr.status === 200 || xhr.status === 201) {
-          try {
-            const data = JSON.parse(xhr.responseText);
-            resolve(data);
-          } catch (e) {
-            resolve({ id: "" });
+      const chunkNumber = Math.floor(offset / CHUNK_SIZE) + 1;
+      const totalChunks = Math.ceil(totalSize / CHUNK_SIZE);
+      progressStatus.textContent = `Uploading ${isShorts ? "Short" : "video"} to YouTube (Part ${chunkNumber} of ${totalChunks})...`;
+
+      let retries = 0;
+      let chunkSuccess = false;
+
+      while (!chunkSuccess && retries < 3) {
+        try {
+          const chunkResult = await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open("PUT", targetUrl, true);
+            xhr.setRequestHeader("Content-Type", file.type || "video/mp4");
+            xhr.setRequestHeader("Content-Range", contentRange);
+
+            xhr.upload.onprogress = (e) => {
+              if (e.lengthComputable) {
+                const currentLoaded = offset + e.loaded;
+                const percent = Math.min(99, Math.round((currentLoaded / totalSize) * 100));
+                progressBar.style.width = `${percent}%`;
+                progressPercent.textContent = `${percent}%`;
+                progressSubtext.textContent = `Uploaded ${formatBytes(currentLoaded)} of ${formatBytes(totalSize)}`;
+              }
+            };
+
+            xhr.onload = () => {
+              let parsed = null;
+              try {
+                parsed = JSON.parse(xhr.responseText);
+              } catch (e) {
+                parsed = xhr.responseText;
+              }
+
+              if (xhr.status === 200 || xhr.status === 201) {
+                resolve(parsed);
+              } else if (xhr.status === 308) {
+                resolve({ incomplete: true, status: 308, range: xhr.getResponseHeader("Range") });
+              } else {
+                let errorMsg = typeof parsed === "object" && parsed !== null
+                  ? parsed.error?.message || parsed.error || JSON.stringify(parsed)
+                  : xhr.responseText;
+                reject(new Error(`YouTube upload failed (HTTP ${xhr.status}): ${errorMsg}`));
+              }
+            };
+
+            xhr.onerror = () => reject(new Error("Connection error while streaming video chunk to YouTube."));
+            xhr.onabort = () => reject(new Error("Upload aborted."));
+
+            xhr.send(chunk);
+          });
+
+          if (chunkResult && chunkResult.incomplete) {
+            if (chunkResult.range) {
+              const rangeMatch = String(chunkResult.range).match(/bytes=0-(\d+)/);
+              if (rangeMatch) {
+                offset = parseInt(rangeMatch[1], 10) + 1;
+              } else {
+                offset = nextChunkEnd;
+              }
+            } else {
+              offset = nextChunkEnd;
+            }
+            chunkSuccess = true;
+          } else if (chunkResult && (chunkResult.id || typeof chunkResult === "object")) {
+            uploadedVideo = chunkResult;
+            offset = totalSize;
+            chunkSuccess = true;
+          } else {
+            throw new Error("Unexpected response from upload proxy.");
           }
-        } else {
-          let errorDetail = xhr.responseText;
-          try {
-            const parsed = JSON.parse(xhr.responseText);
-            errorDetail = parsed.error?.message || parsed.error || xhr.responseText;
-          } catch (e) {}
-          reject(new Error(`YouTube upload failed (HTTP ${xhr.status}): ${errorDetail}`));
+        } catch (chunkErr) {
+          retries++;
+          if (retries >= 3) {
+            throw chunkErr;
+          }
+          await new Promise((r) => setTimeout(r, 1500));
         }
-      };
-
-      xhr.onerror = () => reject(new Error("Connection error while streaming video to YouTube."));
-      xhr.onabort = () => reject(new Error("Upload aborted."));
-
-      xhr.send(file);
-    });
+      }
+    }
 
     const videoId = uploadedVideo?.id || "";
 
