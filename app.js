@@ -11,7 +11,7 @@ const formats = {
   live: { label: "Live", color: "#0f9f96" },
 };
 
-const competitorCategories = ["Testbook", "Teaching", "UGC NET", "CGL", "Odisha", "OPSC", "Bengali", "Marathi", "MPSC", "AE JE", "Bihar", "Banking", "Railways", "Punjab", "Telugu", "Tamil"];
+const competitorCategories = ["Testbook", "Teaching", "UGC NET", "CGL", "Odisha", "OPSC", "Bengali", "Marathi", "MPSC", "AE JE", "Bihar", "Banking", "Railways", "UPSC", "Punjab", "Telugu", "Tamil", "JAIIB CAIIB"];
 const competitorAutoRefreshMs = 24 * 60 * 60 * 1000; // once a day
 let competitorAutoRefreshTimer = null;
 const activeProgressBars = {};
@@ -218,36 +218,30 @@ document.querySelector("#refreshButton").addEventListener("click", () => {
   loadDashboard({ force: true });
 });
 
-window.switchWorkspaceTab = function(tabName) {
-  if (!tabName) return;
-  state.activeView = tabName;
-
-  // Hide dashboard progress bar if navigating away
-  if (state.activeView !== "dashboard") {
-    const container = document.getElementById("dashboardProgressBarContainer");
-    if (container) {
-      container.classList.add("is-hidden");
-    }
-  }
-
-  applyView();
-
-  if (state.activeView === "competitors") {
-    enterCompetitorView();
-    return;
-  }
-  stopCompetitorAutoRefresh();
-  if (state.activeView === "research") renderResearchView();
-  if (state.activeView === "seo") renderSeoAuditView();
-  if (state.activeView === "targets") loadTargets();
-  if (state.activeView === "comments") loadComments();
-  if (state.activeView === "admin-reports") loadAdminMonthlyReport();
-  if (state.activeView === "youtube-ops") loadYouTubeOps();
-};
-
 document.querySelectorAll("[data-view-tab]").forEach((button) => {
   button.addEventListener("click", () => {
-    window.switchWorkspaceTab(button.dataset.viewTab);
+    state.activeView = button.dataset.viewTab;
+    
+    // Hide dashboard progress bar if navigating away
+    if (state.activeView !== "dashboard") {
+      const container = document.getElementById("dashboardProgressBarContainer");
+      if (container) {
+        container.classList.add("is-hidden");
+      }
+    }
+    
+    applyView();
+    if (state.activeView === "competitors") {
+      enterCompetitorView();
+      return;
+    }
+    stopCompetitorAutoRefresh();
+    if (state.activeView === "research") renderResearchView();
+    if (state.activeView === "seo") renderSeoAuditView();
+    if (state.activeView === "targets") loadTargets();
+    if (state.activeView === "comments") loadComments();
+    if (state.activeView === "admin-reports") loadAdminMonthlyReport();
+    if (state.activeView === "deep-dive") loadDeepDiveView();
   });
 });
 
@@ -258,7 +252,7 @@ rangeSelect.addEventListener("change", (event) => {
   
   if (isAd) {
     setupAdminCustomFilters(isAd);
-    if (val !== "selectMonth") {
+    if (val !== "selectMonth" && val !== "custom") {
       loadDashboard();
     }
   } else {
@@ -281,6 +275,8 @@ if (viewMetricSelect) {
 }
 
 const monthSelectInput = document.querySelector("#monthSelectInput");
+const customStartDateInput = document.querySelector("#customStartDateInput");
+const customEndDateInput = document.querySelector("#customEndDateInput");
 const applyCustomRangeBtn = document.querySelector("#applyCustomRangeBtn");
 
 if (monthSelectInput) {
@@ -295,11 +291,43 @@ if (monthSelectInput) {
   });
 }
 
+if (customStartDateInput) {
+  const d = new Date();
+  d.setDate(d.getDate() - 29);
+  customStartDateInput.value = d.toISOString().slice(0, 10);
+  state.selectedStartDate = customStartDateInput.value;
+
+  customStartDateInput.addEventListener("change", (e) => {
+    state.selectedStartDate = e.target.value;
+  });
+}
+
+if (customEndDateInput) {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  customEndDateInput.value = d.toISOString().slice(0, 10);
+  state.selectedEndDate = customEndDateInput.value;
+
+  customEndDateInput.addEventListener("change", (e) => {
+    state.selectedEndDate = e.target.value;
+  });
+}
+
+
 if (applyCustomRangeBtn) {
   applyCustomRangeBtn.addEventListener("click", () => {
     if (state.activeRange === "selectMonth") {
       if (!state.selectedMonth) {
         alert("Please select a month first.");
+        return;
+      }
+    } else if (state.activeRange === "custom") {
+      if (!state.selectedStartDate || !state.selectedEndDate) {
+        alert("Please select both start and end dates.");
+        return;
+      }
+      if (new Date(state.selectedStartDate) > new Date(state.selectedEndDate)) {
+        alert("Start date cannot be after end date.");
         return;
       }
     }
@@ -592,6 +620,9 @@ function renderChannels() {
   visibleChannels.forEach((channel) => {
     channelList.append(channelButton(channel));
   });
+  if (typeof populateDeepDiveChannels === "function") {
+    populateDeepDiveChannels();
+  }
 }
 
 function channelButton(channel) {
@@ -1112,15 +1143,15 @@ function applyView() {
       : state.activeView === "seo"
         ? "SEO Audit"
         : state.activeView === "ytm"
-          ? "YTM Audit"
-          : state.activeView === "targets"
-            ? "Target Tracker"
+            ? "YTM Audit"
+            : state.activeView === "targets"
+              ? "Target Tracker"
               : state.activeView === "comments"
                 ? "Comments Moderator"
-                : state.activeView === "admin-reports"
-                  ? (state.adminMonthlyReport?.rangeLabel ? `MoM Progress & Export (${state.adminMonthlyReport.rangeLabel})` : "MoM Progress & Export")
-                  : state.activeView === "youtube-ops"
-                    ? "YouTube Operations"
+                : state.activeView === "deep-dive"
+                  ? "Deep Dive - Channel & Live Streams Analysis"
+                  : state.activeView === "admin-reports"
+                    ? (state.adminMonthlyReport?.rangeLabel ? `MoM Progress & Export (${state.adminMonthlyReport.rangeLabel})` : "MoM Progress & Export")
                     : "Research";
 }
 
@@ -1413,6 +1444,8 @@ function setupAdminCustomFilters(isAd) {
   const rangeSelect = document.querySelector("#rangeSelect");
   const adminCustomFilters = document.querySelector("#adminCustomFilters");
   const monthPickerWrap = document.querySelector("#monthPickerWrap");
+  const datePickerWrapStart = document.querySelector("#datePickerWrapStart");
+  const datePickerWrapEnd = document.querySelector("#datePickerWrapEnd");
 
   if (!rangeSelect || !adminCustomFilters) return;
 
@@ -1423,18 +1456,33 @@ function setupAdminCustomFilters(isAd) {
       optMonth.textContent = "Custom Month";
       rangeSelect.appendChild(optMonth);
     }
+    if (!rangeSelect.querySelector('option[value="custom"]')) {
+      const optCustom = document.createElement("option");
+      optCustom.value = "custom";
+      optCustom.textContent = "Custom Date Range";
+      rangeSelect.appendChild(optCustom);
+    }
 
     const val = rangeSelect.value;
     if (val === "selectMonth") {
       adminCustomFilters.style.display = "flex";
-      if (monthPickerWrap) monthPickerWrap.style.display = "grid";
+      monthPickerWrap.style.display = "grid";
+      datePickerWrapStart.style.display = "none";
+      datePickerWrapEnd.style.display = "none";
+    } else if (val === "custom") {
+      adminCustomFilters.style.display = "flex";
+      monthPickerWrap.style.display = "none";
+      datePickerWrapStart.style.display = "grid";
+      datePickerWrapEnd.style.display = "grid";
     } else {
       adminCustomFilters.style.display = "none";
-      if (monthPickerWrap) monthPickerWrap.style.display = "none";
+      monthPickerWrap.style.display = "none";
+      datePickerWrapStart.style.display = "none";
+      datePickerWrapEnd.style.display = "none";
     }
   } else {
     adminCustomFilters.style.display = "none";
-    rangeSelect.querySelectorAll('option[value="selectMonth"]').forEach(opt => opt.remove());
+    rangeSelect.querySelectorAll('option[value="selectMonth"], option[value="custom"]').forEach(opt => opt.remove());
   }
 }
 
@@ -1450,8 +1498,8 @@ function showDashboard() {
   
   setupAdminCustomFilters(isAd);
   
-  // SEO Audit, MoM Export, and YouTube Ops are available to everyone
-  document.querySelectorAll('[data-view-tab="seo"], [data-view-tab="admin-reports"], [data-view-tab="youtube-ops"]').forEach(btn => {
+  // SEO Audit and MoM Export are available to everyone
+  document.querySelectorAll('[data-view-tab="seo"], [data-view-tab="admin-reports"]').forEach(btn => {
     btn.style.display = "";
   });
   document.querySelectorAll('[data-view-tab="ytm"]').forEach(btn => {
@@ -1949,6 +1997,7 @@ function renderSeoAuditResults() {
               ${gapsHtml}
             </div>
             <div class="actions-cell">
+              <button class="connect-button suggest-btn-sm" type="button" data-seo-action="suggest" data-video-id="${video.id}" data-channel-id="${video.channelId}" data-video-title="${escapeHtml(video.title)}">AI Suggest</button>
               <a class="link-chip watch-link" href="https://www.youtube.com/watch?v=${video.id}" target="_blank" rel="noreferrer">Open</a>
             </div>
           </div>
@@ -4908,355 +4957,6 @@ function setupCommentsViewListeners() {
 
 setTimeout(setupCommentsViewListeners, 1000);
 
-state.liveAutomatorSelectedChannel = "";
-state.liveAutomatorStreams = [];
-state.liveAutomatorTasks = [];
-
-function populateLiveAutomatorChannels() {
-  const select = document.querySelector("#liveAutomatorChannelSelect");
-  if (select && state.channels) {
-    const publicChs = state.channels.filter(c => c.id !== "all-in-one");
-    select.innerHTML = publicChs.map(c => `
-      <option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>
-    `).join("");
-    
-    if (!state.liveAutomatorSelectedChannel && publicChs.length) {
-      state.liveAutomatorSelectedChannel = publicChs[0].id;
-    }
-    
-    if (state.liveAutomatorSelectedChannel) {
-      select.value = state.liveAutomatorSelectedChannel;
-    }
-  }
-}
-
-async function loadLiveAutomator(options = {}) {
-  populateLiveAutomatorChannels();
-  
-  const select = document.querySelector("#liveAutomatorChannelSelect");
-  const channelId = select ? select.value : state.liveAutomatorSelectedChannel;
-  if (!channelId) {
-    document.querySelector("#liveAutomatorStreamsList").innerHTML = emptyCard("Please connect a channel first.");
-    document.querySelector("#liveAutomatorTasksList").innerHTML = emptyCard("Please connect a channel first.");
-    if (document.querySelector("#liveAutomatorRulesList")) {
-      document.querySelector("#liveAutomatorRulesList").innerHTML = emptyCard("Please connect a channel first.");
-    }
-    return;
-  }
-
-  state.liveAutomatorSelectedChannel = channelId;
-
-  if (!options.force && state.liveAutomatorStreams.length && state.liveAutomatorStreamsChannelId === channelId) {
-    renderLiveAutomatorView();
-    return;
-  }
-
-  document.querySelector("#liveAutomatorStreamsList").innerHTML = emptyCard("Fetching streams...");
-  document.querySelector("#liveAutomatorTasksList").innerHTML = emptyCard("Fetching automation tasks...");
-  if (document.querySelector("#liveAutomatorRulesList")) {
-    document.querySelector("#liveAutomatorRulesList").innerHTML = emptyCard("Fetching rules...");
-  }
-
-  const steps = [
-    { time: 0, text: "Searching channel for live/upcoming broadcasts..." },
-    { time: 2, text: "Retrieving active tasks and rules..." },
-    { time: 4, text: "Rendering live automator dashboard..." }
-  ];
-  const progressBar = startProgressBar("liveAutomatorProgressBarContainer", "liveAutomatorProgressBarFill", "liveAutomatorProgressBarLabel", steps);
-
-  try {
-    const [streamsRes, tasksRes, rulesRes] = await Promise.all([
-      api(`/api/live-automator/streams?channelId=${encodeURIComponent(channelId)}`),
-      api(`/api/live-automator/tasks?channelId=${encodeURIComponent(channelId)}`),
-      api(`/api/live-automator/rules?channelId=${encodeURIComponent(channelId)}`)
-    ]);
-
-    if (progressBar) progressBar.stop(true, "Dashboard Loaded!");
-    state.liveAutomatorStreams = streamsRes.streams || [];
-    state.liveAutomatorTasks = tasksRes.tasks || [];
-    state.liveAutomatorRules = rulesRes.rules || [];
-    state.liveAutomatorStreamsChannelId = channelId;
-    renderLiveAutomatorView();
-  } catch (error) {
-    if (progressBar) progressBar.stop(false, "Load Failed!");
-    document.querySelector("#liveAutomatorStreamsList").innerHTML = emptyCard(error.message);
-    document.querySelector("#liveAutomatorTasksList").innerHTML = emptyCard(error.message);
-    if (document.querySelector("#liveAutomatorRulesList")) {
-      document.querySelector("#liveAutomatorRulesList").innerHTML = emptyCard(error.message);
-    }
-  }
-}
-
-function renderLiveAutomatorView() {
-  renderLiveAutomatorRules();
-  renderLiveAutomatorStreams();
-  renderLiveAutomatorTasks();
-}
-
-function renderLiveAutomatorStreams() {
-  const container = document.querySelector("#liveAutomatorStreamsList");
-  if (!container) return;
-
-  if (!state.liveAutomatorStreams || !state.liveAutomatorStreams.length) {
-    container.innerHTML = emptyCard("No upcoming live streams found.");
-    return;
-  }
-
-  container.innerHTML = `
-    <div style="display: flex; flex-direction: column; gap: 12px;">
-      ${state.liveAutomatorStreams.map(stream => {
-        const task = state.liveAutomatorTasks.find(t => t.videoId === stream.id && t.status === "pending");
-        const hasTask = Boolean(task);
-        const statusBadge = `<span style="background: #2563eb; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase;">Upcoming</span>`;
-        const autoCommentBadge = task && task.autoCreated 
-          ? `<span style="background: #059669; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase;">Auto Comment Set</span>`
-          : "";
-        const dateToUse = stream.scheduledStartTime || stream.publishedAt;
-        const dateStr = new Date(dateToUse).toLocaleDateString(undefined, { 
-          month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' 
-        });
-        return `
-          <div style="display: flex; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 6px; align-items: center;">
-            <img src="${escapeHtml(stream.thumbnail)}" style="width: 80px; height: 60px; border-radius: 4px; object-fit: cover;" alt="" />
-            <div style="flex: 1; min-width: 0;">
-              <div style="font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(stream.title)}">
-                ${escapeHtml(stream.title)}
-              </div>
-              <div style="margin-top: 4px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                ${statusBadge}
-                ${autoCommentBadge}
-                <span style="font-size: 11px; color: var(--muted);" title="Scheduled Start Time">Start: ${escapeHtml(dateStr)}</span>
-              </div>
-            </div>
-            <div>
-              <button class="connect-button automator-opt-btn" type="button" data-video-id="${escapeHtml(stream.id)}" data-video-title="${escapeHtml(stream.title)}" data-scheduled-start-time="${escapeHtml(stream.scheduledStartTime || "")}" style="margin: 0; padding: 6px 12px; font-size: 12px; height: auto; width: auto; background: ${hasTask ? "#059669" : ""}">
-                ${hasTask ? "Edit Comment" : "Add Comment"}
-              </button>
-            </div>
-          </div>
-        `;
-      }).join("")}
-    </div>
-  `;
-
-  // Bind edit/add listeners
-  container.querySelectorAll(".automator-opt-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      openLiveAutomatorDialog(btn.dataset.videoId, btn.dataset.videoTitle, btn.dataset.scheduledStartTime);
-    });
-  });
-}
-
-function renderLiveAutomatorTasks() {
-  const container = document.querySelector("#liveAutomatorTasksList");
-  if (!container) return;
-
-  if (!state.liveAutomatorTasks || !state.liveAutomatorTasks.length) {
-    container.innerHTML = emptyCard("No comment automations saved for this channel.");
-    return;
-  }
-
-  container.innerHTML = `
-    <div style="display: flex; flex-direction: column; gap: 12px;">
-      ${state.liveAutomatorTasks.map(task => {
-        let statusColor = "#d97706"; // pending: amber
-        if (task.status === "posted") statusColor = "#059669"; // green
-        if (task.status === "failed") statusColor = "#dc2626"; // red
-        
-        return `
-          <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 6px;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <strong style="font-size: 12px; text-transform: uppercase; color: ${statusColor}; font-weight: 700;">${task.status}</strong>
-              <div style="display: flex; gap: 6px; align-items: center;">
-                <a href="https://www.youtube.com/watch?v=${escapeHtml(task.videoId)}" target="_blank" class="ghost-button" style="margin: 0; padding: 2px 6px; font-size: 11px; height: auto; width: auto; color: var(--ink); border: 1px solid var(--line); background: var(--surface); text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">View Video</a>
-                <button class="ghost-button automator-delete-btn" type="button" data-video-id="${escapeHtml(task.videoId)}" style="margin: 0; padding: 2px 6px; font-size: 11px; height: auto; width: auto; color: #dc2626; border: 1px solid #fecaca; background: #fef2f2;">Delete</button>
-              </div>
-            </div>
-            <div style="font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-              ${escapeHtml(task.videoTitle)}
-            </div>
-            <div style="font-size: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 8px; font-family: monospace; white-space: pre-wrap; word-break: break-all;">${escapeHtml(task.commentText)}</div>
-            ${task.error ? `<div style="font-size: 11px; color: #dc2626; font-weight: 600;">Error: ${escapeHtml(task.error)}</div>` : ""}
-            ${task.postedAt ? `<div style="font-size: 11px; color: var(--muted);">Posted at: ${new Date(task.postedAt).toLocaleString()}</div>` : ""}
-          </div>
-        `;
-      }).join("")}
-    </div>
-  `;
-
-  // Bind delete listeners
-  container.querySelectorAll(".automator-delete-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      deleteLiveAutomatorTask(btn.dataset.videoId);
-    });
-  });
-}
-
-let activeAutomatorVideoId = "";
-let activeAutomatorVideoTitle = "";
-let activeAutomatorScheduledStartTime = "";
-
-function openLiveAutomatorDialog(videoId, videoTitle, scheduledStartTime) {
-  activeAutomatorVideoId = videoId;
-  activeAutomatorVideoTitle = videoTitle;
-  activeAutomatorScheduledStartTime = scheduledStartTime || "";
-
-  const dialog = document.getElementById("liveAutomatorDialog");
-  const titleEl = document.getElementById("liveAutomatorDialogStreamTitle");
-  const commentArea = document.getElementById("liveAutomatorCommentText");
-
-  if (!dialog || !titleEl || !commentArea) return;
-
-  titleEl.textContent = `Automate Comment: ${truncateTitle(videoTitle, 35)}`;
-  
-  // Fill existing text if any
-  const existing = state.liveAutomatorTasks.find(t => t.videoId === videoId);
-  commentArea.value = existing ? existing.commentText : "";
-
-  dialog.showModal();
-}
-
-async function saveLiveAutomatorTask() {
-  const commentText = document.getElementById("liveAutomatorCommentText").value.trim();
-  if (!commentText) {
-    alert("Please enter comment text.");
-    return;
-  }
-
-  const btn = document.getElementById("liveAutomatorSaveBtn");
-  const origText = btn.textContent;
-  btn.textContent = "Saving...";
-  btn.disabled = true;
-
-  try {
-    await api("/api/live-automator/save", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        channelId: state.liveAutomatorSelectedChannel,
-        videoId: activeAutomatorVideoId,
-        videoTitle: activeAutomatorVideoTitle,
-        commentText,
-        scheduledStartTime: activeAutomatorScheduledStartTime
-      })
-    });
-
-    document.getElementById("liveAutomatorDialog").close();
-    await loadLiveAutomator({ force: true });
-  } catch (err) {
-    alert("Failed to save automation: " + err.message);
-  } finally {
-    btn.textContent = origText;
-    btn.disabled = false;
-  }
-}
-
-async function deleteLiveAutomatorTask(videoId) {
-  if (!confirm("Are you sure you want to delete this comment automation?")) return;
-
-  try {
-    await api("/api/live-automator/delete", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ videoId })
-    });
-    await loadLiveAutomator({ force: true });
-  } catch (err) {
-    alert("Failed to delete automation: " + err.message);
-  }
-}
-
-function renderLiveAutomatorRules() {
-  const container = document.querySelector("#liveAutomatorRulesList");
-  if (!container) return;
-
-  if (!state.liveAutomatorRules || !state.liveAutomatorRules.length) {
-    container.innerHTML = `<div style="font-size: 12px; color: var(--muted); text-align: center; padding: 16px;">No keyword rules saved.</div>`;
-    return;
-  }
-
-  container.innerHTML = state.liveAutomatorRules.map(rule => `
-    <div style="display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface);">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="background: var(--line); color: var(--ink); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; font-family: monospace;">${escapeHtml(rule.keyword)}</span>
-        <div style="display: flex; gap: 6px; align-items: center;">
-          <button class="ghost-button automator-rule-edit-btn" type="button" data-keyword="${escapeHtml(rule.keyword)}" data-comment-text="${escapeHtml(rule.commentText)}" style="margin: 0; padding: 2px 6px; font-size: 11px; height: auto; width: auto; color: var(--ink); border: 1px solid var(--line); background: #fff;">Edit</button>
-          <button class="ghost-button automator-rule-delete-btn" type="button" data-keyword="${escapeHtml(rule.keyword)}" style="margin: 0; padding: 2px 6px; font-size: 11px; height: auto; width: auto; color: #dc2626; border: 1px solid #fecaca; background: #fef2f2;">Delete</button>
-        </div>
-      </div>
-      <div style="font-size: 11px; color: var(--muted); font-family: monospace; white-space: pre-wrap; max-height: 80px; overflow-y: auto; border: 1px solid transparent; padding: 2px 0;">${escapeHtml(rule.commentText)}</div>
-    </div>
-  `).join("");
-
-  // Bind edit & delete click listeners
-  container.querySelectorAll(".automator-rule-edit-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.getElementById("liveAutomatorRuleKeyword").value = btn.dataset.keyword;
-      document.getElementById("liveAutomatorRuleCommentText").value = btn.dataset.commentText;
-    });
-  });
-
-  container.querySelectorAll(".automator-rule-delete-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      deleteLiveAutomatorRule(btn.dataset.keyword);
-    });
-  });
-}
-
-async function saveLiveAutomatorRule() {
-  const keyword = document.getElementById("liveAutomatorRuleKeyword").value.trim();
-  const commentText = document.getElementById("liveAutomatorRuleCommentText").value.trim();
-
-  if (!keyword || !commentText) {
-    alert("Please fill in both Keyword and Comment Text.");
-    return;
-  }
-
-  const btn = document.getElementById("liveAutomatorRuleSaveBtn");
-  const origText = btn.textContent;
-  btn.textContent = "Saving...";
-  btn.disabled = true;
-
-  try {
-    await api("/api/live-automator/rules/save", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        channelId: state.liveAutomatorSelectedChannel,
-        keyword,
-        commentText
-      })
-    });
-
-    document.getElementById("liveAutomatorRuleKeyword").value = "";
-    document.getElementById("liveAutomatorRuleCommentText").value = "";
-    await loadLiveAutomator({ force: true });
-  } catch (err) {
-    alert("Failed to save rule: " + err.message);
-  } finally {
-    btn.textContent = origText;
-    btn.disabled = false;
-  }
-}
-
-async function deleteLiveAutomatorRule(keyword) {
-  if (!confirm(`Are you sure you want to delete the auto-rule for "${keyword}"?`)) return;
-
-  try {
-    await api("/api/live-automator/rules/delete", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        channelId: state.liveAutomatorSelectedChannel,
-        keyword
-      })
-    });
-    await loadLiveAutomator({ force: true });
-  } catch (err) {
-    alert("Failed to delete rule: " + err.message);
-  }
-}
-
 function renderFacultyPerformance(data) {
   const container = document.querySelector("#facultyPerformanceTable");
   if (!container) return;
@@ -5342,7 +5042,7 @@ async function saveFacultyKeywordsManager() {
   }
 }
 
-function setupFacultyManagerListeners() {
+function setupFacultyListeners() {
   // Faculty keyword manager listeners
   document.getElementById("manageFacultyBtn")?.addEventListener("click", () => {
     openFacultyKeywordsManager();
@@ -5462,2331 +5162,1107 @@ window.updateVideoTitleDirectly = async function(videoId) {
 };
 
 // Initialize listeners
-setTimeout(setupFacultyManagerListeners, 1000);
+setTimeout(setupFacultyListeners, 1000);
 
-// ====================================================
-// YOUTUBE OPS WORKSPACE CONTROLLER
-// ====================================================
+/* ==========================================================================
+   Deep Dive Analytics View Implementation (Dark Theme)
+   ========================================================================== */
 
-const opsState = {
-  activeMode: "hub", // "hub" | "event" | "video" | "shorts"
-  eventSubmode: "new", // "new" | "reuse"
-  cachedDefaults: {},
-  cachedPlaylists: {},
-  cachedChannelEvents: {},
-  facultyList: [],
-  selectedFaculty: null,
-  // Video flow
-  videoFile: null,
-  videoThumbBase64: null,
-  videoDuration: 0,
-  videoStep: 1,
-  // Shorts flow
-  shortsFile: null,
-  shortsThumbBase64: null,
-  shortsDuration: 0,
-  shortsStep: 1,
-  // Event flow
-  eventThumbBase64: null,
-  initialized: false,
+const DEEP_DIVE_SUBJECTS = [
+  { name: 'History', keywords: ['history', 'ઈતિહાસ', 'ઇતિહાસ', 'ભક્તિ', 'સૂફી', 'મુઘલ', 'મરાઠા', 'ગુપ્ત', 'મૌર્ય', 'સલ્તનત', 'આંદોલન'], color: '#ef4444', icon: '📚' },
+  { name: 'Maths', keywords: ['maths', 'math', 'ગણિત', 'number', 'algebra', 'arithmetic', 'પૂર્ણવર્ગ'], color: '#3b82f6', icon: '📐' },
+  { name: 'Reasoning', keywords: ['reasoning', 'logic', 'blood relation', 'analogy', 'series', 'coding decoding', 'તર્ક'], color: '#a855f7', icon: '🧠' },
+  { name: 'English', keywords: ['english', 'grammar', 'phrasal verb', 'tense', 'voice', 'passive', 'vocabulary', 'article'], color: '#ec4899', icon: '🇬🇧' },
+  { name: 'Gujarati', keywords: ['ગુજરાતી', 'વ્યાકરણ', 'શબ્દભંડોળ', 'નિબંધ', 'પત્રલેખન', 'છંદ', 'અલંકાર', 'સમાનાર્થી'], color: '#f59e0b', icon: '📄' },
+  { name: 'GK', keywords: ['gk', 'general knowledge', 'સામાન્ય જ્ઞાન', 'jakkas', 'quiz', 'gk quiz'], color: '#10b981', icon: '🌍' },
+  { name: 'Science', keywords: ['science', 'વિજ્ઞાન', 'physics', 'chemistry', 'biology', 'ભૌતિક', 'રસાયણ', 'જીવ'], color: '#06b6d4', icon: '🔬' },
+  { name: 'Geography', keywords: ['geography', 'ભૂગોળ', 'map', 'નકશો', 'rivers', 'નદી', 'tiger reserve', 'forest'], color: '#84cc16', icon: '🗺️' },
+  { name: 'Polity', keywords: ['polity', 'રાજ્યવ્યવસ્થા', 'constitution', 'સંવિધાન', 'law', 'કાયદો', 'amendment', 'parliament'], color: '#8b5cf6', icon: '⚖️' },
+  { name: 'Economics', keywords: ['economics', 'અર્થશાસ્ત્ર', 'economy', 'budget', 'tax', 'fiscal', 'gdp'], color: '#f97316', icon: '💰' },
+  { name: 'GCERT', keywords: ['gcert', 'ધોરણ', 'ncert', 'textbook', 'super test'], color: '#14b8a6', icon: '📖' },
+  { name: 'Current Affairs', keywords: ['current affairs', 'current', 'સમાચાર', 'news', 'daily'], color: '#f43f5e', icon: '📰' },
+];
+
+function detectDeepDiveSubject(title) {
+  const t = (title || "").toLowerCase();
+  for (const s of DEEP_DIVE_SUBJECTS) {
+    for (const kw of s.keywords) {
+      if (t.includes(kw.toLowerCase())) return s;
+    }
+  }
+  return { name: 'Other', keywords: [], color: '#94a3b8', icon: '📌' };
+}
+
+const deepDiveState = {
+  selectedChannelId: null,
+  data: null,
+  dateFrom: null,
+  dateTo: null,
+  datePreset: 'recent',
+  subjectFilter: 'ALL',
+  tableSearchQuery: '',
+  tableSortCol: 'publishedAt',
+  tableSortAsc: false,
+  tablePage: 1,
+  tablePageSize: 15,
+  viewsTimeSubject: 'ALL',
+  viewsTimeMode: 'weekly',
+  charts: {},
 };
 
-function formatDuration(seconds) {
-  const sec = Math.floor(seconds || 0);
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+let deepDiveListenersInitialized = false;
+
+function formatDDNumber(n) {
+  const num = Number(n) || 0;
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  return num.toLocaleString('en-IN');
 }
 
-function formatBytes(bytes, decimals = 1) {
-  if (!bytes || bytes === 0) return "0 Bytes";
-  const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+function getDDWeekKey(dateStr) {
+  if (!dateStr) return 'Unknown';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return 'Unknown';
+  const day = d.getDay();
+  const start = new Date(d.getFullYear(), d.getMonth(), d.getDate() - day);
+  return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
 }
 
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = (err) => reject(err);
-    reader.readAsDataURL(file);
+function getDDWeekLabel(weekKey) {
+  if (!weekKey || weekKey === 'Unknown' || !weekKey.includes('-')) return weekKey;
+  const [y, m, d] = weekKey.split('-').map(Number);
+  const start = new Date(y, m - 1, d);
+  const end = new Date(y, m - 1, d + 6);
+  const startStr = start.toLocaleDateString('en', { month: 'short', day: 'numeric' });
+  const endStr = end.toLocaleDateString('en', { month: 'short', day: 'numeric' });
+  return `${startStr} – ${endStr}`;
+}
+
+function destroyDDChart(key) {
+  if (deepDiveState.charts[key]) {
+    try { deepDiveState.charts[key].destroy(); } catch (e) {}
+    delete deepDiveState.charts[key];
+  }
+}
+
+function getDDLast28DaysStreams() {
+  if (!deepDiveState.data || !deepDiveState.data.liveStreams) return [];
+  const streams = deepDiveState.data.liveStreams;
+  if (streams.length === 0) return [];
+
+  const dates = streams
+    .map(s => s.liveDate || (s.publishedAt ? s.publishedAt.slice(0, 10) : ""))
+    .filter(Boolean)
+    .sort();
+  if (dates.length === 0) return streams;
+
+  const latestDateStr = dates[dates.length - 1];
+  const latestDate = new Date(latestDateStr + "T23:59:59");
+  const past28Date = new Date(latestDate.getTime() - 27 * 86400000);
+  const past28Str = past28Date.toISOString().slice(0, 10);
+
+  return streams.filter(s => {
+    const d = s.liveDate || (s.publishedAt ? s.publishedAt.slice(0, 10) : "");
+    return d >= past28Str && d <= latestDateStr;
   });
 }
 
-function loadYouTubeOps() {
-  initYouTubeOps();
-  populateOpsChannels();
-  if (opsState.activeMode === "hub") {
-    switchOpsMode("hub");
-  }
-}
+function getDDLast28DaysShorts() {
+  if (!deepDiveState.data || !deepDiveState.data.shorts) return [];
+  const shorts = deepDiveState.data.shorts;
+  if (shorts.length === 0) return [];
 
-function initYouTubeOps() {
-  if (opsState.initialized) return;
-  opsState.initialized = true;
+  const dates = shorts
+    .map(s => s.publishedAt ? s.publishedAt.slice(0, 10) : "")
+    .filter(Boolean)
+    .sort();
+  if (dates.length === 0) return shorts;
 
-  // Back to Hub Button
-  const backBtn = document.getElementById("opsBackToHubBtn");
-  if (backBtn) {
-    backBtn.addEventListener("click", () => switchOpsMode("hub"));
-  }
+  const latestDateStr = dates[dates.length - 1];
+  const latestDate = new Date(latestDateStr + "T23:59:59");
+  const past28Date = new Date(latestDate.getTime() - 27 * 86400000);
+  const past28Str = past28Date.toISOString().slice(0, 10);
 
-  // Hub Cards Click
-  document.querySelectorAll(".ops-hub-card").forEach((card) => {
-    card.addEventListener("click", () => {
-      const mode = card.dataset.opsMode;
-      switchOpsMode(mode);
-    });
-  });
-
-  // Channel Select Changes
-  const eventChSelect = document.getElementById("opsEventChannelSelect");
-  if (eventChSelect) {
-    eventChSelect.addEventListener("change", () => onOpsChannelChange("event", eventChSelect.value));
-  }
-
-  const videoChSelect = document.getElementById("opsVideoChannelSelect");
-  if (videoChSelect) {
-    videoChSelect.addEventListener("change", () => {
-      onOpsChannelChange("video", videoChSelect.value);
-      validateVideoStep1();
-    });
-  }
-
-  const shortsChSelect = document.getElementById("opsShortsChannelSelect");
-  if (shortsChSelect) {
-    shortsChSelect.addEventListener("change", () => {
-      onOpsChannelChange("shorts", shortsChSelect.value);
-      validateShortsStep1();
-    });
-  }
-
-  // Title character counters & live mockup sync
-  setupTitleCounterAndMockup("opsEventTitleInput", "opsEventTitleCount");
-  setupTitleCounterAndMockup("opsVideoTitleInput", "opsVideoTitleCount", "opsVideoMockupTitle", "Video Title Preview");
-  setupTitleCounterAndMockup("opsShortsTitleInput", "opsShortsTitleCount", "opsShortsMockupTitle", "Short Title #Shorts");
-
-  // Shorts quick #Shorts button
-  const shortsAddTagBtn = document.getElementById("opsShortsAddTagBtn");
-  if (shortsAddTagBtn) {
-    shortsAddTagBtn.addEventListener("click", () => {
-      const input = document.getElementById("opsShortsTitleInput");
-      if (input) {
-        if (!input.value.toLowerCase().includes("#shorts")) {
-          input.value = (input.value.trim() + " #Shorts").trim();
-          input.dispatchEvent(new Event("input"));
-        }
-      }
-    });
-  }
-
-  // Description defaults buttons (Reset / Save)
-  setupDescDefaultButtons("event");
-  setupDescDefaultButtons("video");
-  setupDescDefaultButtons("shorts");
-
-  // Video Dropzone & File Picker
-  setupVideoFilePicker();
-
-  // Shorts Dropzone & File Picker
-  setupShortsFilePicker();
-
-  // Thumbnails
-  setupThumbPicker("event");
-  setupThumbPicker("video");
-  setupThumbPicker("shorts");
-
-  // Video Wizard Steps Navigation
-  setupVideoWizardNavigation();
-
-  // Shorts Wizard Steps Navigation
-  setupShortsWizardNavigation();
-
-  // Event Form Submit
-  const eventForm = document.getElementById("opsCreateEventForm");
-  if (eventForm) {
-    eventForm.addEventListener("submit", handleCreateLiveEvent);
-  }
-
-  // Event Subtabs (New Event vs Reuse Existing)
-  const subtabNew = document.getElementById("opsEventSubtabNew");
-  const subtabReuse = document.getElementById("opsEventSubtabReuse");
-  const reusePickerWrap = document.getElementById("opsReusePickerWrap");
-  const eventModeBadge = document.getElementById("opsEventModeBadge");
-  const eventHeaderTitle = document.getElementById("opsEventHeaderTitle");
-  const eventSubmitBtn = document.getElementById("opsCreateEventSubmitBtn");
-
-  function setEventSubmode(submode) {
-    opsState.eventSubmode = submode;
-    const isReuse = submode === "reuse";
-
-    if (subtabNew) {
-      subtabNew.classList.toggle("active", !isReuse);
-      subtabNew.classList.remove("active-sub-tab");
-    }
-    if (subtabReuse) {
-      subtabReuse.classList.toggle("active", isReuse);
-      subtabReuse.classList.remove("active-sub-tab");
-    }
-    if (reusePickerWrap) reusePickerWrap.classList.toggle("is-hidden", !isReuse);
-
-    const descEl = document.getElementById("opsEventHeaderDesc");
-
-    if (isReuse) {
-      if (eventModeBadge) eventModeBadge.innerHTML = "↻ Reuse Stream Mode";
-      if (eventHeaderTitle) eventHeaderTitle.textContent = "Reuse Existing Event";
-      if (descEl) descEl.textContent = "Select an existing broadcast to auto-fill metadata, tags, thumbnail, playlist, and reuse the original OBS stream key.";
-      if (eventSubmitBtn) {
-        eventSubmitBtn.innerHTML = '🔁 Reuse Live Broadcast & Launch Stream <span class="ops-kbd-badge-bold">CTRL+ENTER</span>';
-        eventSubmitBtn.style.background = "#0f172a";
-        eventSubmitBtn.style.borderColor = "#0f172a";
-      }
-      const chSel = document.getElementById("opsEventChannelSelect");
-      if (chSel && chSel.value) {
-        loadExistingEventsForReuse(chSel.value);
-      }
-    } else {
-      if (eventModeBadge) eventModeBadge.innerHTML = "🔴 Live Stream Mode";
-      if (eventHeaderTitle) eventHeaderTitle.textContent = "Create New Event";
-      if (descEl) descEl.textContent = "Schedule a fresh YouTube event with faculty assignment, metadata, thumbnail, and stream key generation.";
-      if (eventSubmitBtn) {
-        eventSubmitBtn.innerHTML = '🚀 Create Live Event & Generate Stream Key <span class="ops-kbd-badge-bold">CTRL+ENTER</span>';
-        eventSubmitBtn.style.background = "#0f172a";
-        eventSubmitBtn.style.borderColor = "#0f172a";
-      }
-    }
-  }
-
-  if (subtabNew) {
-    subtabNew.addEventListener("click", () => setEventSubmode("new"));
-  }
-  if (subtabReuse) {
-    subtabReuse.addEventListener("click", () => setEventSubmode("reuse"));
-  }
-
-  const refreshEventsBtn = document.getElementById("opsFetchExistingEventsBtn");
-  if (refreshEventsBtn) {
-    refreshEventsBtn.addEventListener("click", () => {
-      const chSel = document.getElementById("opsEventChannelSelect");
-      if (!chSel || !chSel.value) {
-        alert("Please select a target channel first.");
-        return;
-      }
-      loadExistingEventsForReuse(chSel.value, true);
-    });
-  }
-
-  const reuseSelect = document.getElementById("opsReuseEventSelect");
-  if (reuseSelect) {
-    reuseSelect.addEventListener("change", () => onReuseEventSelected(reuseSelect.value));
-  }
-
-  // Clear Form button
-  const clearFormBtn = document.getElementById("opsEventClearBtn");
-  if (clearFormBtn) {
-    clearFormBtn.addEventListener("click", clearOpsEventForm);
-  }
-
-  // Topbar connect & refresh buttons
-  document.getElementById("opsConnectChannelBtn")?.addEventListener("click", () => {
-    document.getElementById("connectChannelButton")?.click();
-  });
-
-  document.getElementById("opsRefreshChannelsBtn")?.addEventListener("click", async () => {
-    await populateOpsChannels();
-    const chSel = document.getElementById("opsEventChannelSelect");
-    if (chSel && chSel.value) {
-      onOpsChannelChange("event", chSel.value);
-    }
-  });
-
-  // Global Keyboard Shortcuts for Event Mode
-  document.addEventListener("keydown", (e) => {
-    const eventView = document.getElementById("opsEventView");
-    if (!eventView || eventView.classList.contains("is-hidden")) return;
-
-    // Type '/' to focus faculty search input (when not actively inside an input or textarea)
-    if (e.key === "/" && !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) {
-      e.preventDefault();
-      const facInput = document.getElementById("opsFacultySearchInput");
-      if (facInput) {
-        facInput.focus();
-        facInput.select();
-      }
-      return;
-    }
-
-    // Ctrl+Enter or Cmd+Enter to submit
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-      const activeForm = document.getElementById("opsCreateEventForm");
-      if (activeForm) {
-        e.preventDefault();
-        const submitBtn = document.getElementById("opsCreateEventSubmitBtn");
-        submitBtn?.click();
-      }
-      return;
-    }
-
-    // Esc to blur active element or close dropdown
-    if (e.key === "Escape") {
-      const dropdown = document.getElementById("opsFacultyDropdown");
-      if (dropdown && !dropdown.classList.contains("is-hidden")) {
-        dropdown.classList.add("is-hidden");
-        return;
-      }
-      if (["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) {
-        document.activeElement.blur();
-      }
-    }
-  });
-
-  // Faculty Email ID Selector Setup
-  setupFacultyPicker();
-
-  // Initialize YouTube Studio Native Schedule Pickers
-  initYouTubeSchedulePickers();
-
-  // Initial date/times for Live Event (Start: +30m)
-  setDefaultEventTimes();
-}
-
-function clearOpsEventForm() {
-  const titleInput = document.getElementById("opsEventTitleInput");
-  const descInput = document.getElementById("opsEventDescInput");
-  const tagsInput = document.getElementById("opsEventTagsInput");
-  const plSelect = document.getElementById("opsEventPlaylistSelect");
-  const privSelect = document.getElementById("opsEventPrivacySelect");
-  const typeSelect = document.getElementById("opsEventTypeSelect");
-  const thumbRemoveBtn = document.getElementById("opsEventThumbRemoveBtn");
-
-  if (titleInput) {
-    titleInput.value = "";
-    titleInput.dispatchEvent(new Event("input"));
-  }
-  if (descInput) descInput.value = "";
-  if (tagsInput) tagsInput.value = "";
-  if (plSelect) plSelect.value = "";
-  if (privSelect) privSelect.value = "public";
-  if (typeSelect) typeSelect.value = "Live Class";
-  if (thumbRemoveBtn) thumbRemoveBtn.click();
-
-  opsState.eventExistingThumbUrl = null;
-  opsState.eventThumbBase64 = null;
-  const thumbText = document.querySelector("#opsEventThumbDropzone .ops-clean-thumb-text");
-  if (thumbText) thumbText.textContent = "No file chosen";
-
-  clearFacultySelection();
-  setDefaultEventTimes();
-
-  const reuseSelect = document.getElementById("opsReuseEventSelect");
-  if (reuseSelect) reuseSelect.value = "";
-
-  const resultBox = document.getElementById("opsEventResultBox");
-  if (resultBox) resultBox.classList.add("is-hidden");
-}
-
-function setupFacultyPicker() {
-  const searchInput = document.getElementById("opsFacultySearchInput");
-  const clearBtn = document.getElementById("opsFacultyClearBtn");
-  const quickSelect = document.getElementById("opsFacultyQuickSelect");
-  const dropdown = document.getElementById("opsFacultyDropdown");
-  const chipRemove = document.getElementById("opsFacultyChipRemove");
-
-  // Load faculty directory from server
-  loadFacultyDirectory();
-
-  if (searchInput) {
-    searchInput.addEventListener("input", () => {
-      const q = searchInput.value.trim();
-      if (clearBtn) clearBtn.classList.toggle("is-hidden", !q);
-      renderFacultyDropdown(q);
-    });
-
-    searchInput.addEventListener("focus", () => {
-      renderFacultyDropdown(searchInput.value.trim());
-    });
-
-    searchInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        const val = searchInput.value.trim();
-        if (val) {
-          if (val.includes("@")) {
-            selectFaculty({ email: val, facultyName: val.split("@")[0] });
-          } else if (opsState.facultyList.length > 0) {
-            const match = opsState.facultyList.find(f => 
-              (f.facultyName && f.facultyName.toLowerCase().includes(val.toLowerCase())) || 
-              (f.email && f.email.toLowerCase().includes(val.toLowerCase()))
-            );
-            if (match) selectFaculty(match);
-          }
-        }
-      } else if (e.key === "Escape") {
-        if (dropdown) dropdown.classList.add("is-hidden");
-      }
-    });
-  }
-
-  if (clearBtn) {
-    clearBtn.addEventListener("click", () => {
-      clearFacultySelection();
-      searchInput?.focus();
-    });
-  }
-
-  if (chipRemove) {
-    chipRemove.addEventListener("click", () => {
-      clearFacultySelection();
-      searchInput?.focus();
-    });
-  }
-
-  if (quickSelect) {
-    quickSelect.addEventListener("change", () => {
-      const email = quickSelect.value;
-      if (!email) {
-        clearFacultySelection();
-        return;
-      }
-      const match = opsState.facultyList.find(f => f.email.toLowerCase() === email.toLowerCase());
-      if (match) {
-        selectFaculty(match);
-      }
-    });
-  }
-
-  // Close dropdown on outside click
-  document.addEventListener("click", (e) => {
-    if (!e.target.closest(".ops-faculty-group")) {
-      if (dropdown) dropdown.classList.add("is-hidden");
-    }
+  return shorts.filter(s => {
+    const d = s.publishedAt ? s.publishedAt.slice(0, 10) : "";
+    return d >= past28Str && d <= latestDateStr;
   });
 }
 
-async function loadFacultyDirectory() {
-  try {
-    const res = await fetch("/api/youtube-ops/faculty");
-    const data = await res.json();
-    opsState.facultyList = data.faculty || [];
-    populateFacultyQuickSelect();
-  } catch (err) {
-    console.warn("Failed to load faculty directory:", err);
-  }
-}
-
-function populateFacultyQuickSelect() {
-  const quickSelect = document.getElementById("opsFacultyQuickSelect");
-  if (!quickSelect) return;
-  const faculties = [...opsState.facultyList].sort((a, b) => (a.facultyName || "").localeCompare(b.facultyName || ""));
-  
-  let html = `<option value="">-- Quick Pick Faculty --</option>`;
-  faculties.forEach(f => {
-    html += `<option value="${escapeHtml(f.email)}">${escapeHtml(f.facultyName || f.email)}</option>`;
+function getDDDailyFilteredStreams() {
+  if (!deepDiveState.data || !deepDiveState.data.liveStreams) return [];
+  const streams = deepDiveState.data.liveStreams;
+  if (!deepDiveState.dateFrom || !deepDiveState.dateTo) return streams;
+  const from = deepDiveState.dateFrom;
+  const to = deepDiveState.dateTo;
+  return streams.filter(s => {
+    const d = s.liveDate || (s.publishedAt ? s.publishedAt.slice(0, 10) : "");
+    return d >= from && d <= to;
   });
-  quickSelect.innerHTML = html;
 }
 
-function renderFacultyDropdown(query) {
-  const dropdown = document.getElementById("opsFacultyDropdown");
-  if (!dropdown) return;
+function getDDDateFilteredStreams() {
+  return getDDDailyFilteredStreams();
+}
 
-  const q = (query || "").toLowerCase();
-  const filtered = opsState.facultyList.filter(f => 
-    !q || 
-    (f.facultyName && f.facultyName.toLowerCase().includes(q)) || 
-    (f.email && f.email.toLowerCase().includes(q))
-  );
+function getDDDateFilteredShorts() {
+  return getDDLast28DaysShorts();
+}
 
-  let html = "";
+function populateDeepDiveChannels() {
+  const sel = document.getElementById("deepDiveChannelSelect");
+  if (!sel) return;
 
-  // If query looks like an email and not already in list, offer direct use
-  if (q && q.includes("@") && !opsState.facultyList.some(f => f.email.toLowerCase() === q)) {
-    html += `
-      <div class="ops-faculty-item" style="background: #ecfdf5; border-left: 3px solid #10b981;" onclick="selectFaculty({ email: '${escapeHtml(query.trim())}', facultyName: '${escapeHtml(query.trim().split('@')[0])}' })">
-        <div>
-          <strong style="color: #047857;">+ Use "${escapeHtml(query.trim())}"</strong>
-          <div style="font-size: 11px; color: #059669;">Assign this email directly to event</div>
-        </div>
-        <span>Custom</span>
-      </div>
-    `;
+  const currentVal = sel.value || deepDiveState.selectedChannelId;
+  sel.innerHTML = "";
+
+  const channels = (state.channels || []).filter(c => c.id !== "all-in-one");
+
+  if (channels.length === 0) {
+    sel.innerHTML = '<option value="">No channels available</option>';
+    return;
   }
 
-  if (filtered.length === 0 && !html) {
-    html = `<div style="padding: 12px; color: #64748b; font-size: 13px; text-align: center;">No faculty found matching "${escapeHtml(query)}". Type an email to assign directly.</div>`;
+  channels.forEach(ch => {
+    const opt = document.createElement("option");
+    opt.value = ch.id;
+    opt.textContent = ch.name || ch.title || ch.id;
+    if (ch.id === currentVal) opt.selected = true;
+    sel.appendChild(opt);
+  });
+
+  if (!sel.value && channels.length > 0) {
+    sel.value = channels[0].id;
+  }
+  deepDiveState.selectedChannelId = sel.value;
+}
+
+async function loadDeepDiveView() {
+  setupDeepDiveListeners();
+  populateDeepDiveChannels();
+  const sel = document.getElementById("deepDiveChannelSelect");
+  if (sel && sel.value) {
+    await loadDeepDiveData(sel.value);
   } else {
-    filtered.slice(0, 10).forEach(f => {
-      const isSelected = opsState.selectedFaculty?.email?.toLowerCase() === f.email.toLowerCase();
-      html += `
-        <div class="ops-faculty-item ${isSelected ? "selected" : ""}" onclick='selectFaculty(${JSON.stringify(f)})'>
-          <strong>${escapeHtml(f.facultyName || "Faculty")}</strong>
-          <span>${escapeHtml(f.email)}</span>
+    document.getElementById("deepDiveEmpty")?.classList.remove("is-hidden");
+    document.getElementById("deepDiveContent")?.classList.add("is-hidden");
+  }
+}
+
+async function loadDeepDiveData(channelId, force = false) {
+  if (!channelId) return;
+  deepDiveState.selectedChannelId = channelId;
+
+  const loadingEl = document.getElementById("deepDiveLoading");
+  const contentEl = document.getElementById("deepDiveContent");
+  const emptyEl = document.getElementById("deepDiveEmpty");
+  const statusBar = document.getElementById("deepDiveStatusBar");
+
+  loadingEl?.classList.remove("is-hidden");
+  contentEl?.classList.add("is-hidden");
+  emptyEl?.classList.add("is-hidden");
+  if (statusBar) {
+    statusBar.textContent = "Syncing...";
+    statusBar.className = "dd-status-badge loading";
+  }
+
+  try {
+    const res = await fetch(`/api/deep-dive?channelId=${encodeURIComponent(channelId)}${force ? "&force=true" : ""}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Failed to fetch Deep Dive data");
+    }
+    const data = await res.json();
+
+    (data.liveStreams || []).forEach(s => {
+      const sub = detectDeepDiveSubject(s.title);
+      s.subject = sub.name;
+      s.subjectColor = sub.color;
+      s.subjectIcon = sub.icon;
+    });
+
+    deepDiveState.data = data;
+
+    // Set date bounds: default to Today & Yesterday (most recent 2 active streaming days)
+    const dates = (data.liveStreams || []).map(s => s.liveDate || s.publishedAt.slice(0, 10)).filter(Boolean);
+    const uniqueDays = [...new Set(dates)].sort().reverse();
+    if (uniqueDays.length >= 2) {
+      deepDiveState.dateTo = uniqueDays[0];
+      deepDiveState.dateFrom = uniqueDays[1];
+    } else if (uniqueDays.length === 1) {
+      deepDiveState.dateTo = uniqueDays[0];
+      deepDiveState.dateFrom = uniqueDays[0];
+    } else {
+      deepDiveState.dateFrom = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      deepDiveState.dateTo = new Date().toISOString().slice(0, 10);
+    }
+
+    const fromInput = document.getElementById("ddDailyFrom");
+    const toInput = document.getElementById("ddDailyTo");
+    if (fromInput) fromInput.value = deepDiveState.dateFrom;
+    if (toInput) toInput.value = deepDiveState.dateTo;
+
+    // Reset date presets UI to "Today & Yesterday"
+    document.querySelectorAll("[data-dd-preset]").forEach(b => {
+      b.classList.toggle("active", b.dataset.ddPreset === "recent");
+    });
+    deepDiveState.datePreset = "recent";
+
+    loadingEl?.classList.add("is-hidden");
+    contentEl?.classList.remove("is-hidden");
+    if (statusBar) {
+      statusBar.textContent = "Ready";
+      statusBar.className = "dd-status-badge";
+    }
+
+    renderDeepDiveHero(data.channel);
+    renderDeepDiveAll();
+  } catch (err) {
+    console.error("Deep Dive load error:", err);
+    loadingEl?.classList.add("is-hidden");
+    if (statusBar) {
+      statusBar.textContent = "Error";
+      statusBar.className = "dd-status-badge error";
+    }
+    alert("Could not load Deep Dive analytics: " + err.message);
+  }
+}
+
+function renderDeepDiveHero(channel) {
+  if (!channel) return;
+  const avatar = document.getElementById("deepDiveAvatar");
+  const title = document.getElementById("deepDiveTitle");
+  const desc = document.getElementById("deepDiveDesc");
+  const subs = document.getElementById("deepDiveSubsBadge");
+  const videosBadge = document.getElementById("deepDiveDateRangeBadge");
+
+  if (avatar) {
+    avatar.src = channel.thumbnail || "https://yt3.googleusercontent.com/ytc/AIdro_lDkCpQ3IuJNjX_Ff8XOVK7J1Jb8Kq_0h7eI-7m8NJdJsk=s176-c-k-c0x00ffffff-no-rj";
+    avatar.onerror = () => { avatar.src = "https://yt3.googleusercontent.com/ytc/AIdro_lDkCpQ3IuJNjX_Ff8XOVK7J1Jb8Kq_0h7eI-7m8NJdJsk=s176-c-k-c0x00ffffff-no-rj"; };
+  }
+  if (title) title.textContent = channel.title || "YouTube Channel";
+  const handle = channel.customUrl || `@${(channel.title || "").replace(/\s+/g, "")}`;
+  if (desc) desc.textContent = `${handle} • YouTube Live Stream Dashboard`;
+  if (subs) subs.textContent = `${formatDDNumber(channel.subscriberCount || 0)} Subscribers`;
+  if (videosBadge) videosBadge.textContent = "Last 28 Days (4 Weeks)";
+}
+
+function renderDeepDiveAll() {
+  renderDeepDiveSummaryCards();
+  renderDeepDiveDailyAnalysis();
+  renderDeepDiveCharts();
+  renderDeepDiveSubjectGrid();
+  renderDeepDiveShorts();
+  renderDeepDiveTable();
+}
+
+function formatDDDateDisplay(dateStr) {
+  if (!dateStr) return "-";
+  const clean = dateStr.includes("T") ? dateStr : dateStr + "T12:00:00";
+  const d = new Date(clean);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function renderDeepDiveSummaryCards() {
+  const streams = getDDLast28DaysStreams();
+  const totalStreams = streams.length;
+  const totalViews = streams.reduce((acc, s) => acc + (s.views || 0), 0);
+  const avgViews = totalStreams ? Math.round(totalViews / totalStreams) : 0;
+
+  // Over 4 weeks (last 28 days)
+  const avgStreamsWeek = (totalStreams / 4).toFixed(1);
+
+  const subjViews = {};
+  streams.forEach(s => {
+    subjViews[s.subject] = (subjViews[s.subject] || 0) + (s.views || 0);
+  });
+  const topSubjEntry = Object.entries(subjViews).sort((a, b) => b[1] - a[1])[0];
+  const topSubject = topSubjEntry ? topSubjEntry[0] : "-";
+  const topSubjectViews = topSubjEntry ? formatDDNumber(topSubjEntry[1]) + " views" : "0 views";
+
+  const totalSec = streams.reduce((acc, s) => acc + (s.durationSec || 0), 0);
+  const avgSec = totalStreams ? Math.round(totalSec / totalStreams) : 0;
+  const avgMins = Math.round(avgSec / 60);
+  const avgDurationFormatted = avgMins >= 60 ? `${Math.floor(avgMins / 60)}h ${avgMins % 60}m` : `${avgMins}m`;
+
+  document.getElementById("ddKpiTotalStreams").textContent = formatDDNumber(totalStreams);
+  document.getElementById("ddKpiAvgStreamsWeek").textContent = avgStreamsWeek;
+  document.getElementById("ddKpiTotalViews").textContent = formatDDNumber(totalViews);
+  document.getElementById("ddKpiAvgViewsStream").textContent = formatDDNumber(avgViews);
+  document.getElementById("ddKpiTopSubject").textContent = topSubject;
+  document.getElementById("ddKpiAvgDuration").textContent = avgDurationFormatted;
+
+  const elTotalSub = document.getElementById("ddKpiTotalStreamsSub");
+  if (elTotalSub) elTotalSub.textContent = "Last 28 days (4 weeks)";
+
+  const elAvgStreams = document.getElementById("ddKpiAvgStreamsWeekSub");
+  if (elAvgStreams) elAvgStreams.textContent = "Over 4 weeks";
+
+  const elTotalViewsSub = document.getElementById("ddKpiTotalViewsSub");
+  if (elTotalViewsSub) elTotalViewsSub.textContent = "Last 28 days";
+
+  const elAvgViews = document.getElementById("ddKpiAvgViewsStreamSub");
+  if (elAvgViews) elAvgViews.textContent = `Across ${totalStreams} streams`;
+
+  const elSubj = document.getElementById("ddKpiTopSubjectSub");
+  if (elSubj) elSubj.textContent = topSubjectViews;
+}
+
+function renderDeepDiveDailyAnalysis() {
+  const streams = getDDDateFilteredStreams();
+  const totalStreams = streams.length;
+  const totalViews = streams.reduce((acc, s) => acc + (s.views || 0), 0);
+  const totalLikes = streams.reduce((acc, s) => acc + (s.likes || 0), 0);
+  const avgViews = totalStreams ? Math.round(totalViews / totalStreams) : 0;
+
+  const dayMap = {};
+  streams.forEach(s => {
+    const d = s.liveDate || s.publishedAt.slice(0, 10);
+    if (!dayMap[d]) dayMap[d] = [];
+    dayMap[d].push(s);
+  });
+  const sortedDays = Object.keys(dayMap).sort().reverse();
+  const activeDaysCount = Math.max(sortedDays.length, 1);
+  const avgPerDay = totalStreams ? (totalStreams / activeDaysCount).toFixed(1) : "0";
+
+  document.getElementById("ddDailyVideoCount").textContent = formatDDNumber(totalStreams);
+  document.getElementById("ddDailyTotalViews").textContent = formatDDNumber(totalViews);
+  document.getElementById("ddDailyTotalLikes").textContent = formatDDNumber(totalLikes);
+  document.getElementById("ddDailyAvgViews").textContent = formatDDNumber(avgViews);
+  document.getElementById("ddDailyAvgPerDay").textContent = avgPerDay;
+
+  const daysSub = document.getElementById("ddDailyDaysSub");
+  if (daysSub) daysSub.textContent = `across ${activeDaysCount} day${activeDaysCount > 1 ? "s" : ""}`;
+
+  const datePill = document.getElementById("ddDailyDateRangePill");
+  if (datePill && deepDiveState.dateFrom && deepDiveState.dateTo) {
+    datePill.textContent = `${formatDDDateDisplay(deepDiveState.dateFrom)} → ${formatDDDateDisplay(deepDiveState.dateTo)}`;
+  }
+
+  const listWrap = document.getElementById("ddDailyList");
+  if (!listWrap) return;
+
+  if (sortedDays.length === 0) {
+    listWrap.innerHTML = '<div style="padding: 32px; text-align: center; color: var(--dd-muted);">No live streams found in selected date range.</div>';
+    return;
+  }
+
+  let rankIndex = 0;
+  listWrap.innerHTML = sortedDays.map(dayStr => {
+    const dayStreams = dayMap[dayStr];
+    // Sort streams in descending views within the day matching the reference
+    dayStreams.sort((a, b) => (b.views || 0) - (a.views || 0));
+
+    const dateObj = new Date(dayStr + "T12:00:00");
+    const formattedDay = dateObj.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+    const streamsHtml = dayStreams.map(s => {
+      rankIndex++;
+      const subClass = "dd-sub-" + (s.subject || "Other").replace(/\s+/g, "_");
+
+      return `
+        <div class="dd-stream-card">
+          <div class="dd-stream-rank">#${rankIndex}</div>
+          <div class="dd-stream-details">
+            <a class="dd-stream-title-link" href="https://www.youtube.com/watch?v=${s.id}" target="_blank" rel="noopener" title="${s.title}">${s.title}</a>
+            <div class="dd-stream-subline">
+              <span class="dd-subject-chip ${subClass}">${s.subject}</span>
+              <span>Duration: ${s.durationFormatted}</span>
+              <span class="dd-dot">•</span>
+              <span>Likes: ${formatDDNumber(s.likes)}</span>
+              <span class="dd-dot">•</span>
+              <span>Comments: ${formatDDNumber(s.comments)}</span>
+            </div>
+          </div>
+          <div class="dd-stream-views-col">
+            <div class="dd-stream-views-val">${formatDDNumber(s.views)}</div>
+            <div class="dd-stream-views-label">views till now</div>
+          </div>
         </div>
       `;
-    });
-  }
+    }).join("");
 
-  dropdown.innerHTML = html;
-  dropdown.classList.remove("is-hidden");
-}
-
-window.selectFaculty = function(faculty) {
-  if (!faculty || !faculty.email) return;
-  opsState.selectedFaculty = faculty;
-
-  const emailInput = document.getElementById("opsFacultyEmail");
-  const nameInput = document.getElementById("opsFacultyName");
-  const idInput = document.getElementById("opsFacultyId");
-  const searchInput = document.getElementById("opsFacultySearchInput");
-  const quickSelect = document.getElementById("opsFacultyQuickSelect");
-  const chip = document.getElementById("opsFacultySelectedBadge");
-  const chipName = document.getElementById("opsFacultyChipName");
-  const chipEmail = document.getElementById("opsFacultyChipEmail");
-  const status = document.getElementById("opsFacultySelectedStatus");
-  const dropdown = document.getElementById("opsFacultyDropdown");
-  const clearBtn = document.getElementById("opsFacultyClearBtn");
-
-  if (emailInput) emailInput.value = faculty.email;
-  if (nameInput) nameInput.value = faculty.facultyName || "";
-  if (idInput) idInput.value = faculty.facultyCBSid || faculty.facultyId || "";
-
-  if (chipName) chipName.textContent = faculty.facultyName || faculty.email;
-  if (chipEmail) chipEmail.textContent = faculty.email;
-  if (chip) chip.classList.remove("is-hidden");
-  if (status) status.style.display = "inline";
-
-  if (quickSelect) quickSelect.value = faculty.email;
-  if (searchInput) searchInput.value = "";
-  if (dropdown) dropdown.classList.add("is-hidden");
-  if (clearBtn) clearBtn.classList.remove("is-hidden");
-};
-
-window.clearFacultySelection = function() {
-  opsState.selectedFaculty = null;
-  const emailInput = document.getElementById("opsFacultyEmail");
-  const nameInput = document.getElementById("opsFacultyName");
-  const idInput = document.getElementById("opsFacultyId");
-  const searchInput = document.getElementById("opsFacultySearchInput");
-  const quickSelect = document.getElementById("opsFacultyQuickSelect");
-  const chip = document.getElementById("opsFacultySelectedBadge");
-  const status = document.getElementById("opsFacultySelectedStatus");
-  const dropdown = document.getElementById("opsFacultyDropdown");
-  const clearBtn = document.getElementById("opsFacultyClearBtn");
-
-  if (emailInput) emailInput.value = "";
-  if (nameInput) nameInput.value = "";
-  if (idInput) idInput.value = "";
-  if (chip) chip.classList.add("is-hidden");
-  if (status) status.style.display = "none";
-  if (quickSelect) quickSelect.value = "";
-  if (searchInput) searchInput.value = "";
-  if (dropdown) dropdown.classList.add("is-hidden");
-  if (clearBtn) clearBtn.classList.add("is-hidden");
-};
-
-// ============================================================================
-// Section: YouTube Studio Native Schedule Picker (Calendar & Time Dropdown)
-// ============================================================================
-class YouTubeSchedulePicker {
-  constructor(blockEl) {
-    this.blockEl = blockEl;
-    const targetInputId = blockEl.dataset.ytScheduleTarget;
-    this.targetInput = targetInputId ? document.getElementById(targetInputId) : blockEl.querySelector("input[type='hidden']");
-    this.dateAnchor = blockEl.querySelector(".yt-date-picker-anchor");
-    this.dateBox = blockEl.querySelector(".yt-date-box");
-    this.dateLabel = blockEl.querySelector(".yt-date-label");
-    this.calendarDropdown = blockEl.querySelector(".yt-calendar-dropdown");
-
-    this.timeAnchor = blockEl.querySelector(".yt-time-picker-anchor");
-    this.timeBox = blockEl.querySelector(".yt-time-box");
-    this.timeInput = blockEl.querySelector(".yt-time-input");
-    this.timeDropdown = blockEl.querySelector(".yt-time-dropdown");
-
-    this.relativeNote = blockEl.querySelector(".yt-relative-schedule-text");
-    this.tzBadge = blockEl.querySelector(".yt-tz-badge");
-
-    const initialDate = this.parseDateFromInput() || new Date(Date.now() + 30 * 60 * 1000);
-    this.selectedDate = new Date(initialDate);
-    this.viewingYear = this.selectedDate.getFullYear();
-    this.viewingMonth = this.selectedDate.getMonth();
-
-    this.initTzBadge();
-    this.renderTimeDropdownItems();
-    this.syncUI();
-    this.bindEvents();
-  }
-
-  initTzBadge() {
-    if (!this.tzBadge) return;
-    try {
-      const now = new Date();
-      const offsetMin = -now.getTimezoneOffset();
-      const sign = offsetMin >= 0 ? "+" : "-";
-      const h = Math.floor(Math.abs(offsetMin) / 60);
-      const m = Math.abs(offsetMin) % 60;
-      const offsetStr = `GMT${sign}${h}${m > 0 ? `:${String(m).padStart(2, "0")}` : ""}`;
-      const tzName = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata";
-      const friendlyName = tzName.includes("Calcutta") || tzName.includes("Kolkata") ? "India Standard Time" : tzName.replace(/_/g, " ");
-      this.tzBadge.textContent = `🌐 ${friendlyName} (${offsetStr})`;
-    } catch (e) {
-      // retain default
-    }
-  }
-
-  parseDateFromInput() {
-    if (!this.targetInput || !this.targetInput.value) return null;
-    const val = this.targetInput.value.trim();
-    const m = val.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-    if (m) {
-      return new Date(
-        parseInt(m[1], 10),
-        parseInt(m[2], 10) - 1,
-        parseInt(m[3], 10),
-        parseInt(m[4], 10),
-        parseInt(m[5], 10)
-      );
-    }
-    const d = new Date(val);
-    return isNaN(d.getTime()) ? null : d;
-  }
-
-  formatDateLabel(d) {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-  }
-
-  formatTimeLabel(d) {
-    let h = d.getHours();
-    const m = String(d.getMinutes()).padStart(2, "0");
-    const ampm = h >= 12 ? "PM" : "AM";
-    h = h % 12;
-    h = h ? h : 12;
-    return `${h}:${m} ${ampm}`;
-  }
-
-  formatLocalISO(d) {
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }
-
-  updateRelativeText() {
-    if (!this.relativeNote) return;
-    const diffMs = this.selectedDate.getTime() - Date.now();
-    const diffMin = Math.round(diffMs / (60 * 1000));
-    if (diffMin < 0) {
-      this.relativeNote.textContent = "Scheduled time is in the past";
-      this.relativeNote.style.color = "#dc2626";
-    } else if (diffMin < 60) {
-      this.relativeNote.textContent = `Starts in ${diffMin} minute${diffMin === 1 ? "" : "s"}`;
-      this.relativeNote.style.color = "#2563eb";
-    } else {
-      const diffHrs = Math.floor(diffMin / 60);
-      const remMin = diffMin % 60;
-      const todayStr = new Date().toDateString();
-      const selStr = this.selectedDate.toDateString();
-      const timeStr = this.formatTimeLabel(this.selectedDate);
-      if (todayStr === selStr) {
-        this.relativeNote.textContent = `Starts today at ${timeStr} (in ${diffHrs}h ${remMin}m)`;
-      } else {
-        const tomorrow = new Date(Date.now() + 86400000);
-        if (tomorrow.toDateString() === selStr) {
-          this.relativeNote.textContent = `Starts tomorrow at ${timeStr}`;
-        } else {
-          this.relativeNote.textContent = `Starts on ${this.formatDateLabel(this.selectedDate)} at ${timeStr}`;
-        }
-      }
-      this.relativeNote.style.color = "#2563eb";
-    }
-  }
-
-  syncUI() {
-    if (this.dateLabel) {
-      this.dateLabel.textContent = this.formatDateLabel(this.selectedDate);
-    }
-    if (this.timeInput) {
-      this.timeInput.value = this.formatTimeLabel(this.selectedDate);
-    }
-    if (this.targetInput) {
-      this.targetInput.value = this.formatLocalISO(this.selectedDate);
-    }
-    this.updateRelativeText();
-  }
-
-  setDate(newDate, triggerEvent = true) {
-    if (!(newDate instanceof Date) || isNaN(newDate.getTime())) return;
-    this.selectedDate = new Date(newDate);
-    this.viewingYear = this.selectedDate.getFullYear();
-    this.viewingMonth = this.selectedDate.getMonth();
-    this.syncUI();
-    if (triggerEvent && this.targetInput) {
-      this.targetInput.dispatchEvent(new Event("change", { bubbles: true }));
-      this.targetInput.dispatchEvent(new Event("input", { bubbles: true }));
-    }
-  }
-
-  syncFromTargetInput() {
-    const parsed = this.parseDateFromInput();
-    if (parsed && (!this.selectedDate || parsed.getTime() !== this.selectedDate.getTime())) {
-      this.selectedDate = parsed;
-      this.viewingYear = this.selectedDate.getFullYear();
-      this.viewingMonth = this.selectedDate.getMonth();
-      this.syncUI();
-    }
-  }
-
-  renderCalendar() {
-    if (!this.calendarDropdown) return;
-    const headerTitle = this.formatDateLabel(this.selectedDate);
-
-    // Month 1
-    const y1 = this.viewingYear;
-    const m1 = this.viewingMonth;
-    const m1Date = new Date(y1, m1, 1);
-    const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
-    const m1Badge = `${monthNames[m1]} ${y1}`;
-    const m1DaysInMonth = new Date(y1, m1 + 1, 0).getDate();
-    const m1FirstDay = m1Date.getDay();
-
-    // Month 2 (next month preview)
-    let y2 = y1;
-    let m2 = m1 + 1;
-    if (m2 > 11) {
-      m2 = 0;
-      y2++;
-    }
-    const m2Badge = `${monthNames[m2]} ${y2}`;
-    const m2DaysInMonth = new Date(y2, m2 + 1, 0).getDate();
-    const m2FirstDay = new Date(y2, m2, 1).getDay();
-
-    const today = new Date();
-    const isToday = (y, m, d) => today.getFullYear() === y && today.getMonth() === m && today.getDate() === d;
-    const isSelected = (y, m, d) => this.selectedDate.getFullYear() === y && this.selectedDate.getMonth() === m && this.selectedDate.getDate() === d;
-
-    const buildDaysGrid = (year, month, firstDay, daysCount) => {
-      let html = '<div class="yt-cal-days-grid">';
-      for (let i = 0; i < firstDay; i++) {
-        html += '<div class="yt-cal-day empty"></div>';
-      }
-      for (let d = 1; d <= daysCount; d++) {
-        const selClass = isSelected(year, month, d) ? " selected" : "";
-        const todClass = isToday(year, month, d) ? " today" : "";
-        html += `<div class="yt-cal-day${selClass}${todClass}" data-cal-year="${year}" data-cal-month="${month}" data-cal-day="${d}">${d}</div>`;
-      }
-      html += "</div>";
-      return html;
-    };
-
-    this.calendarDropdown.innerHTML = `
-      <div class="yt-cal-top-bar">
-        <div class="yt-cal-header-title">${headerTitle}</div>
-        <div class="yt-cal-arrows">
-          <button type="button" class="yt-cal-arrow-btn yt-cal-prev-btn" title="Previous month">‹</button>
-          <button type="button" class="yt-cal-arrow-btn yt-cal-next-btn" title="Next month">›</button>
+    return `
+      <div class="dd-day-group">
+        <div class="dd-day-group-header">
+          <span class="dd-day-title">📅 ${formattedDay}</span>
+          <span class="dd-day-count">${dayStreams.length} stream${dayStreams.length > 1 ? "s" : ""}</span>
+        </div>
+        <div class="dd-day-streams-container">
+          ${streamsHtml}
         </div>
       </div>
-      <div class="yt-cal-weekdays">
-        <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
-      </div>
-      <div class="yt-cal-month-badge">${m1Badge}</div>
-      ${buildDaysGrid(y1, m1, m1FirstDay, m1DaysInMonth)}
-      <div class="yt-cal-month-badge" style="margin-top: 14px;">${m2Badge}</div>
-      ${buildDaysGrid(y2, m2, m2FirstDay, m2DaysInMonth)}
     `;
-
-    // Hook arrows
-    this.calendarDropdown.querySelector(".yt-cal-prev-btn")?.addEventListener("click", (e) => {
-      e.stopPropagation();
-      this.viewingMonth--;
-      if (this.viewingMonth < 0) {
-        this.viewingMonth = 11;
-        this.viewingYear--;
-      }
-      this.renderCalendar();
-    });
-
-    this.calendarDropdown.querySelector(".yt-cal-next-btn")?.addEventListener("click", (e) => {
-      e.stopPropagation();
-      this.viewingMonth++;
-      if (this.viewingMonth > 11) {
-        this.viewingMonth = 0;
-        this.viewingYear++;
-      }
-      this.renderCalendar();
-    });
-
-    // Hook day clicks
-    this.calendarDropdown.querySelectorAll(".yt-cal-day:not(.empty)").forEach((dayEl) => {
-      dayEl.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const y = parseInt(dayEl.dataset.calYear, 10);
-        const m = parseInt(dayEl.dataset.calMonth, 10);
-        const d = parseInt(dayEl.dataset.calDay, 10);
-        this.selectedDate.setFullYear(y, m, d);
-        this.syncUI();
-        if (this.targetInput) {
-          this.targetInput.dispatchEvent(new Event("change", { bubbles: true }));
-          this.targetInput.dispatchEvent(new Event("input", { bubbles: true }));
-        }
-        this.closeCalendar();
-      });
-    });
-  }
-
-  renderTimeDropdownItems() {
-    if (!this.timeDropdown) return;
-    let html = "";
-    for (let h = 0; h < 24; h++) {
-      for (let m = 0; m < 60; m += 15) {
-        const dummyDate = new Date(2026, 0, 1, h, m);
-        const label = this.formatTimeLabel(dummyDate);
-        html += `<div class="yt-time-item" data-hour="${h}" data-minute="${m}">${label}</div>`;
-      }
-    }
-    this.timeDropdown.innerHTML = html;
-
-    this.timeDropdown.querySelectorAll(".yt-time-item").forEach((item) => {
-      item.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const h = parseInt(item.dataset.hour, 10);
-        const m = parseInt(item.dataset.minute, 10);
-        this.selectedDate.setHours(h, m, 0, 0);
-        this.syncUI();
-        if (this.targetInput) {
-          this.targetInput.dispatchEvent(new Event("change", { bubbles: true }));
-          this.targetInput.dispatchEvent(new Event("input", { bubbles: true }));
-        }
-        this.closeTimeDropdown();
-      });
-    });
-  }
-
-  openCalendar() {
-    this.closeTimeDropdown();
-    this.viewingYear = this.selectedDate.getFullYear();
-    this.viewingMonth = this.selectedDate.getMonth();
-    this.renderCalendar();
-    this.calendarDropdown?.classList.remove("is-hidden");
-    this.dateBox?.classList.add("active");
-  }
-
-  closeCalendar() {
-    this.calendarDropdown?.classList.add("is-hidden");
-    this.dateBox?.classList.remove("active");
-  }
-
-  openTimeDropdown() {
-    this.closeCalendar();
-    if (!this.timeDropdown) return;
-    const curH = this.selectedDate.getHours();
-    const curM = this.selectedDate.getMinutes();
-
-    let closestItem = null;
-    let minDiff = Infinity;
-    this.timeDropdown.querySelectorAll(".yt-time-item").forEach((item) => {
-      const h = parseInt(item.dataset.hour, 10);
-      const m = parseInt(item.dataset.minute, 10);
-      const diff = Math.abs((h * 60 + m) - (curH * 60 + curM));
-      item.classList.toggle("selected", h === curH && m === curM);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closestItem = item;
-      }
-    });
-
-    this.timeDropdown.classList.remove("is-hidden");
-    this.timeBox?.classList.add("active");
-
-    const targetScroll = this.timeDropdown.querySelector(".yt-time-item.selected") || closestItem;
-    if (targetScroll) {
-      requestAnimationFrame(() => {
-        this.timeDropdown.scrollTop = targetScroll.offsetTop - (this.timeDropdown.clientHeight / 2) + (targetScroll.clientHeight / 2);
-      });
-    }
-  }
-
-  closeTimeDropdown() {
-    this.timeDropdown?.classList.add("is-hidden");
-    this.timeBox?.classList.remove("active");
-  }
-
-  parseUserTime(str) {
-    if (!str) return null;
-    const clean = str.trim().toLowerCase();
-    const m = clean.match(/^(\d{1,2})(?::(\d{1,2}))?\s*(am|pm)?$/);
-    if (!m) return null;
-    let hours = parseInt(m[1], 10);
-    let minutes = m[2] !== undefined ? parseInt(m[2], 10) : 0;
-    const mer = m[3];
-    if (minutes < 0 || minutes > 59) return null;
-    if (mer) {
-      if (hours < 1 || hours > 12) return null;
-      if (mer === "am") {
-        if (hours === 12) hours = 0;
-      } else if (mer === "pm") {
-        if (hours < 12) hours += 12;
-      }
-    } else {
-      if (hours < 0 || hours > 23) return null;
-    }
-    return { hours, minutes };
-  }
-
-  commitTimeInput() {
-    if (!this.timeInput) return;
-    const parsed = this.parseUserTime(this.timeInput.value);
-    if (parsed) {
-      this.selectedDate.setHours(parsed.hours, parsed.minutes, 0, 0);
-      this.syncUI();
-      if (this.targetInput) {
-        this.targetInput.dispatchEvent(new Event("change", { bubbles: true }));
-        this.targetInput.dispatchEvent(new Event("input", { bubbles: true }));
-      }
-    } else {
-      this.timeInput.value = this.formatTimeLabel(this.selectedDate);
-    }
-  }
-
-  bindEvents() {
-    this.dateBox?.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (this.calendarDropdown?.classList.contains("is-hidden")) {
-        this.openCalendar();
-      } else {
-        this.closeCalendar();
-      }
-    });
-
-    this.dateBox?.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        this.openCalendar();
-      }
-    });
-
-    this.timeBox?.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (e.target === this.timeInput) {
-        this.openTimeDropdown();
-      } else {
-        if (this.timeDropdown?.classList.contains("is-hidden")) {
-          this.openTimeDropdown();
-        } else {
-          this.closeTimeDropdown();
-        }
-      }
-    });
-
-    this.timeInput?.addEventListener("focus", () => {
-      this.openTimeDropdown();
-    });
-
-    this.timeInput?.addEventListener("input", () => {
-      const parsed = this.parseUserTime(this.timeInput.value);
-      if (parsed && this.timeDropdown && !this.timeDropdown.classList.contains("is-hidden")) {
-        let closestItem = null;
-        let minDiff = Infinity;
-        this.timeDropdown.querySelectorAll(".yt-time-item").forEach((item) => {
-          const h = parseInt(item.dataset.hour, 10);
-          const m = parseInt(item.dataset.minute, 10);
-          const diff = Math.abs((h * 60 + m) - (parsed.hours * 60 + parsed.minutes));
-          item.classList.toggle("selected", diff === 0);
-          if (diff < minDiff) {
-            minDiff = diff;
-            closestItem = item;
-          }
-        });
-        if (closestItem) {
-          this.timeDropdown.scrollTop = closestItem.offsetTop - (this.timeDropdown.clientHeight / 2) + (closestItem.clientHeight / 2);
-        }
-      }
-    });
-
-    this.timeInput?.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        this.commitTimeInput();
-        this.closeTimeDropdown();
-        this.timeInput.blur();
-      } else if (e.key === "Escape") {
-        this.closeTimeDropdown();
-      }
-    });
-
-    this.timeInput?.addEventListener("blur", () => {
-      setTimeout(() => {
-        this.commitTimeInput();
-      }, 150);
-    });
-
-    document.addEventListener("click", (e) => {
-      if (!this.blockEl.contains(e.target)) {
-        this.closeCalendar();
-        this.closeTimeDropdown();
-      }
-    });
-
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") {
-        this.closeCalendar();
-        this.closeTimeDropdown();
-      }
-    });
-
-    this.targetInput?.addEventListener("change", () => {
-      this.syncFromTargetInput();
-    });
-  }
+  }).join("");
 }
 
-window.ytSchedulePickers = {};
+function renderDeepDiveCharts() {
+  if (typeof Chart === "undefined") return;
 
-function initYouTubeSchedulePickers() {
-  document.querySelectorAll(".yt-schedule-block").forEach((blockEl) => {
-    const targetId = blockEl.dataset.ytScheduleTarget || blockEl.id;
-    if (!window.ytSchedulePickers[targetId]) {
-      window.ytSchedulePickers[targetId] = new YouTubeSchedulePicker(blockEl);
-    } else {
-      window.ytSchedulePickers[targetId].syncFromTargetInput();
-    }
-  });
-}
-
-function setDefaultEventTimes() {
-  const startInput = document.getElementById("opsEventStartTime");
-  const endInput = document.getElementById("opsEventEndTime");
-  if (!startInput) return;
-  const now = new Date();
-  const start = new Date(now.getTime() + 30 * 60 * 1000);
-  const end = new Date(now.getTime() + 90 * 60 * 1000);
-
-  const formatLocalISO = (d) => {
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const commonScales = {
+    x: {
+      grid: { color: "rgba(0, 0, 0, 0.04)", drawBorder: false },
+      ticks: { color: "#64748b", font: { size: 10, family: 'Inter, system-ui, sans-serif' } }
+    },
+    y: {
+      grid: { color: "rgba(0, 0, 0, 0.04)", drawBorder: false },
+      ticks: { color: "#64748b", font: { size: 10, family: 'Inter, system-ui, sans-serif' } }
+    },
   };
 
-  startInput.value = formatLocalISO(start);
-  startInput.dispatchEvent(new Event("change"));
-  if (window.ytSchedulePickers["opsEventStartTime"]) {
-    window.ytSchedulePickers["opsEventStartTime"].syncFromTargetInput();
-  }
-  if (endInput) endInput.value = formatLocalISO(end);
-}
+  const streams = getDDLast28DaysStreams();
 
-function switchOpsMode(mode) {
-  opsState.activeMode = mode;
-  const hubView = document.getElementById("opsHubView");
-  const eventView = document.getElementById("opsEventView");
-  const videoView = document.getElementById("opsVideoView");
-  const shortsView = document.getElementById("opsShortsView");
-  const backBtn = document.getElementById("opsBackToHubBtn");
-
-  const isHub = mode === "hub";
-  backBtn?.classList.toggle("is-hidden", isHub);
-
-  hubView?.classList.toggle("is-hidden", !isHub);
-  eventView?.classList.toggle("is-hidden", mode !== "event");
-  videoView?.classList.toggle("is-hidden", mode !== "video");
-  shortsView?.classList.toggle("is-hidden", mode !== "shorts");
-
-  initYouTubeSchedulePickers();
-
-  populateOpsChannels();
-  if (mode === "event") {
-    const sel = document.getElementById("opsEventChannelSelect");
-    if (sel && sel.value) onOpsChannelChange("event", sel.value);
-  } else if (mode === "video") {
-    const sel = document.getElementById("opsVideoChannelSelect");
-    if (sel && sel.value) onOpsChannelChange("video", sel.value);
-  } else if (mode === "shorts") {
-    const sel = document.getElementById("opsShortsChannelSelect");
-    if (sel && sel.value) onOpsChannelChange("shorts", sel.value);
-  }
-}
-
-async function populateOpsChannels() {
-  let channels = (state.channels || []).filter((c) => c.id !== "all-in-one");
-  if (channels.length === 0) {
-    try {
-      const res = await fetch("/api/channels");
-      const data = await res.json();
-      if (data && data.channels) {
-        channels = data.channels.filter((c) => c.id !== "all-in-one");
-      }
-    } catch (e) {
-      console.warn("Failed to fetch channels for ops:", e.message);
-    }
-  }
-
-  const channelCountEl = document.getElementById("opsChannelCount");
-  if (channelCountEl) {
-    channelCountEl.textContent = channels.length;
-  }
-  const channelCountBadge = document.getElementById("opsChannelCountBadge");
-  if (channelCountBadge) {
-    channelCountBadge.textContent = channels.length > 0
-      ? `${channels.length} Connected Channel${channels.length === 1 ? "" : "s"}`
-      : "No Channels Connected";
-  }
-
-  const selects = [
-    document.getElementById("opsEventChannelSelect"),
-    document.getElementById("opsVideoChannelSelect"),
-    document.getElementById("opsShortsChannelSelect"),
-  ];
-
-  selects.forEach((sel) => {
-    if (!sel) return;
-    const currentVal = sel.value;
-    const options = channels.map((c) => {
-      const name = c.name || c.title || c.channelTitle || "Channel";
-      return `<option value="${escapeHtml(c.id)}">${escapeHtml(name)}</option>`;
-    });
-
-    sel.innerHTML = `<option value="">-- Select Connected Channel --</option>` + options.join("");
-    if (currentVal && channels.some((c) => c.id === currentVal)) {
-      sel.value = currentVal;
-    } else if (channels.length > 0 && !sel.value) {
-      sel.value = channels[0].id;
-    }
+  // 1. Live Streams Per Week
+  destroyDDChart("streamsPerWeek");
+  const weekMap = {};
+  streams.forEach(s => {
+    const wk = getDDWeekKey(s.liveDate);
+    weekMap[wk] = (weekMap[wk] || 0) + 1;
   });
-}
-
-async function onOpsChannelChange(mode, channelId) {
-  if (!channelId) return;
-
-  try {
-    let defaults = opsState.cachedDefaults[channelId];
-    if (!defaults) {
-      const res = await fetch(`/api/youtube-ops/defaults/${channelId}`);
-      defaults = await res.json();
-      opsState.cachedDefaults[channelId] = defaults;
-    }
-
-    if (mode === "event") {
-      const courseInput = document.getElementById("opsEventCourseInput");
-      const descInput = document.getElementById("opsEventDescInput");
-      const tagsInput = document.getElementById("opsEventTagsInput");
-
-      if (courseInput && defaults.courseCode) courseInput.value = defaults.courseCode;
-      if (descInput) descInput.value = defaults.defaultDescription || "";
-      if (tagsInput && defaults.defaultTags) tagsInput.value = defaults.defaultTags.join(", ");
-
-      loadOpsPlaylists(channelId);
-      if (opsState.eventSubmode === "reuse") {
-        loadExistingEventsForReuse(channelId);
-      }
-    } else if (mode === "video") {
-      const descInput = document.getElementById("opsVideoDescInput");
-      const tagsInput = document.getElementById("opsVideoTagsInput");
-      const channelMockup = document.getElementById("opsVideoMockupChannel");
-
-      if (descInput) descInput.value = defaults.defaultDescription || "";
-      if (tagsInput && defaults.defaultTags) tagsInput.value = defaults.defaultTags.join(", ");
-      if (channelMockup) channelMockup.textContent = `${defaults.channelName || "Channel"} • Just now`;
-    } else if (mode === "shorts") {
-      const descInput = document.getElementById("opsShortsDescInput");
-      const tagsInput = document.getElementById("opsShortsTagsInput");
-      const channelMockup = document.getElementById("opsShortsMockupChannel");
-
-      if (descInput) descInput.value = defaults.defaultDescription || "";
-      if (tagsInput && defaults.defaultTags) tagsInput.value = defaults.defaultTags.join(", ");
-      if (channelMockup) channelMockup.textContent = `@${(defaults.channelName || "channel").replace(/\s+/g, "").toLowerCase()} • Public`;
-    }
-  } catch (err) {
-    console.warn("Failed to load channel ops defaults:", err.message);
-  }
-}
-
-async function loadOpsPlaylists(channelId) {
-  const plSelect = document.getElementById("opsEventPlaylistSelect");
-  if (!plSelect) return;
-
-  plSelect.innerHTML = `<option value="">Loading playlists...</option>`;
-
-  try {
-    let playlists = opsState.cachedPlaylists[channelId];
-    if (!playlists) {
-      const res = await fetch(`/api/youtube-ops/playlists/${channelId}`);
-      const data = await res.json();
-      playlists = data.playlists || [];
-      opsState.cachedPlaylists[channelId] = playlists;
-    }
-
-    if (playlists.length === 0) {
-      plSelect.innerHTML = `<option value="">Select Playlist</option>`;
-      return;
-    }
-
-    plSelect.innerHTML = `<option value="">Select Playlist</option>` +
-      playlists.map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.title)}</option>`).join("");
-
-    if (opsState.pendingPlaylistId) {
-      plSelect.value = opsState.pendingPlaylistId;
-      opsState.pendingPlaylistId = null;
-    }
-  } catch (err) {
-    plSelect.innerHTML = `<option value="">-- Could not load playlists --</option>`;
-  }
-}
-
-async function loadExistingEventsForReuse(channelId, forceRefresh = false) {
-  const reuseSelect = document.getElementById("opsReuseEventSelect");
-  const fetchBtn = document.getElementById("opsFetchExistingEventsBtn");
-  if (!reuseSelect) return;
-  if (!channelId) {
-    reuseSelect.innerHTML = `<option value="">Select Existing Event</option>`;
-    return;
-  }
-
-  if (fetchBtn) {
-    fetchBtn.disabled = true;
-    fetchBtn.textContent = "⏳ Fetching...";
-  }
-
-  reuseSelect.innerHTML = `<option value="">Loading broadcasts for channel...</option>`;
-  reuseSelect.disabled = true;
-
-  try {
-    let events = opsState.cachedChannelEvents[channelId];
-    if (!events || forceRefresh) {
-      const res = await fetch(`/api/youtube-ops/events/${channelId}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to load events");
-      events = data.events || [];
-      opsState.cachedChannelEvents[channelId] = events;
-    }
-
-    if (events.length === 0) {
-      reuseSelect.innerHTML = `<option value="">-- No broadcasts found on this channel --</option>`;
-      reuseSelect.disabled = false;
-      return;
-    }
-
-    let optsHtml = `<option value="">Select Existing Event</option>`;
-    events.forEach((ev) => {
-      optsHtml += `<option value="${escapeHtml(ev.eventId)}">${escapeHtml(ev.title)}</option>`;
-    });
-
-    reuseSelect.innerHTML = optsHtml;
-    reuseSelect.disabled = false;
-  } catch (err) {
-    console.error("Error fetching channel broadcasts:", err);
-    reuseSelect.innerHTML = `<option value="">Failed to load events: ${escapeHtml(err.message)}</option>`;
-    reuseSelect.disabled = false;
-  } finally {
-    if (fetchBtn) {
-      fetchBtn.disabled = false;
-      fetchBtn.textContent = "Fetch Existing Events";
-    }
-  }
-}
-
-function onReuseEventSelected(eventId) {
-  if (!eventId) return;
-  const chSel = document.getElementById("opsEventChannelSelect");
-  const channelId = chSel?.value;
-  const events = opsState.cachedChannelEvents[channelId] || [];
-  const ev = events.find((item) => item.eventId === eventId);
-  if (!ev) return;
-
-  // 1. Pre-Title
-  const titleInput = document.getElementById("opsEventTitleInput");
-  if (titleInput) {
-    titleInput.value = ev.title || "";
-    titleInput.dispatchEvent(new Event("input"));
-  }
-
-  // 2. Pre-Description
-  const descInput = document.getElementById("opsEventDescInput");
-  if (descInput) {
-    descInput.value = ev.description || "";
-  }
-
-  // 3. Pre-Tags
-  const tagsInput = document.getElementById("opsEventTagsInput");
-  if (tagsInput) {
-    const rawTags = ev.tags;
-    tagsInput.value = Array.isArray(rawTags) ? rawTags.join(", ") : (rawTags || "");
-  }
-
-  // 4. Pre-Visibility
-  const privacySelect = document.getElementById("opsEventPrivacySelect");
-  if (privacySelect && ev.privacyStatus) {
-    privacySelect.value = ev.privacyStatus;
-  }
-
-  // 5. Pre-Playlist
-  const plSelect = document.getElementById("opsEventPlaylistSelect");
-  if (plSelect) {
-    if (ev.playlistId) {
-      plSelect.value = ev.playlistId;
-      if (plSelect.value !== ev.playlistId) {
-        opsState.pendingPlaylistId = ev.playlistId;
-      }
-    } else {
-      plSelect.value = "";
-    }
-  }
-
-  // 6. Pre-Thumbnail
-  const thumbWrap = document.getElementById("opsEventThumbPreviewWrap");
-  const thumbImg = document.getElementById("opsEventThumbImg");
-  const thumbPrompt = document.getElementById("opsEventThumbPrompt");
-  const thumbFileInput = document.getElementById("opsEventThumbFile");
-  const thumbText = document.querySelector("#opsEventThumbDropzone .ops-clean-thumb-text");
-
-  if (ev.thumbnailUrl) {
-    opsState.eventExistingThumbUrl = ev.thumbnailUrl;
-    opsState.eventThumbBase64 = null;
-    if (thumbFileInput) thumbFileInput.value = "";
-    if (thumbImg) thumbImg.src = ev.thumbnailUrl;
-    if (thumbWrap) thumbWrap.classList.remove("is-hidden");
-    if (thumbPrompt) thumbPrompt.classList.add("is-hidden");
-    if (thumbText) thumbText.textContent = "Using original event thumbnail";
-  }
-
-  // 7. Pre-Faculty
-  if (ev.facultyEmail) {
-    selectFaculty({
-      email: ev.facultyEmail,
-      facultyName: ev.facultyName || ev.facultyEmail,
-      facultyCBSid: ev.facultyId || "",
-    });
-  } else if (ev.title && opsState.facultyList.length > 0) {
-    const titleLower = ev.title.toLowerCase();
-    const match = opsState.facultyList.find((f) => {
-      const cleanName = (f.facultyName || "").toLowerCase().replace(/\(.*?\)/g, "").trim();
-      return cleanName && cleanName.length > 2 && titleLower.includes(cleanName);
-    });
-    if (match) {
-      selectFaculty(match);
-    }
-  }
-
-  // 8. New Scheduled Start Time
-  setDefaultEventTimes();
-}
-
-function setupDescDefaultButtons(mode) {
-  const prefix = mode === "event" ? "opsEvent" : mode === "video" ? "opsVideo" : "opsShorts";
-  const resetBtn = document.getElementById(`${prefix}ResetDescBtn`);
-  const saveBtn = document.getElementById(`${prefix}SaveDescBtn`);
-  const chSelect = document.getElementById(`${prefix}ChannelSelect`);
-  const descInput = document.getElementById(`${prefix}DescInput`);
-  const tagsInput = document.getElementById(`${prefix}TagsInput`);
-
-  if (resetBtn) {
-    resetBtn.addEventListener("click", () => {
-      const chId = chSelect?.value;
-      if (!chId) {
-        alert("Please select a channel first.");
-        return;
-      }
-      const defaults = opsState.cachedDefaults[chId];
-      if (defaults && defaults.defaultDescription) {
-        if (descInput) descInput.value = defaults.defaultDescription;
-        if (defaults.defaultTags && tagsInput) tagsInput.value = defaults.defaultTags.join(", ");
-      } else {
-        onOpsChannelChange(mode, chId);
+  const sortedWeeks = Object.keys(weekMap).sort();
+  const ctx1 = document.getElementById("ddStreamsPerWeekChart");
+  if (ctx1) {
+    deepDiveState.charts.streamsPerWeek = new Chart(ctx1, {
+      type: "bar",
+      data: {
+        labels: sortedWeeks.map(w => getDDWeekLabel(w)),
+        datasets: [{
+          label: "Live Streams",
+          data: sortedWeeks.map(w => weekMap[w]),
+          backgroundColor: "#be123c",
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: commonScales
       }
     });
   }
 
-  if (saveBtn) {
-    saveBtn.addEventListener("click", async () => {
-      const chId = chSelect?.value;
-      if (!chId) {
-        alert("Please select a channel first.");
-        return;
-      }
-      const defaultDescription = descInput?.value || "";
-      const defaultTags = tagsInput?.value || "";
-
-      try {
-        saveBtn.textContent = "💾 Saving...";
-        saveBtn.disabled = true;
-        const res = await fetch(`/api/youtube-ops/defaults/${chId}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ defaultDescription, defaultTags }),
-        });
-        const data = await res.json();
-        if (data.success) {
-          if (!opsState.cachedDefaults[chId]) opsState.cachedDefaults[chId] = {};
-          opsState.cachedDefaults[chId].defaultDescription = defaultDescription;
-          opsState.cachedDefaults[chId].defaultTags = defaultTags.split(",").map((t) => t.trim()).filter(Boolean);
-          alert("✓ Channel default description saved successfully!");
-        } else {
-          alert("Error: " + (data.error || "Failed to save default."));
-        }
-      } catch (e) {
-        alert("Error: " + e.message);
-      } finally {
-        saveBtn.textContent = "💾 Save as Default";
-        saveBtn.disabled = false;
-      }
+  // 2. Views by Subject (Doughnut)
+  destroyDDChart("viewsBySubject");
+  const subjViews = {};
+  streams.forEach(s => {
+    subjViews[s.subject] = (subjViews[s.subject] || 0) + (s.views || 0);
+  });
+  const sortedSubjs = Object.entries(subjViews).sort((a, b) => b[1] - a[1]);
+  const ctx2 = document.getElementById("ddViewsBySubjectChart");
+  if (ctx2) {
+    const subColors = sortedSubjs.map(([subName]) => {
+      const found = DEEP_DIVE_SUBJECTS.find(d => d.name === subName);
+      return found ? found.color : "#64748b";
     });
-  }
-}
-
-function setupTitleCounterAndMockup(inputId, countId, mockupId, defaultText) {
-  const input = document.getElementById(inputId);
-  const count = document.getElementById(countId);
-  const mockup = mockupId ? document.getElementById(mockupId) : null;
-
-  if (!input) return;
-
-  input.addEventListener("input", () => {
-    const val = input.value;
-    if (count) count.textContent = `${val.length} / 100`;
-    if (mockup) mockup.textContent = val.trim() || defaultText;
-  });
-}
-
-function setupVideoFilePicker() {
-  const dropzone = document.getElementById("opsVideoDropzone");
-  const fileInput = document.getElementById("opsVideoFileInput");
-  const prompt = document.getElementById("opsVideoDropPrompt");
-  const previewWrap = document.getElementById("opsVideoPreviewWrap");
-  const player = document.getElementById("opsVideoPlayer");
-  const changeBtn = document.getElementById("opsVideoChangeFileBtn");
-  const nameEl = document.getElementById("opsVideoMetaName");
-  const sizeEl = document.getElementById("opsVideoMetaSize");
-  const durationEl = document.getElementById("opsVideoMetaDuration");
-  const mockupDuration = document.getElementById("opsVideoMockupDuration");
-
-  if (!dropzone || !fileInput) return;
-
-  function handleVideoFile(file) {
-    if (!file) return;
-    opsState.videoFile = file;
-    nameEl.textContent = file.name;
-    sizeEl.textContent = formatBytes(file.size);
-
-    const url = URL.createObjectURL(file);
-    player.src = url;
-
-    player.onloadedmetadata = () => {
-      opsState.videoDuration = player.duration;
-      const formatted = formatDuration(player.duration);
-      durationEl.textContent = formatted;
-      if (mockupDuration) mockupDuration.textContent = formatted;
-    };
-
-    prompt.classList.add("is-hidden");
-    previewWrap.classList.remove("is-hidden");
-    validateVideoStep1();
-  }
-
-  dropzone.addEventListener("click", (e) => {
-    if (e.target === changeBtn || e.target.closest("#opsVideoPreviewWrap")) return;
-    fileInput.click();
-  });
-
-  changeBtn?.addEventListener("click", (e) => {
-    e.stopPropagation();
-    fileInput.click();
-  });
-
-  fileInput.addEventListener("change", (e) => {
-    handleVideoFile(e.target.files?.[0]);
-  });
-
-  // Drag & drop support
-  ["dragenter", "dragover"].forEach((eventName) => {
-    dropzone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dropzone.classList.add("drag-over");
-    });
-  });
-
-  ["dragleave", "dragend"].forEach((eventName) => {
-    dropzone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dropzone.classList.remove("drag-over");
-    });
-  });
-
-  dropzone.addEventListener("drop", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dropzone.classList.remove("drag-over");
-    const file = e.dataTransfer?.files?.[0];
-    if (file) {
-      handleVideoFile(file);
-    }
-  });
-}
-
-function setupShortsFilePicker() {
-  const dropzone = document.getElementById("opsShortsDropzone");
-  const fileInput = document.getElementById("opsShortsFileInput");
-  const prompt = document.getElementById("opsShortsDropPrompt");
-  const previewWrap = document.getElementById("opsShortsPreviewWrap");
-  const player = document.getElementById("opsShortsPlayer");
-  const changeBtn = document.getElementById("opsShortsChangeFileBtn");
-  const nameEl = document.getElementById("opsShortsMetaName");
-  const sizeEl = document.getElementById("opsShortsMetaSize");
-  const durationEl = document.getElementById("opsShortsMetaDuration");
-  const durationAlert = document.getElementById("opsShortsDurationAlert");
-  const alertSeconds = document.getElementById("opsShortsAlertSeconds");
-
-  if (!dropzone || !fileInput) return;
-
-  function handleShortsFile(file) {
-    if (!file) return;
-    opsState.shortsFile = file;
-    nameEl.textContent = file.name;
-    sizeEl.textContent = formatBytes(file.size);
-
-    const url = URL.createObjectURL(file);
-    player.src = url;
-
-    player.onloadedmetadata = () => {
-      opsState.shortsDuration = player.duration;
-      const formatted = formatDuration(player.duration);
-      durationEl.textContent = formatted;
-
-      if (player.duration > 60) {
-        durationAlert?.classList.remove("is-hidden");
-        if (alertSeconds) alertSeconds.textContent = Math.round(player.duration);
-      } else {
-        durationAlert?.classList.add("is-hidden");
-      }
-    };
-
-    prompt.classList.add("is-hidden");
-    previewWrap.classList.remove("is-hidden");
-    validateShortsStep1();
-  }
-
-  dropzone.addEventListener("click", (e) => {
-    if (e.target === changeBtn || e.target.closest("#opsShortsPreviewWrap")) return;
-    fileInput.click();
-  });
-
-  changeBtn?.addEventListener("click", (e) => {
-    e.stopPropagation();
-    fileInput.click();
-  });
-
-  fileInput.addEventListener("change", (e) => {
-    handleShortsFile(e.target.files?.[0]);
-  });
-
-  // Drag & drop support
-  ["dragenter", "dragover"].forEach((eventName) => {
-    dropzone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dropzone.classList.add("drag-over");
-    });
-  });
-
-  ["dragleave", "dragend"].forEach((eventName) => {
-    dropzone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dropzone.classList.remove("drag-over");
-    });
-  });
-
-  dropzone.addEventListener("drop", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dropzone.classList.remove("drag-over");
-    const file = e.dataTransfer?.files?.[0];
-    if (file) {
-      handleShortsFile(file);
-    }
-  });
-}
-
-function setupThumbPicker(mode) {
-  const prefix = mode === "event" ? "opsEvent" : mode === "video" ? "opsVideo" : "opsShorts";
-  const dropzone = document.getElementById(`${prefix}ThumbDropzone`);
-  const fileInput = document.getElementById(`${prefix}ThumbFile`);
-  const prompt = document.getElementById(`${prefix}ThumbPrompt`);
-  const previewWrap = document.getElementById(`${prefix}ThumbPreviewWrap`);
-  const previewImg = document.getElementById(`${prefix}ThumbImg`);
-  const removeBtn = document.getElementById(`${prefix}ThumbRemoveBtn`);
-  const mockupImg = document.getElementById(`${prefix}MockupImg`);
-  const mockupPlaceholder = document.getElementById(`${prefix}MockupPlaceholder`);
-
-  if (!dropzone || !fileInput) return;
-
-  async function handleThumbFile(file) {
-    if (!file) return;
-    if (file.type && !file.type.startsWith("image/")) {
-      alert("Please upload an image file (PNG, JPG, or WEBP).");
-      return;
-    }
-
-    const base64 = await fileToBase64(file);
-    if (mode === "event") opsState.eventThumbBase64 = base64;
-    if (mode === "video") opsState.videoThumbBase64 = base64;
-    if (mode === "shorts") opsState.shortsThumbBase64 = base64;
-
-    const thumbText = dropzone.querySelector(".ops-clean-thumb-text");
-    if (thumbText) thumbText.textContent = file.name;
-
-    previewImg.src = base64;
-    prompt?.classList.add("is-hidden");
-    previewWrap?.classList.remove("is-hidden");
-
-    if (mockupImg) {
-      mockupImg.src = base64;
-      mockupImg.classList.remove("is-hidden");
-      mockupPlaceholder?.classList.add("is-hidden");
-    }
-  }
-
-  dropzone.addEventListener("click", (e) => {
-    if (e.target === removeBtn || e.target.closest(".ops-thumb-remove-btn")) return;
-    fileInput.click();
-  });
-
-  fileInput.addEventListener("change", (e) => {
-    handleThumbFile(e.target.files?.[0]);
-  });
-
-  // Drag & drop support
-  ["dragenter", "dragover"].forEach((eventName) => {
-    dropzone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dropzone.classList.add("drag-over");
-    });
-  });
-
-  ["dragleave", "dragend"].forEach((eventName) => {
-    dropzone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dropzone.classList.remove("drag-over");
-    });
-  });
-
-  dropzone.addEventListener("drop", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dropzone.classList.remove("drag-over");
-    const file = e.dataTransfer?.files?.[0];
-    if (file) {
-      handleThumbFile(file);
-    }
-  });
-
-  removeBtn?.addEventListener("click", (e) => {
-    e.stopPropagation();
-    fileInput.value = "";
-    if (mode === "event") opsState.eventThumbBase64 = null;
-    if (mode === "video") opsState.videoThumbBase64 = null;
-    if (mode === "shorts") opsState.shortsThumbBase64 = null;
-
-    const thumbText = dropzone.querySelector(".ops-clean-thumb-text");
-    if (thumbText) thumbText.textContent = "No file chosen";
-
-    previewImg.src = "";
-    previewWrap?.classList.add("is-hidden");
-    prompt?.classList.remove("is-hidden");
-
-    if (mockupImg) {
-      mockupImg.src = "";
-      mockupImg.classList.add("is-hidden");
-      mockupPlaceholder?.classList.remove("is-hidden");
-    }
-  });
-}
-
-function validateVideoStep1() {
-  const ch = document.getElementById("opsVideoChannelSelect")?.value;
-  const file = opsState.videoFile;
-  const nextBtn = document.getElementById("opsVideoStep1NextBtn");
-  if (nextBtn) nextBtn.disabled = !(ch && file);
-}
-
-function validateShortsStep1() {
-  const ch = document.getElementById("opsShortsChannelSelect")?.value;
-  const file = opsState.shortsFile;
-  const nextBtn = document.getElementById("opsShortsStep1NextBtn");
-  if (nextBtn) nextBtn.disabled = !(ch && file);
-}
-
-function updateVideoWizardStep(step) {
-  opsState.videoStep = step;
-  [1, 2, 3].forEach((s) => {
-    const stepEl = document.querySelector(`.ops-step[data-video-step="${s}"]`);
-    const contentEl = document.getElementById(`opsVideoStep${s}`);
-    if (stepEl) {
-      stepEl.classList.toggle("active", s === step);
-      stepEl.classList.toggle("completed", s < step);
-    }
-    contentEl?.classList.toggle("is-hidden", s !== step);
-  });
-}
-
-function updateShortsWizardStep(step) {
-  opsState.shortsStep = step;
-  [1, 2, 3].forEach((s) => {
-    const stepEl = document.querySelector(`.ops-step[data-shorts-step="${s}"]`);
-    const contentEl = document.getElementById(`opsShortsStep${s}`);
-    if (stepEl) {
-      stepEl.classList.toggle("active", s === step);
-      stepEl.classList.toggle("completed", s < step);
-    }
-    contentEl?.classList.toggle("is-hidden", s !== step);
-  });
-}
-
-function setupVisibilityRadios(prefix) {
-  const radioInputs = document.querySelectorAll(`input[name="${prefix}Visibility"]`);
-  const scheduleWrap = document.getElementById(`${prefix}SchedulePickerWrap`);
-  const mockupVisibility = document.getElementById(`${prefix}MockupVisibility`);
-
-  radioInputs.forEach((radio) => {
-    radio.addEventListener("change", () => {
-      document.querySelectorAll(`input[name="${prefix}Visibility"]`).forEach((r) => {
-        r.closest(".ops-radio-card")?.classList.toggle("active", r.checked);
-      });
-
-      const val = radio.value;
-      scheduleWrap?.classList.toggle("is-hidden", val !== "schedule");
-
-      if (val === "schedule") {
-        initYouTubeSchedulePickers();
-        const scheduleInput = document.getElementById(`${prefix}ScheduleTime`);
-        if (scheduleInput && !scheduleInput.value) {
-          const defaultDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
-          defaultDate.setMinutes(Math.ceil(defaultDate.getMinutes() / 15) * 15, 0, 0);
-          const pad = (n) => String(n).padStart(2, "0");
-          scheduleInput.value = `${defaultDate.getFullYear()}-${pad(defaultDate.getMonth() + 1)}-${pad(defaultDate.getDate())}T${pad(defaultDate.getHours())}:${pad(defaultDate.getMinutes())}`;
-          scheduleInput.dispatchEvent(new Event("change"));
-          if (window.ytSchedulePickers[`${prefix}ScheduleTime`]) {
-            window.ytSchedulePickers[`${prefix}ScheduleTime`].syncFromTargetInput();
+    deepDiveState.charts.viewsBySubject = new Chart(ctx2, {
+      type: "doughnut",
+      data: {
+        labels: sortedSubjs.map(s => s[0]),
+        datasets: [{
+          data: sortedSubjs.map(s => s[1]),
+          backgroundColor: subColors,
+          borderWidth: 2,
+          borderColor: "#ffffff",
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: "65%",
+        plugins: {
+          legend: {
+            position: "right",
+            labels: { color: "#334155", font: { size: 11, family: 'Inter, system-ui, sans-serif' }, boxWidth: 12, padding: 8 }
           }
         }
       }
+    });
+  }
 
-      if (mockupVisibility) {
-        mockupVisibility.textContent = val === "public" ? "Public" : val === "unlisted" ? "Unlisted" : val === "private" ? "Private" : "Scheduled";
+  // 3. Views Over Time (Silky Smooth Bézier Spline)
+  renderDeepDiveViewsOverTimeChart();
+
+  // 4. Stream Count by Subject (Horizontal Bar)
+  destroyDDChart("streamCountBySubject");
+  const subjCounts = {};
+  streams.forEach(s => {
+    subjCounts[s.subject] = (subjCounts[s.subject] || 0) + 1;
+  });
+  const sortedSubjCounts = Object.entries(subjCounts).sort((a, b) => b[1] - a[1]);
+  const ctx4 = document.getElementById("ddStreamCountBySubjectChart");
+  if (ctx4) {
+    const subColors4 = sortedSubjCounts.map(([subName]) => {
+      const found = DEEP_DIVE_SUBJECTS.find(d => d.name === subName);
+      return found ? found.color : "#64748b";
+    });
+    deepDiveState.charts.streamCountBySubject = new Chart(ctx4, {
+      type: "bar",
+      data: {
+        labels: sortedSubjCounts.map(s => s[0]),
+        datasets: [{
+          label: "Streams",
+          data: sortedSubjCounts.map(s => s[1]),
+          backgroundColor: subColors4,
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: commonScales
       }
     });
-  });
+  }
 }
 
-function setupVideoWizardNavigation() {
-  const step1Next = document.getElementById("opsVideoStep1NextBtn");
-  const step2Back = document.getElementById("opsVideoStep2BackBtn");
-  const step2Next = document.getElementById("opsVideoStep2NextBtn");
-  const step3Back = document.getElementById("opsVideoStep3BackBtn");
-  const uploadSubmit = document.getElementById("opsVideoUploadSubmitBtn");
+function renderDeepDiveViewsOverTimeChart() {
+  if (typeof Chart === "undefined") return;
+  const streams = getDDLast28DaysStreams();
 
-  step1Next?.addEventListener("click", () => updateVideoWizardStep(2));
-  step2Back?.addEventListener("click", () => updateVideoWizardStep(1));
-  step2Next?.addEventListener("click", () => {
-    const title = document.getElementById("opsVideoTitleInput")?.value?.trim();
-    if (!title) {
-      alert("Please provide a video title before proceeding.");
-      return;
-    }
-    updateVideoWizardStep(3);
-  });
-  step3Back?.addEventListener("click", () => updateVideoWizardStep(2));
-
-  setupVisibilityRadios("opsVideo");
-
-  uploadSubmit?.addEventListener("click", () => handleExecuteUpload(false));
-}
-
-function setupShortsWizardNavigation() {
-  const step1Next = document.getElementById("opsShortsStep1NextBtn");
-  const step2Back = document.getElementById("opsShortsStep2BackBtn");
-  const step2Next = document.getElementById("opsShortsStep2NextBtn");
-  const step3Back = document.getElementById("opsShortsStep3BackBtn");
-  const uploadSubmit = document.getElementById("opsShortsUploadSubmitBtn");
-
-  step1Next?.addEventListener("click", () => updateShortsWizardStep(2));
-  step2Back?.addEventListener("click", () => updateShortsWizardStep(1));
-  step2Next?.addEventListener("click", () => {
-    const title = document.getElementById("opsShortsTitleInput")?.value?.trim();
-    if (!title) {
-      alert("Please provide a Short title before proceeding.");
-      return;
-    }
-    updateShortsWizardStep(3);
-  });
-  step3Back?.addEventListener("click", () => updateShortsWizardStep(2));
-
-  setupVisibilityRadios("opsShorts");
-
-  uploadSubmit?.addEventListener("click", () => handleExecuteUpload(true));
-}
-
-async function handleExecuteUpload(isShorts) {
-  const prefix = isShorts ? "opsShorts" : "opsVideo";
-  const chSelect = document.getElementById(`${prefix}ChannelSelect`);
-  const titleInput = document.getElementById(`${prefix}TitleInput`);
-  const descInput = document.getElementById(`${prefix}DescInput`);
-  const tagsInput = document.getElementById(`${prefix}TagsInput`);
-  const submitBtn = document.getElementById(`${prefix}UploadSubmitBtn`);
-  const progressCard = document.getElementById(`${prefix}ProgressCard`);
-  const progressBar = document.getElementById(`${prefix}ProgressBar`);
-  const progressPercent = document.getElementById(`${prefix}ProgressPercent`);
-  const progressStatus = document.getElementById(`${prefix}ProgressStatus`);
-  const progressSubtext = document.getElementById(`${prefix}ProgressSubtext`);
-  const successBox = document.getElementById(`${prefix}SuccessBox`);
-
-  const channelId = chSelect?.value;
-  const title = titleInput?.value?.trim();
-  const description = descInput?.value || "";
-  const tags = tagsInput?.value || "";
-  const file = isShorts ? opsState.shortsFile : opsState.videoFile;
-  const thumbBase64 = isShorts ? opsState.shortsThumbBase64 : opsState.videoThumbBase64;
-
-  const visibilityRadio = document.querySelector(`input[name="${prefix}Visibility"]:checked`);
-  const visibility = visibilityRadio ? visibilityRadio.value : "public";
-  const scheduleInput = document.getElementById(`${prefix}ScheduleTime`);
-  const publishAt = visibility === "schedule" ? scheduleInput?.value : undefined;
-
-  if (!channelId) {
-    alert("Please select a target channel.");
-    return;
-  }
-  if (!title) {
-    alert("Please enter a title.");
-    return;
-  }
-  if (!file) {
-    alert("Please select a video file.");
-    return;
-  }
-  if (visibility === "schedule" && !publishAt) {
-    alert("Please select scheduled release date & time.");
-    return;
-  }
-
-  try {
-    submitBtn.disabled = true;
-    progressCard.classList.remove("is-hidden");
-    successBox.classList.add("is-hidden");
-    progressBar.style.width = "0%";
-    progressPercent.textContent = "0%";
-    progressStatus.textContent = "Initiating Resumable Upload...";
-    progressSubtext.textContent = "Communicating with YouTube Upload servers...";
-
-    // 1. Init upload on server
-    const initRes = await fetch("/api/youtube-ops/init-upload", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        channelId,
-        title,
-        description,
-        tags,
-        privacyStatus: visibility === "schedule" ? "private" : visibility,
-        publishAt,
-        videoMimeType: file.type || "video/mp4",
-        videoFileSize: file.size,
-        isShorts,
-      }),
+  // Populate subject dropdown if needed
+  const subjFilterEl = document.getElementById("ddViewsTimeSubjectFilter");
+  if (subjFilterEl && subjFilterEl.children.length <= 1) {
+    const uniqueSubjs = [...new Set(streams.map(s => s.subject))].sort();
+    uniqueSubjs.forEach(sub => {
+      const opt = document.createElement("option");
+      opt.value = sub;
+      opt.textContent = sub;
+      subjFilterEl.appendChild(opt);
     });
-
-    const initData = await initRes.json();
-    if (!initRes.ok || !initData.success || !initData.uploadUrl) {
-      throw new Error(initData.error || "Failed to initialize upload session.");
-    }
-
-    const uploadUrl = initData.uploadUrl;
-    progressStatus.textContent = `Uploading ${isShorts ? "Short" : "video"} to YouTube...`;
-
-    // 2. Upload file in chunks (2 MB each, multiple of 256 KB) to stay well below Vercel's 4.5 MB payload limit
-    const CHUNK_SIZE = 2 * 1024 * 1024; // 2,097,152 bytes = 8 * 256 KB
-    const totalSize = file.size;
-    let offset = 0;
-    let uploadedVideo = null;
-    const targetUrl = `/api/youtube-ops/upload-proxy?uploadUrl=${encodeURIComponent(uploadUrl)}`;
-
-    while (offset < totalSize) {
-      const nextChunkEnd = Math.min(offset + CHUNK_SIZE, totalSize);
-      const chunk = file.slice(offset, nextChunkEnd);
-      const contentRange = `bytes ${offset}-${nextChunkEnd - 1}/${totalSize}`;
-
-      const chunkNumber = Math.floor(offset / CHUNK_SIZE) + 1;
-      const totalChunks = Math.ceil(totalSize / CHUNK_SIZE);
-      progressStatus.textContent = `Uploading ${isShorts ? "Short" : "video"} to YouTube (Part ${chunkNumber} of ${totalChunks})...`;
-
-      let retries = 0;
-      let chunkSuccess = false;
-
-      while (!chunkSuccess && retries < 3) {
-        try {
-          const chunkResult = await new Promise((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            xhr.open("PUT", targetUrl, true);
-            xhr.setRequestHeader("Content-Type", file.type || "video/mp4");
-            xhr.setRequestHeader("Content-Range", contentRange);
-
-            xhr.upload.onprogress = (e) => {
-              if (e.lengthComputable) {
-                const currentLoaded = offset + e.loaded;
-                const percent = Math.min(99, Math.round((currentLoaded / totalSize) * 100));
-                progressBar.style.width = `${percent}%`;
-                progressPercent.textContent = `${percent}%`;
-                progressSubtext.textContent = `Uploaded ${formatBytes(currentLoaded)} of ${formatBytes(totalSize)}`;
-              }
-            };
-
-            xhr.onload = () => {
-              let parsed = null;
-              try {
-                parsed = JSON.parse(xhr.responseText);
-              } catch (e) {
-                parsed = xhr.responseText;
-              }
-
-              if (xhr.status === 200 || xhr.status === 201) {
-                resolve(parsed);
-              } else if (xhr.status === 308) {
-                resolve({ incomplete: true, status: 308, range: xhr.getResponseHeader("Range") });
-              } else {
-                let errorMsg = typeof parsed === "object" && parsed !== null
-                  ? parsed.error?.message || parsed.error || JSON.stringify(parsed)
-                  : xhr.responseText;
-                reject(new Error(`YouTube upload failed (HTTP ${xhr.status}): ${errorMsg}`));
-              }
-            };
-
-            xhr.onerror = () => reject(new Error("Connection error while streaming video chunk to YouTube."));
-            xhr.onabort = () => reject(new Error("Upload aborted."));
-
-            xhr.send(chunk);
-          });
-
-          if (chunkResult && chunkResult.incomplete) {
-            if (chunkResult.range) {
-              const rangeMatch = String(chunkResult.range).match(/bytes=0-(\d+)/);
-              if (rangeMatch) {
-                offset = parseInt(rangeMatch[1], 10) + 1;
-              } else {
-                offset = nextChunkEnd;
-              }
-            } else {
-              offset = nextChunkEnd;
-            }
-            chunkSuccess = true;
-          } else if (chunkResult && (chunkResult.id || typeof chunkResult === "object")) {
-            uploadedVideo = chunkResult;
-            offset = totalSize;
-            chunkSuccess = true;
-          } else {
-            throw new Error("Unexpected response from upload proxy.");
-          }
-        } catch (chunkErr) {
-          retries++;
-          if (retries >= 3) {
-            throw chunkErr;
-          }
-          await new Promise((r) => setTimeout(r, 1500));
-        }
-      }
-    }
-
-    const videoId = uploadedVideo?.id || "";
-
-    // 3. Set Custom Thumbnail if provided
-    if (thumbBase64 && videoId) {
-      progressStatus.textContent = "Setting custom thumbnail...";
-      progressSubtext.textContent = "Uploading thumbnail image...";
-      try {
-        await fetch("/api/youtube-ops/set-thumbnail", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            channelId,
-            videoId,
-            thumbnailBase64: thumbBase64,
-          }),
-        });
-      } catch (thumbErr) {
-        console.warn("Thumbnail upload warning:", thumbErr.message);
-      }
-    }
-
-    let uploadSucceeded = false;
-    // 4. Success UI
-    progressBar.style.width = "100%";
-    progressPercent.textContent = "100%";
-    progressStatus.textContent = "🎉 Processing & Publishing Complete!";
-    progressSubtext.textContent = `Successfully uploaded to YouTube.`;
-
-    renderUploadSuccessBox(prefix, videoId, title, isShorts, visibility, publishAt);
-    uploadSucceeded = true;
-
-  } catch (err) {
-    alert("Upload error: " + err.message);
-    progressStatus.textContent = "❌ Upload Failed";
-    progressSubtext.textContent = err.message;
-  } finally {
-    if (!uploadSucceeded) {
-      submitBtn.disabled = false;
-    }
   }
-}
 
-function renderUploadSuccessBox(prefix, videoId, title, isShorts, visibility, publishAt) {
-  const successBox = document.getElementById(`${prefix}SuccessBox`);
-  if (!successBox) return;
+  const selectedSubj = deepDiveState.viewsTimeSubject;
+  const filtered = selectedSubj === "ALL" ? streams : streams.filter(s => s.subject === selectedSubj);
+  const sorted = [...filtered].sort((a, b) => new Date(a.liveDate) - new Date(b.liveDate));
 
-  // Hide the step 3 controls and submit footer to prevent duplicate uploads
-  document.querySelector(`#${prefix}Step3 .ops-form-row`)?.classList.add("is-hidden");
-  document.getElementById(`${prefix}Step3Footer`)?.classList.add("is-hidden");
-  document.getElementById(`${prefix}ProgressCard`)?.classList.add("is-hidden");
+  let labels = [];
+  let data = [];
+  let chartType = "line";
+  let bgColors = "rgba(225, 29, 72, 0.08)";
+  let borderColors = "#be123c";
 
-  const watchUrl = videoId
-    ? (isShorts ? `https://www.youtube.com/shorts/${videoId}` : `https://www.youtube.com/watch?v=${videoId}`)
-    : "#";
-  const studioUrl = videoId ? `https://studio.youtube.com/video/${videoId}/edit` : "#";
-
-  successBox.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
-      <div>
-        <h4 style="margin: 0 0 6px; font-size: 18px; font-weight: 700; color: #15803d;">🎉 ${isShorts ? "Short" : "Video"} Uploaded Successfully!</h4>
-        <p style="margin: 0; font-size: 13px; color: #166534;">
-          <strong>${escapeHtml(title)}</strong> is uploaded and ready on YouTube.
-        </p>
-      </div>
-      <span style="background: #dcfce7; color: #15803d; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px;">
-        ${visibility === "schedule" ? "SCHEDULED" : visibility.toUpperCase()}
-      </span>
-    </div>
-
-    ${visibility === "schedule" ? `
-      <div style="background: #fff; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: #1e293b;">
-        ⏰ <strong>Scheduled Release:</strong> ${new Date(publishAt).toLocaleString()} (Video will remain private until this time).
-      </div>
-    ` : ""}
-
-    ${videoId ? `
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px;">
-        <div style="background: #fff; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px;">
-          <span style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Watch on YouTube</span>
-          <div style="margin-top: 4px;">
-            <a href="${escapeHtml(watchUrl)}" target="_blank" style="font-size: 13px; font-weight: 600; color: #2563eb; text-decoration: none; word-break: break-all;">
-              ${escapeHtml(watchUrl)} ↗
-            </a>
-          </div>
-        </div>
-
-        <div style="background: #fff; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px;">
-          <span style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Manage in YouTube Studio</span>
-          <div style="margin-top: 4px;">
-            <a href="${escapeHtml(studioUrl)}" target="_blank" style="font-size: 13px; font-weight: 600; color: #dc2626; text-decoration: none; word-break: break-all;">
-              Open in Studio Editor ↗
-            </a>
-          </div>
-        </div>
-      </div>
-    ` : ""}
-
-    <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px;">
-      <button type="button" class="connect-button" style="padding: 10px 20px; font-weight: 700; background: var(--green, #15803d);" onclick="resetOpsUploadWizard('${prefix}')">+ Upload Another ${isShorts ? "Short" : "Video"}</button>
-    </div>
-  `;
-  successBox.classList.remove("is-hidden");
-  successBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
-}
-
-window.resetOpsUploadWizard = function(prefix) {
-  // Restore Step 3 form elements and footer
-  document.querySelector(`#${prefix}Step3 .ops-form-row`)?.classList.remove("is-hidden");
-  document.getElementById(`${prefix}Step3Footer`)?.classList.remove("is-hidden");
-  const submitBtn = document.getElementById(`${prefix}UploadSubmitBtn`);
-  if (submitBtn) submitBtn.disabled = false;
-
-  const isShorts = prefix === "opsShorts";
-  if (isShorts) {
-    opsState.shortsFile = null;
-    opsState.shortsThumbBase64 = null;
-    opsState.shortsStep = 1;
-    document.getElementById("opsShortsThumbRemoveBtn")?.click();
-    document.getElementById("opsShortsChangeFileBtn")?.click();
-    const tInput = document.getElementById("opsShortsTitleInput");
-    if (tInput) tInput.value = "";
-    const tagsInput = document.getElementById("opsShortsTagsInput");
-    if (tagsInput) tagsInput.value = "";
-    document.getElementById("opsShortsProgressCard")?.classList.add("is-hidden");
-    document.getElementById("opsShortsSuccessBox")?.classList.add("is-hidden");
-    updateShortsWizardStep(1);
+  if (deepDiveState.viewsTimeMode === "weekly") {
+    const weekViewsMap = {};
+    sorted.forEach(s => {
+      const wk = getDDWeekKey(s.liveDate);
+      weekViewsMap[wk] = (weekViewsMap[wk] || 0) + (s.views || 0);
+    });
+    const sortedWeeks = Object.keys(weekViewsMap).sort();
+    labels = sortedWeeks.map(w => getDDWeekLabel(w));
+    data = sortedWeeks.map(w => weekViewsMap[w]);
+    chartType = "line";
   } else {
-    opsState.videoFile = null;
-    opsState.videoThumbBase64 = null;
-    opsState.videoStep = 1;
-    document.getElementById("opsVideoThumbRemoveBtn")?.click();
-    document.getElementById("opsVideoChangeFileBtn")?.click();
-    const tInput = document.getElementById("opsVideoTitleInput");
-    if (tInput) tInput.value = "";
-    const tagsInput = document.getElementById("opsVideoTagsInput");
-    if (tagsInput) tagsInput.value = "";
-    document.getElementById("opsVideoProgressCard")?.classList.add("is-hidden");
-    document.getElementById("opsVideoSuccessBox")?.classList.add("is-hidden");
-    updateVideoWizardStep(1);
-  }
-};
-
-async function handleCreateLiveEvent(e) {
-  e.preventDefault();
-  const channelId = document.getElementById("opsEventChannelSelect")?.value;
-  const title = document.getElementById("opsEventTitleInput")?.value?.trim();
-  const startTime = document.getElementById("opsEventStartTime")?.value;
-  const endTime = document.getElementById("opsEventEndTime")?.value;
-  const privacyStatus = document.getElementById("opsEventPrivacySelect")?.value || "public";
-  const playlistId = document.getElementById("opsEventPlaylistSelect")?.value || "";
-  const description = document.getElementById("opsEventDescInput")?.value || "";
-  const tags = document.getElementById("opsEventTagsInput")?.value || "";
-  const submitBtn = document.getElementById("opsCreateEventSubmitBtn");
-  const resultBox = document.getElementById("opsEventResultBox");
-  const isReuse = opsState.eventSubmode === "reuse";
-  const existingEventId = document.getElementById("opsReuseEventSelect")?.value;
-
-  const facultyEmail = document.getElementById("opsFacultyEmail")?.value?.trim() || 
-                       document.getElementById("opsFacultySearchInput")?.value?.trim();
-  const facultyName = document.getElementById("opsFacultyName")?.value?.trim() || "";
-  const facultyId = document.getElementById("opsFacultyId")?.value?.trim() || "";
-  const eventType = document.getElementById("opsEventTypeSelect")?.value || "Live Class";
-
-  if (!channelId) {
-    alert("Please select a target channel.");
-    return;
-  }
-  if (!facultyEmail) {
-    alert("Please select or enter the Faculty Email ID for this event.");
-    document.getElementById("opsFacultySearchInput")?.focus();
-    return;
-  }
-  if (isReuse && !existingEventId) {
-    alert("Please select an existing broadcast to reuse its stream key.");
-    return;
-  }
-  if (!title) {
-    alert("Please enter a broadcast title.");
-    return;
-  }
-  if (!startTime) {
-    alert("Please select scheduled start time.");
-    return;
-  }
-
-  const oldBtnText = submitBtn.textContent;
-  submitBtn.disabled = true;
-  submitBtn.textContent = isReuse
-    ? "⏳ Binding to Existing Stream Key & Scheduling..."
-    : "⏳ Creating Event & Generating RTMP Key...";
-
-  const endpoint = isReuse ? "/api/youtube-ops/reuse-event" : "/api/youtube-ops/create-event";
-  const payload = {
-    channelId,
-    title,
-    description,
-    scheduledStartTime: startTime,
-    scheduledEndTime: endTime || undefined,
-    privacyStatus,
-    tags,
-    playlistId: playlistId || undefined,
-    thumbnailBase64: opsState.eventThumbBase64 || undefined,
-    facultyEmail,
-    facultyName,
-    facultyId,
-    eventType,
-  };
-  if (isReuse) {
-    payload.existingEventId = existingEventId;
-    payload.existingThumbUrl = opsState.eventExistingThumbUrl || undefined;
-  }
-
-  try {
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+    const top30 = [...sorted].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 30);
+    labels = top30.map(s => {
+      const d = new Date(s.liveDate).toLocaleDateString("en", { month: "short", day: "numeric" });
+      const t = s.title.length > 22 ? s.title.substring(0, 22) + "…" : s.title;
+      return `${d}: ${t}`;
     });
+    data = top30.map(s => s.views || 0);
+    bgColors = top30.map(s => s.subjectColor ? s.subjectColor + "cc" : "rgba(37,99,235,0.7)");
+    borderColors = top30.map(s => s.subjectColor || "#2563eb");
+    chartType = "bar";
+  }
 
-    const data = await res.json();
-    if (!res.ok || !data.success) {
-      throw new Error(data.error || "Failed to create YouTube Live event.");
-    }
-
-    renderEventSuccessBox(data);
-    resultBox.classList.remove("is-hidden");
-    resultBox.scrollIntoView({ behavior: "smooth" });
-
-  } catch (err) {
-    alert("Error creating event: " + err.message);
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = oldBtnText;
+  destroyDDChart("viewsOverTime");
+  const ctx3 = document.getElementById("ddViewsOverTimeChart");
+  if (ctx3) {
+    deepDiveState.charts.viewsOverTime = new Chart(ctx3, {
+      type: chartType,
+      data: {
+        labels,
+        datasets: [{
+          label: deepDiveState.viewsTimeMode === "weekly" ? "Weekly Total Views" : "Stream Views",
+          data,
+          backgroundColor: bgColors,
+          borderColor: borderColors,
+          borderWidth: deepDiveState.viewsTimeMode === "weekly" ? 2.5 : 1,
+          borderRadius: 6,
+          fill: deepDiveState.viewsTimeMode === "weekly",
+          tension: 0.45,
+          cubicInterpolationMode: "monotone",
+          pointBackgroundColor: "#ffffff",
+          pointBorderColor: "#be123c",
+          pointBorderWidth: 2,
+          pointRadius: deepDiveState.viewsTimeMode === "weekly" ? 4 : 0,
+          pointHoverRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "#0f172a",
+            titleColor: "#ffffff",
+            bodyColor: "#ffffff",
+            padding: 10,
+            cornerRadius: 8,
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: "rgba(0, 0, 0, 0.04)", drawBorder: false },
+            ticks: { color: "#64748b", font: { size: 10 } }
+          },
+          y: {
+            grid: { color: "rgba(0, 0, 0, 0.04)", drawBorder: false },
+            ticks: { color: "#64748b", font: { size: 10 } }
+          },
+        }
+      }
+    });
   }
 }
 
-function renderEventSuccessBox(data) {
-  const resultBox = document.getElementById("opsEventResultBox");
-  if (!resultBox) return;
+function renderDeepDiveSubjectGrid() {
+  const grid = document.getElementById("ddSubjectsGrid");
+  if (!grid) return;
 
-  resultBox.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
-      <div>
-        <h4 style="margin: 0 0 6px; font-size: 18px; font-weight: 700; color: #15803d;">
-          ${data.isReused ? "🎉 Event Reused & Scheduled Successfully!" : "🎉 Live Event Created Successfully!"}
-        </h4>
-        <p style="margin: 0; font-size: 13px; color: #166534;">
-          ${data.isReused 
-            ? "Your live broadcast has been scheduled using the original stream key. OBS Studio requires NO reconfiguration!" 
-            : "Your live broadcast has been scheduled on YouTube and is ready for OBS streaming."}
-        </p>
-      </div>
-      <div style="display: flex; gap: 6px; align-items: center;">
-        ${data.isReused ? `<span style="background: #e0e7ff; color: #3730a3; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 20px;">↻ REUSED STREAM KEY</span>` : ""}
-        <span style="background: #dcfce7; color: #15803d; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px;">${escapeHtml((data.privacyStatus || "public").toUpperCase())}</span>
-      </div>
-    </div>
+  const streams = getDDLast28DaysStreams();
+  const totalViews = streams.reduce((acc, s) => acc + (s.views || 0), 0);
 
-    ${data.facultyEmail ? `
-      <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-size: 20px;">👨‍🏫</span>
-          <div>
-            <strong style="font-size: 13px; color: #1e293b;">Assigned Faculty:</strong>
-            <span style="font-size: 13px; color: #0284c7; font-weight: 600; margin-left: 4px;">
-              ${escapeHtml(data.facultyName ? `${data.facultyName} (${data.facultyEmail})` : data.facultyEmail)}
-            </span>
+  const subjectStats = {};
+  streams.forEach(s => {
+    if (!subjectStats[s.subject]) {
+      subjectStats[s.subject] = {
+        name: s.subject,
+        icon: s.subjectIcon || "📌",
+        color: s.subjectColor || "#64748b",
+        count: 0,
+        views: 0
+      };
+    }
+    subjectStats[s.subject].count++;
+    subjectStats[s.subject].views += (s.views || 0);
+  });
+
+  const sortedStats = Object.values(subjectStats).sort((a, b) => b.views - a.views);
+
+  if (sortedStats.length === 0) {
+    grid.innerHTML = '<div style="color: var(--dd-muted); padding: 24px;">No subjects found.</div>';
+    return;
+  }
+
+  grid.innerHTML = sortedStats.map(sub => {
+    const pct = totalViews > 0 ? ((sub.views / totalViews) * 100).toFixed(1) : 0;
+    const avgViews = sub.count > 0 ? Math.round(sub.views / sub.count) : 0;
+
+    return `
+      <div class="dd-subject-card">
+        <div class="dd-subject-card-header">
+          <div class="dd-subject-icon-box">${sub.icon}</div>
+          <div class="dd-subject-title-wrap">
+            <h4 class="dd-subject-title">${sub.name}</h4>
+            <div class="dd-subject-metrics-text">${sub.count} streams • ${formatDDNumber(sub.views)} views • Avg: ${formatDDNumber(avgViews)}/stream</div>
           </div>
         </div>
-        <span style="font-size: 11px; background: #e0f2fe; color: #0369a1; padding: 3px 10px; border-radius: 12px; font-weight: 600;">Saved to Faculty Memory</span>
-      </div>
-    ` : ""}
-
-    <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <span style="font-size: 22px;">📊</span>
-        <div>
-          <strong style="font-size: 13px; color: #14532d;">Logged to Google Sheet (YT Events by Dashboard)</strong>
-          <p style="margin: 2px 0 0; font-size: 12px; color: #166534;">
-            ${data.sheetSync?.synced 
-              ? "✓ Real-time entry appended to <strong>Sheet1</strong> with faculty email, channel, date, time & stream keys." 
-              : "Event metadata recorded and saved. Click to view or verify in the master sheet."}
-          </p>
+        <div class="dd-progress-track">
+          <div class="dd-progress-bar" style="width: ${pct}%; background: ${sub.color};"></div>
         </div>
       </div>
-      <a href="${data.sheetSync?.sheetUrl || 'https://docs.google.com/spreadsheets/d/1-9hSD9ugLV8rrZq8cOdFULSZ_wFUwilP1LmNzGTmxKo/edit?usp=sharing'}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; background: #15803d; color: #ffffff; font-size: 12px; font-weight: 700; padding: 7px 14px; border-radius: 6px; text-decoration: none;">
-        📊 Open Google Sheet ↗
-      </a>
-    </div>
-
-    ${data.isReused ? `
-      <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px;">
-        <span style="font-size: 24px;">⚡</span>
-        <div>
-          <strong style="color: #166534; font-size: 14px; display: block;">Reused Stream Key (OBS Configuration Unchanged)</strong>
-          <span style="color: #15803d; font-size: 12px;">This broadcast is bound to your existing stream key. You do NOT need to update stream credentials in OBS Studio!</span>
-        </div>
-      </div>
-    ` : ""}
-
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px;">
-      <div style="background: #fff; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px;">
-        <span style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Direct YouTube Watch Link</span>
-        <div style="margin-top: 4px;">
-          <a href="${escapeHtml(data.eventLink)}" target="_blank" style="font-size: 13px; font-weight: 600; color: #2563eb; text-decoration: none; word-break: break-all;">
-            ${escapeHtml(data.eventLink)} ↗
-          </a>
-        </div>
-      </div>
-
-      <div style="background: #fff; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px;">
-        <span style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Live Control Room (YouTube Studio)</span>
-        <div style="margin-top: 4px;">
-          <a href="${escapeHtml(data.studioLink)}" target="_blank" style="font-size: 13px; font-weight: 600; color: #dc2626; text-decoration: none; word-break: break-all;">
-            Open Studio Live Room ↗
-          </a>
-        </div>
-      </div>
-    </div>
-
-    <!-- RTMP OBS Ingestion Panel -->
-    <div class="ops-rtmp-panel">
-      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-        <span style="font-size: 18px;">📡</span>
-        <strong style="font-size: 14px; color: #1e293b;">OBS Studio Stream Credentials</strong>
-      </div>
-      <p style="margin: 0 0 12px; font-size: 12px; color: #64748b;">
-        ${data.isReused 
-          ? "Stream key matches your existing OBS profile. Re-copying is only needed if OBS was reset." 
-          : "Copy and paste these credentials into OBS Studio &rarr; Settings &rarr; Stream &rarr; Service: Custom."}
-      </p>
-
-      <div class="rtmp-row">
-        <label>Server / RTMP URL</label>
-        <div class="rtmp-input-wrap">
-          <input type="text" readonly value="${escapeHtml(data.rtmpUrl || 'rtmp://a.rtmp.youtube.com/live2')}" id="opsRtmpUrlVal" />
-          <button type="button" class="mini-button copy-btn" onclick="copyOpsText('opsRtmpUrlVal', this)">📋 Copy URL</button>
-        </div>
-      </div>
-
-      <div class="rtmp-row">
-        <label>Stream Key</label>
-        <div class="rtmp-input-wrap">
-          <input type="password" readonly value="${escapeHtml(data.rtmpKey || '')}" id="opsRtmpKeyVal" />
-          <button type="button" class="mini-button" onclick="toggleOpsKeyVisibility('opsRtmpKeyVal', this)">👁️ Show</button>
-          <button type="button" class="mini-button copy-btn" onclick="copyOpsText('opsRtmpKeyVal', this)">📋 Copy Key</button>
-        </div>
-      </div>
-    </div>
-
-    <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
-      <button type="button" class="ghost-button" onclick="resetOpsEventForm()">+ Create Another Event</button>
-    </div>
-  `;
+    `;
+  }).join("");
 }
 
-window.copyOpsText = function(inputId, btn) {
-  const input = document.getElementById(inputId);
-  if (input) {
-    input.select();
-    navigator.clipboard.writeText(input.value);
-    const orig = btn.textContent;
-    btn.textContent = "✓ Copied!";
-    setTimeout(() => { btn.textContent = orig; }, 2000);
-  }
-};
+function renderDeepDiveShorts() {
+  const shorts = getDDLast28DaysShorts();
+  const totalShorts = shorts.length;
+  const totalViews = shorts.reduce((acc, s) => acc + (s.viewCount || 0), 0);
+  const avgViews = totalShorts ? Math.round(totalViews / totalShorts) : 0;
 
-window.toggleOpsKeyVisibility = function(inputId, btn) {
-  const input = document.getElementById(inputId);
-  if (input) {
-    if (input.type === "password") {
-      input.type = "text";
-      btn.textContent = "🔒 Hide";
-    } else {
-      input.type = "password";
-      btn.textContent = "👁️ Show";
+  // Find top short
+  const sortedByViews = [...shorts].sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
+  const topShort = sortedByViews[0];
+
+  document.getElementById("ddShortsCount").textContent = formatDDNumber(totalShorts);
+  document.getElementById("ddShortsTotalViews").textContent = formatDDNumber(totalViews);
+  document.getElementById("ddShortsAvgViews").textContent = formatDDNumber(avgViews);
+
+  const acrossEl = document.getElementById("ddShortsAcrossCount");
+  if (acrossEl) acrossEl.textContent = `across ${totalShorts} shorts`;
+
+  const topViewsEl = document.getElementById("ddShortsTopViews");
+  if (topViewsEl) topViewsEl.textContent = topShort ? formatDDNumber(topShort.viewCount) : "0";
+
+  const topTitleEl = document.getElementById("ddShortsTopTitle");
+  if (topTitleEl) {
+    topTitleEl.textContent = topShort ? topShort.title : "-";
+    topTitleEl.title = topShort ? topShort.title : "";
+  }
+
+  const rangeEl = document.getElementById("ddShortsDateRange");
+  if (rangeEl && shorts.length > 0) {
+    const dates = shorts.map(s => s.publishedAt).filter(Boolean).sort();
+    if (dates.length > 0) {
+      rangeEl.textContent = `${formatDDDateDisplay(dates[0])} – ${formatDDDateDisplay(dates[dates.length - 1])}`;
     }
   }
-};
 
-window.resetOpsEventForm = function() {
-  const form = document.getElementById("opsCreateEventForm");
-  if (form) form.reset();
-  const reuseSelect = document.getElementById("opsReuseEventSelect");
-  if (reuseSelect) reuseSelect.value = "";
-  clearFacultySelection();
-  document.getElementById("opsEventThumbRemoveBtn")?.click();
-  document.getElementById("opsEventResultBox")?.classList.add("is-hidden");
-  setDefaultEventTimes();
-};
+  // Shorts Charts
+  if (typeof Chart !== "undefined") {
+    const commonScalesLight = {
+      x: { grid: { color: "rgba(0, 0, 0, 0.04)", drawBorder: false }, ticks: { color: "#64748b", font: { size: 10 } } },
+      y: { grid: { color: "rgba(0, 0, 0, 0.04)", drawBorder: false }, ticks: { color: "#64748b", font: { size: 10 } } },
+    };
+
+    const weekShortsMap = {};
+    const weekViewsMap = {};
+    shorts.forEach(s => {
+      const wk = getDDWeekKey(s.publishedAt);
+      weekShortsMap[wk] = (weekShortsMap[wk] || 0) + 1;
+      weekViewsMap[wk] = (weekViewsMap[wk] || 0) + (s.viewCount || 0);
+    });
+    const sortedWks = Object.keys(weekShortsMap).sort();
+
+    // Chart 1: Uploads per week
+    destroyDDChart("shortsPerWeek");
+    const ctxSpw = document.getElementById("ddShortsPerWeekChart");
+    if (ctxSpw) {
+      deepDiveState.charts.shortsPerWeek = new Chart(ctxSpw, {
+        type: "bar",
+        data: {
+          labels: sortedWks.map(w => getDDWeekLabel(w)),
+          datasets: [{
+            label: "Shorts",
+            data: sortedWks.map(w => weekShortsMap[w]),
+            backgroundColor: "#2563eb",
+            borderRadius: 6,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: commonScalesLight
+        }
+      });
+    }
+
+    // Chart 2: Views per week (Silky Smooth Purple Curve)
+    destroyDDChart("shortsViewsPerWeek");
+    const ctxSvpw = document.getElementById("ddShortsViewsPerWeekChart");
+    if (ctxSvpw) {
+      deepDiveState.charts.shortsViewsPerWeek = new Chart(ctxSvpw, {
+        type: "line",
+        data: {
+          labels: sortedWks.map(w => getDDWeekLabel(w)),
+          datasets: [{
+            label: "Views",
+            data: sortedWks.map(w => weekViewsMap[w]),
+            backgroundColor: "rgba(124, 58, 237, 0.08)",
+            borderColor: "#7c3aed",
+            borderWidth: 2.5,
+            fill: true,
+            tension: 0.45,
+            cubicInterpolationMode: "monotone",
+            pointBackgroundColor: "#ffffff",
+            pointBorderColor: "#7c3aed",
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "#0f172a",
+              titleColor: "#ffffff",
+              bodyColor: "#ffffff",
+              padding: 10,
+              cornerRadius: 8,
+            }
+          },
+          scales: commonScalesLight
+        }
+      });
+    }
+  }
+
+  // Shorts Table (Clean light table with Date, Title, Views, Likes, Duration)
+  const tbody = document.getElementById("ddShortsTableBody");
+  if (!tbody) return;
+
+  const displayShorts = shorts.slice(0, 30);
+  if (displayShorts.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--dd-muted); padding: 32px;">No shorts recorded in this date range.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = displayShorts.map(s => {
+    const durSec = s.durationSeconds || 45;
+    const durFormatted = durSec >= 60 ? `${Math.floor(durSec / 60)}m ${durSec % 60}s` : `${durSec}s`;
+
+    return `
+      <tr>
+        <td style="color: var(--dd-muted); white-space: nowrap;">${formatDDDateDisplay(s.publishedAt)}</td>
+        <td><a class="dd-table-link" href="https://www.youtube.com/watch?v=${s.id}" target="_blank" rel="noopener">${s.title}</a></td>
+        <td class="dd-td-num dd-highlight-amber">${formatDDNumber(s.viewCount)}</td>
+        <td class="dd-td-num">${formatDDNumber(s.likeCount)}</td>
+        <td style="color: var(--dd-muted);">${durFormatted}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function renderDeepDiveTable() {
+  const streams = getDDLast28DaysStreams();
+
+  // 1. Render Subject Filter Tabs
+  const tabsContainer = document.getElementById("ddSubjectFilterTabs");
+  if (tabsContainer) {
+    const subjCounts = { ALL: streams.length };
+    streams.forEach(s => {
+      subjCounts[s.subject] = (subjCounts[s.subject] || 0) + 1;
+    });
+
+    const activeSubj = deepDiveState.subjectFilter;
+    const subjects = ["ALL", ...Object.keys(subjCounts).filter(k => k !== "ALL").sort()];
+
+    tabsContainer.innerHTML = subjects.map(sub => {
+      const label = sub === "ALL" ? `All (${subjCounts.ALL})` : `${sub} (${subjCounts[sub] || 0})`;
+      return `
+        <button type="button" class="dd-tab-btn ${sub === activeSubj ? "active" : ""}" data-sub-filter="${sub}">
+          ${label}
+        </button>
+      `;
+    }).join("");
+
+    tabsContainer.querySelectorAll(".dd-tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        deepDiveState.subjectFilter = btn.dataset.subFilter;
+        deepDiveState.tablePage = 1;
+        renderDeepDiveTable();
+      });
+    });
+  }
+
+  // 2. Filter & Sort Table Rows
+  let filtered = streams;
+  if (deepDiveState.subjectFilter !== "ALL") {
+    filtered = filtered.filter(s => s.subject === deepDiveState.subjectFilter);
+  }
+
+  const query = (deepDiveState.tableSearchQuery || "").toLowerCase();
+  if (query) {
+    filtered = filtered.filter(s => s.title.toLowerCase().includes(query));
+  }
+
+  // Sort
+  const sortCol = deepDiveState.tableSortCol;
+  const isAsc = deepDiveState.tableSortAsc;
+  filtered.sort((a, b) => {
+    let valA = a[sortCol];
+    let valB = b[sortCol];
+    if (sortCol === "views" || sortCol === "likes" || sortCol === "comments" || sortCol === "durationSec") {
+      valA = Number(valA || 0);
+      valB = Number(valB || 0);
+    } else {
+      valA = String(valA || "").toLowerCase();
+      valB = String(valB || "").toLowerCase();
+    }
+    if (valA < valB) return isAsc ? -1 : 1;
+    if (valA > valB) return isAsc ? 1 : -1;
+    return 0;
+  });
+
+  // 3. Paginate
+  const totalFiltered = filtered.length;
+  const page = deepDiveState.tablePage;
+  const pageSize = deepDiveState.tablePageSize;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+  const startIdx = (page - 1) * pageSize;
+  const pagedRows = filtered.slice(startIdx, startIdx + pageSize);
+
+  const tbody = document.getElementById("ddStreamsTableBody");
+  if (tbody) {
+    if (pagedRows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 36px; color: var(--dd-muted);">No streams match your filter.</td></tr>';
+    } else {
+      tbody.innerHTML = pagedRows.map(s => {
+        const subClass = "dd-sub-" + (s.subject || "Other").replace(/\s+/g, "_");
+
+        return `
+          <tr>
+            <td style="color: var(--dd-muted); white-space: nowrap;">${formatDDDateDisplay(s.liveDate || s.publishedAt)}</td>
+            <td><a class="dd-table-link" href="https://www.youtube.com/watch?v=${s.id}" target="_blank" rel="noopener" title="${s.title}">${s.title}</a></td>
+            <td><span class="dd-subject-chip ${subClass}">${s.subjectIcon || ""} ${s.subject}</span></td>
+            <td class="dd-td-num ${s.views >= 5000 ? "dd-highlight-emerald" : ""}">${formatDDNumber(s.views)}</td>
+            <td class="dd-td-num">${formatDDNumber(s.likes)}</td>
+            <td class="dd-td-num" style="color: var(--dd-muted);">${s.durationFormatted}</td>
+            <td class="dd-td-num">${formatDDNumber(s.comments)}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+  }
+
+  // 4. Update Pagination Controls
+  const pageInfo = document.getElementById("ddStreamsPageInfo");
+  if (pageInfo) {
+    const endIdx = Math.min(startIdx + pageSize, totalFiltered);
+    pageInfo.textContent = totalFiltered > 0 ? `Showing ${startIdx + 1}–${endIdx} of ${totalFiltered} streams` : "Showing 0 streams";
+  }
+
+  const prevBtn = document.getElementById("ddStreamsPrevBtn");
+  const nextBtn = document.getElementById("ddStreamsNextBtn");
+  if (prevBtn) prevBtn.disabled = page <= 1;
+  if (nextBtn) nextBtn.disabled = page >= totalPages;
+}
+
+function setupDeepDiveListeners() {
+  if (deepDiveListenersInitialized) return;
+  deepDiveListenersInitialized = true;
+
+  // Channel select change
+  const channelSelect = document.getElementById("deepDiveChannelSelect");
+  if (channelSelect) {
+    channelSelect.addEventListener("change", (e) => {
+      loadDeepDiveData(e.target.value);
+    });
+  }
+
+  // Refresh button
+  const refreshBtn = document.getElementById("deepDiveRefreshBtn");
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      if (deepDiveState.selectedChannelId) {
+        loadDeepDiveData(deepDiveState.selectedChannelId, true);
+      }
+    });
+  }
+
+  // Date Pickers (filters Daily Live Analysis section)
+  const fromPicker = document.getElementById("ddDailyFrom");
+  const toPicker = document.getElementById("ddDailyTo");
+  if (fromPicker && toPicker) {
+    fromPicker.addEventListener("change", (e) => {
+      deepDiveState.dateFrom = e.target.value;
+      renderDeepDiveDailyAnalysis();
+    });
+    toPicker.addEventListener("change", (e) => {
+      deepDiveState.dateTo = e.target.value;
+      renderDeepDiveDailyAnalysis();
+    });
+  }
+
+  // Date presets for Daily Live Analysis (Today & Yesterday, Last 7D, Last 28D, All Time)
+  document.querySelectorAll("[data-dd-preset]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("[data-dd-preset]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      const preset = btn.dataset.ddPreset;
+      deepDiveState.datePreset = preset;
+
+      const dates = (deepDiveState.data?.liveStreams || []).map(s => s.liveDate || s.publishedAt.slice(0, 10)).filter(Boolean);
+      if (dates.length === 0) return;
+
+      const uniqueDays = [...new Set(dates)].sort().reverse();
+
+      if (preset === "recent") {
+        if (uniqueDays.length >= 2) {
+          deepDiveState.dateTo = uniqueDays[0];
+          deepDiveState.dateFrom = uniqueDays[1];
+        } else if (uniqueDays.length === 1) {
+          deepDiveState.dateTo = uniqueDays[0];
+          deepDiveState.dateFrom = uniqueDays[0];
+        }
+      } else if (preset === "7d") {
+        const latest = new Date(uniqueDays[0] + "T12:00:00");
+        const minDate = new Date(latest.getTime() - 6 * 86400000);
+        deepDiveState.dateFrom = minDate.toISOString().slice(0, 10);
+        deepDiveState.dateTo = uniqueDays[0];
+      } else if (preset === "28d") {
+        const latest = new Date(uniqueDays[0] + "T12:00:00");
+        const minDate = new Date(latest.getTime() - 27 * 86400000);
+        deepDiveState.dateFrom = minDate.toISOString().slice(0, 10);
+        deepDiveState.dateTo = uniqueDays[0];
+      } else if (preset === "all") {
+        deepDiveState.dateFrom = uniqueDays[uniqueDays.length - 1];
+        deepDiveState.dateTo = uniqueDays[0];
+      }
+
+      if (fromPicker) fromPicker.value = deepDiveState.dateFrom;
+      if (toPicker) toPicker.value = deepDiveState.dateTo;
+
+      renderDeepDiveDailyAnalysis();
+    });
+  });
+
+  // Views Over Time chart subject filter
+  const subjFilter = document.getElementById("ddViewsTimeSubjectFilter");
+  if (subjFilter) {
+    subjFilter.addEventListener("change", (e) => {
+      deepDiveState.viewsTimeSubject = e.target.value;
+      renderDeepDiveViewsOverTimeChart();
+    });
+  }
+
+  // Views Over Time mode toggle (weekly vs per-stream)
+  document.querySelectorAll("[data-time-view]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("[data-time-view]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      deepDiveState.viewsTimeMode = btn.dataset.timeView;
+      renderDeepDiveViewsOverTimeChart();
+    });
+  });
+
+  // Table search input
+  const tableSearchInput = document.getElementById("ddStreamsSearchInput");
+  if (tableSearchInput) {
+    let timeout = null;
+    tableSearchInput.addEventListener("input", (e) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        deepDiveState.tableSearchQuery = e.target.value;
+        deepDiveState.tablePage = 1;
+        renderDeepDiveTable();
+      }, 200);
+    });
+  }
+
+  // Table sortable headers
+  document.querySelectorAll("th.dd-sortable").forEach(th => {
+    th.addEventListener("click", () => {
+      const col = th.dataset.ddSort;
+      if (deepDiveState.tableSortCol === col) {
+        deepDiveState.tableSortAsc = !deepDiveState.tableSortAsc;
+      } else {
+        deepDiveState.tableSortCol = col;
+        deepDiveState.tableSortAsc = false;
+      }
+      renderDeepDiveTable();
+    });
+  });
+
+  // Table pagination buttons
+  const prevBtn = document.getElementById("ddStreamsPrevBtn");
+  const nextBtn = document.getElementById("ddStreamsNextBtn");
+  if (prevBtn) {
+    prevBtn.addEventListener("click", () => {
+      if (deepDiveState.tablePage > 1) {
+        deepDiveState.tablePage--;
+        renderDeepDiveTable();
+      }
+    });
+  }
+  if (nextBtn) {
+    nextBtn.addEventListener("click", () => {
+      deepDiveState.tablePage++;
+      renderDeepDiveTable();
+    });
+  }
+}
 
 
 
